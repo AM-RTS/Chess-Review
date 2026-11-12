@@ -12,7 +12,14 @@ function board(t,pgn) {
   animations.push(animation);return animation;
  };
  a.dom.window.HTMLElement.prototype.getAnimations=function(){return animations.filter(a=>a.node===this&&!a.cancelled);};
- for(const [name,square]of Object.entries(a.run('sqByName')))square.getBoundingClientRect=()=>({left:(name.charCodeAt(0)-97)*100,top:(8-Number(name[1]))*100});
+ for(const [name,square]of Object.entries(a.run('sqByName')))square.getBoundingClientRect=()=>({left:(name.charCodeAt(0)-97)*100,top:(8-Number(name[1]))*100,width:100,height:100});
+ const nativeRect=a.dom.window.HTMLElement.prototype.getBoundingClientRect;
+ a.dom.window.HTMLElement.prototype.getBoundingClientRect=function(){
+  if(!this.classList.contains('sq-badge'))return nativeRect.call(this);
+  const r=this.parentElement.getBoundingClientRect(),size=42*(a.state.settings.badgeScale??1);
+  return {left:r.left+(this.parentElement.classList.contains('right-col')?79:93)-size/2,
+    top:r.top+(this.parentElement.classList.contains('top-row')?22:7)-size/2,width:size,height:size};
+ };
  return {...a,animations};
 }
 const slides=a=>a.animations.filter(n=>n.frames[0].transform?.startsWith('translate(')&&n.frames.at(-1).transform==='translate(0, 0)');
@@ -59,7 +66,7 @@ test('drag release, disabled animation and reduced motion do not slide pieces',t
 });
 
 test('feedback grows and settles once; analysis refresh does not restart it',t=>{
- const a=board(t,'1. e4 e5');a.state.classif[1]='best';a.call('go',1);
+ const a=board(t,'1. e4 e5');a.state.classif[1]='great';a.call('go',1);
  const badge=a.animations.find(n=>n.node.classList.contains('sq-badge'));assert.ok(badge);assert.equal(badge.options.duration,1300);
  a.call('paintBoard');assert.equal(a.animations.filter(n=>n.node.classList.contains('sq-badge')).length,1);
  a.call('go',0);assert.equal(badge.cancelled,true);
@@ -76,7 +83,7 @@ test('promotion reaches the correct piece and board flipping reverses slide geom
  const a=board(t,'[SetUp "1"]\n[FEN "7k/P7/8/8/8/8/8/7K w - - 0 1"]\n\n1. a8=Q+');a.call('go',1);
  assert.equal(slides(a)[0].node.dataset.piece,'wQ');
  a.call('go',0);a.state.flipped=true;a.call('buildBoard');
- for(const [name,square]of Object.entries(a.run('sqByName')))square.getBoundingClientRect=()=>({left:(7-(name.charCodeAt(0)-97))*100,top:(Number(name[1])-1)*100});
+ for(const [name,square]of Object.entries(a.run('sqByName')))square.getBoundingClientRect=()=>({left:(7-(name.charCodeAt(0)-97))*100,top:(Number(name[1])-1)*100,width:100,height:100});
  a.call('go',1);assert.equal(slides(a).at(-1).frames[0].transform,'translate(0px, -100px)');
 });
 
@@ -97,4 +104,29 @@ test('late live feedback animates once and category upgrades keep one matching f
  a.call('paintBoard');assert.equal(a.animations.filter(n=>n.node.classList.contains('sq-badge')).length,1);
  v.positions[1].classif='brilliant';a.call('paintBoard');
  const flashes=a.dom.window.document.querySelectorAll('.move-feedback-square');assert.equal(flashes.length,1);assert.equal(flashes[0].style.background,'var(--q-brilliant)');
+});
+
+
+test('badge starts over its own piece even when the corner is tucked or scaled',t=>{
+ const a=board(t,'[SetUp "1"]\n[FEN "7k/P7/8/8/8/8/8/7K w - - 0 1"]\n\n1. a8=Q+');
+ a.state.settings.badgeScale=1.5;a.state.classif[1]='great';a.call('go',1);
+ const badge=a.animations.find(n=>n.node.classList.contains('sq-badge'));
+ const corner=badge.node.getBoundingClientRect(),square=badge.node.parentElement.getBoundingClientRect();
+ const [x,y]=badge.frames[1].transform.match(/translate\(([-.\d]+)px, ([-.\d]+)px\)/).slice(1).map(Number);
+ assert.equal(corner.left+corner.width/2+x,square.left+square.width/2);
+ assert.equal(corner.top+corner.height/2+y,square.top+square.height*.625);
+});
+
+
+for(const category of ['best','excellent','good','book','inacc','mistake','miss','blunder','forced'])test(category+' has a static badge while the piece still slides',t=>{
+ const a=board(t,'1. e4 e5');a.state.classif[1]=category;a.call('go',1);
+ assert.equal(slides(a).length,1);
+ assert.equal(a.animations.some(n=>n.node.classList.contains('sq-badge')),false);
+ assert.equal(a.dom.window.document.querySelector('.move-feedback-square'),null);
+});
+
+test('downgrading special feedback removes the animated flash without starting an ordinary badge effect',t=>{
+ const a=board(t,'1. e4 e5');a.state.classif[1]='great';a.call('go',1);assert.ok(a.dom.window.document.querySelector('.move-feedback-square'));
+ a.state.classif[1]='best';a.call('paintBoard');assert.equal(a.dom.window.document.querySelector('.move-feedback-square'),null);
+ assert.equal(a.animations.filter(n=>n.node.classList.contains('sq-badge')).length,1);
 });

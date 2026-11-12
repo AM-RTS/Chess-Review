@@ -3017,10 +3017,17 @@ function animateBoardFeedback(badge) {
     old.getAnimations?.().forEach(animation => animation.cancel());
     old.remove();
   }
+  if (!["great", "brilliant"].includes(badge.dataset.category)) return;
+  const square = badge.parentElement.getBoundingClientRect(), corner = badge.getBoundingClientRect();
+  if (!square.width || !corner.width) return;
+  const x = square.left + square.width / 2 - corner.left - corner.width / 2;
+  const y = square.top + square.height * .625 - corner.top - corner.height / 2;
+  const scale = square.width * .7 * (S.settings.badgeScale ?? 1) / corner.width;
+  const origin = `translate(${x}px, ${y}px)`;
   badge.animate([
-    {opacity: 0, transform: "translate(-102%, 132%) scale(.4)", offset: 0, easing: "cubic-bezier(0,0,.2,1)"},
-    {opacity: 1, transform: "translate(-102%, 132%) scale(1.82)", offset: 3 / 13},
-    {opacity: 1, transform: "translate(-102%, 132%) scale(1.82)", offset: 10 / 13, easing: "ease-in-out"},
+    {opacity: 0, transform: `${origin} scale(${scale * .4})`, offset: 0, easing: "cubic-bezier(0,0,.2,1)"},
+    {opacity: 1, transform: `${origin} scale(${scale})`, offset: 3 / 13},
+    {opacity: 1, transform: `${origin} scale(${scale})`, offset: 10 / 13, easing: "ease-in-out"},
     {opacity: 1, transform: "none", offset: 1},
   ], {duration: 1300, easing: "linear"});
   const flash = el("span", {class: "move-feedback-square", "aria-hidden": "true",
