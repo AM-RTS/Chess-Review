@@ -7,6 +7,11 @@ import {createImportRequest} from "./lib/import-request.js";
 
 const $ = (id) => document.getElementById(id);
 const statusEl = $("status");
+$("openBoard").addEventListener("click", async()=>{
+  if(activeImport){const operation=activeImport;operation.request.cancel();finishImport(operation);}
+  try {await browserAPI.tabs.create({url:browserAPI.runtime.getURL("analysis.html#analysis")});window.close();}
+  catch(error){setStatus(error.message,true);}
+});
 let activeImport = null;
 function beginImport() {
   activeImport?.request.cancel();

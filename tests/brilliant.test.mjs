@@ -42,27 +42,27 @@ test('the only legal blocking move remains Best rather than a voluntary sacrific
   a.call('computeDerived'); assert.equal(S.classif[1], 'best');
 });
 
-test('clearly winning positions require scored alternatives and reject another easy win', t => {
+test('a sound best sacrifice can be Brilliant in a winning position with other winning alternatives', t => {
   const a = app(t), S = offerGame(a, [{ cp: 1000 }, { cp: 1000 }]);
   S.bests[0].bestmove = 'd1d5';
-  a.call('computeDerived'); assert.equal(S.classif[1], 'best');
+  a.call('computeDerived'); assert.equal(S.classif[1], 'brilliant');
   S.bests[0].lines = [{ score: { cp: 1000 }, pv: 'd1d5', depth: 16, bound: 'exact', multipv: 1 }, { score: { cp: 900 }, pv: 'd1e1', depth: 16, bound: 'exact', multipv: 2 }];
-  a.call('computeDerived'); assert.equal(S.classif[1], 'best');
+  a.call('computeDerived'); assert.equal(S.classif[1], 'brilliant');
   S.bests[0].lines[1].score = { cp: 0 };
   a.call('computeDerived'); assert.equal(S.classif[1], 'brilliant');
 });
 
-test('bounded, stale or metadata-free alternatives do not certify competitive relevance', t => {
+test('irrelevant alternatives do not invalidate exact played-move evidence', t => {
   const a = app(t), S = offerGame(a, [{ cp: 1000 }, { cp: 1000 }]);
   S.bests[0] = { bestmove: 'd1d5', lines: [
     { score: { cp: 1000 }, pv: 'd1d5', depth: 16, bound: 'exact', multipv: 1 },
     { score: { cp: 0 }, pv: 'd1e1', depth: 15, bound: 'exact', multipv: 2 },
   ] };
-  a.call('computeDerived'); assert.equal(S.classif[1], 'best');
+  a.call('computeDerived'); assert.equal(S.classif[1], 'brilliant');
   S.bests[0].lines[1].depth = 16; S.bests[0].lines[1].bound = 'lowerbound';
-  a.call('computeDerived'); assert.equal(S.classif[1], 'best');
+  a.call('computeDerived'); assert.equal(S.classif[1], 'brilliant');
   S.bests[0].lines[1].bound = 'upperbound';
-  a.call('computeDerived'); assert.equal(S.classif[1], 'best');
+  a.call('computeDerived'); assert.equal(S.classif[1], 'brilliant');
   S.bests[0].lines = S.bests[0].lines.map(({ score, pv }) => ({ score, pv }));
   // The played score itself now lacks admission metadata: withhold the grade.
   a.call('computeDerived'); assert.equal(S.classif[1], null);
@@ -76,12 +76,12 @@ test('an explicitly bounded score cannot certify a brilliant in an undecided pos
   a.call('computeDerived'); assert.notEqual(S.classif[1], 'brilliant');
 });
 
-test('mate maintenance is not automatically brilliant, and mate delays stay Good', t => {
+test('sound mating sacrifices do not need a unique winning continuation; mate delays stay Good', t => {
   const a = app(t), S = offerGame(a, [{ mate: 3 }, { mate: 2 }]);
   S.bests[0].bestmove = 'd1d5';
-  a.call('computeDerived'); assert.equal(S.classif[1], 'best');
+  a.call('computeDerived'); assert.equal(S.classif[1], 'brilliant');
   S.bests[0].lines = [{ score: { mate: 3 }, pv: 'd1d5', depth: 16, bound: 'exact', multipv: 1 }, { score: { mate: 5 }, pv: 'd1e1', depth: 16, bound: 'exact', multipv: 2 }];
-  a.call('computeDerived'); assert.equal(S.classif[1], 'best');
+  a.call('computeDerived'); assert.equal(S.classif[1], 'brilliant');
   S.bests[0].lines[1].score = { cp: 0 };
   a.call('computeDerived'); assert.equal(S.classif[1], 'brilliant');
   S.evals[1] = { mate: 5 }; S.bests[0].bestmove = 'd1e1'; S.bests[0].lines = [];
@@ -101,7 +101,7 @@ test('black root alternatives use mover-relative rather than white-relative scor
   const a = app(t), fen = 'k2q4/8/8/8/8/4P3/8/7K b - - 0 1';
   const S = loadGame(a, pgn(fen, '1... Qd4'), [{ cp: -1000 }, { cp: -1000 }]);
   S.bests[0] = { bestmove: 'd8d4', lines: [{ score: { cp: 1000 }, pv: 'd8d4', depth: 16, bound: 'exact', multipv: 1 }, { score: { cp: 900 }, pv: 'd8e8', depth: 16, bound: 'exact', multipv: 2 }] };
-  a.call('computeDerived'); assert.equal(S.classif[1], 'best');
+  a.call('computeDerived'); assert.equal(S.classif[1], 'brilliant');
   S.bests[0].lines[1].score = { cp: 0 };
   a.call('computeDerived'); assert.equal(S.classif[1], 'brilliant');
 });
@@ -224,17 +224,25 @@ test('evaluation-dependent eligibility is refreshed without invalidating materia
   a.call('computeDerived'); assert.equal(S.classif[1], null);
 });
 
-test('brilliant annotations preserve evaluation-based accuracy and rating predictions', t => {
+test('brilliant annotations preserve evaluation-based accuracy', t => {
   const a = app(t), S = offerGame(a);
   a.context.__calibration = JSON.parse(fs.readFileSync(new URL('../data/calibration.json', import.meta.url)));
   a.run('CALIB = __calibration'); S.players.w.rating = 1600;
   S._sacCache[1] = false; a.call('computeDerived');
-  const rating = () => a.call('estimateElo', S.accElo.w, S.players.w.rating);
-  const before = { accuracy: S.acc.w, rating: rating(), moveAccuracy: S.accMove[1] };
+  const before = { accuracy: S.acc.w, moveAccuracy: S.accMove[1] };
   assert.equal(S.classif[1], 'excellent');
   S._sacCache[1] = true; a.call('computeDerived'); assert.equal(S.classif[1], 'brilliant');
-  assert.deepEqual({ accuracy: S.acc.w, rating: rating(), moveAccuracy: S.accMove[1] }, before);
+  assert.deepEqual({ accuracy: S.acc.w, moveAccuracy: S.accMove[1] }, before);
   S._sacCache[1] = false; a.call('computeDerived');
   assert.equal(S.acc.w, before.accuracy);
-  assert.equal(rating(), before.rating);
+});
+
+test('a winning position cannot hide substantial centipawn loss behind a saturated outcome curve',t=>{
+  const a=app(t),S=offerGame(a,[{cp:2000},{cp:1500}]);
+  S.bests[0]={bestmove:'d1e1',lines:[
+    {score:{cp:2000},pv:'d1e1',depth:16,bound:'exact',multipv:1},
+    {score:{cp:1500},pv:'d1d5',depth:16,bound:'exact',multipv:2},
+  ]};a.call('computeDerived');assert.equal(S._sacCache[1],true);assert.notEqual(S.classif[1],'brilliant');
+  S.evals[1]={cp:1970};S.bests[0].lines[1].score.cp=1970;
+  a.call('computeDerived');assert.equal(S.classif[1],'brilliant');
 });

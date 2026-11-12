@@ -57,7 +57,7 @@ try {
     await report({done:true,ok:true,expectedUnsupported:true,workers:0});
   } else {
     const results=[];
-    for(const [build,file] of [['nnue','engine/stockfish-nnue.js'],['sf19lite','engine/stockfish-19-lite-single.js']]) {
+    for(const [build,file] of [['sf19','engine/stockfish-19-single.js'],['sf19lite','engine/stockfish-19-lite-single.js']]) {
       const engine=new Engine(file);
       try {
         await engine.setOptions({Hash:32});

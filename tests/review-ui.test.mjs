@@ -23,6 +23,16 @@ test('both live and batch failures offer a Retry button',async t=>{
   assert.match(a.dom.window.document.getElementById('reviewMount').textContent,/Retry analysis/);
 });
 
+test('a completed panel search with fewer candidates is not repeated',async t=>{
+  const a=board(t),S=a.state;a.call('exitAnalysis');S.settings.engineLines=2;
+  let searches=0;
+  S.liveEngine=fakeEngine(async()=>{searches++;return {lines:[{score:{cp:0},pv:'g1f3',depth:4}]};});
+  await a.call('requestPanelLines');await settle();
+  assert.equal(searches,1);assert.equal(S._panelCache.requested,2);
+  a.call('renderEngineCurrent');await settle();assert.equal(searches,1);
+  S.settings.engineLines=3;await a.call('requestPanelLines');await settle();assert.equal(searches,2);
+});
+
 test('credits include Stockfish 19, upstream source and contributors',t=>{
   const a=board(t);a.call('openCredits');const overlay=a.dom.window.document.querySelector('.credits-overlay');
   assert.match(overlay.textContent,/Stockfish 19/);assert.match(overlay.textContent,/aciokie/);assert.match(overlay.textContent,/neuroflowinfinix/);
@@ -70,8 +80,10 @@ test('engine loading, ready and terminal states reserve identical candidate spac
 });
 
 
-test('the retired standalone URL requires a stored game job',async t=>{
-  const a=app(t);a.dom.window.location.hash='#explore';
+test('the analysis URL opens a board while unknown jobs still require a handoff',async t=>{
+  const a=app(t);a.dom.window.location.hash='#analysis';
+  assert.equal((await a.call('loadJob')).mode,'analysis');
+  a.dom.window.location.hash='#explore';
   await assert.rejects(a.call('loadJob'),/Analysis data not found/);
   a.dom.window.location.hash='#test-game';
   a.store['job:test-game']={pgn:'1. e4 e5',meta:{},source:'pgn'};

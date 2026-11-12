@@ -51,7 +51,7 @@ const report=data=>fetch(${JSON.stringify(endpoint)},{method:'POST',body:JSON.st
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 try {
   const results=[];
-  for(const [key,file] of [['nnue','engine/stockfish-nnue.js'],['sf19lite','engine/stockfish-19-lite-single.js']]) {
+  for(const [key,file] of [['sf19','engine/stockfish-19-single.js'],['sf19lite','engine/stockfish-19-lite-single.js']]) {
     const engine=new Engine(file);
     try {
       await engine.setOptions({Hash:16,MultiPV:2});
@@ -62,7 +62,7 @@ try {
     } finally {engine.terminate();}
     const id='smoke-'+key;
     const pgn='[WhiteElo "1500"]\\n[BlackElo "1800"]\\n\\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 11. c4 c6 *';
-    await browserAPI.storage.local.set({settings:{...(key==='sf19lite'?{enginePath:'sf19'}:{}),ratingMode:'context',engineDepth:8,engineWorkers:1,depthBumped:true,sound:false,coachPlain:true},['job:'+id]:{pgn,meta:{gameId:id},source:'pgn'}});
+    await browserAPI.storage.local.set({settings:{enginePath:key,ratingMode:'context',engineDepth:8,engineWorkers:1,depthBumped:true,sound:false,coachPlain:true},['job:'+id]:{pgn,meta:{gameId:id},source:'pgn'}});
     const frame=document.createElement('iframe');frame.style='width:1680px;height:1000px';frame.src='analysis.html#'+id;document.body.append(frame);
     let saved;
     for(let i=0;i<250;i++){await wait(100);saved=(await browserAPI.storage.local.get('analysis:'+id))['analysis:'+id];if(saved)break;}
@@ -72,18 +72,19 @@ try {
     if(typeof frame.contentWindow.navigator.locks?.request!=='function')throw Error('Cross-tab library locks unavailable');
     doc.dispatchEvent(new KeyboardEvent('keydown',{key:'End',bubbles:true}));
     const glyph=doc.querySelector('.sq-badge');
-    if(!glyph?.querySelector('svg > circle')||!glyph.getAttribute('aria-label'))throw Error('Vector move glyph missing');
-    const numeral=doc.querySelector('.grade-badge .grade-numeral');
-    if(!numeral||!/^\\d+(\\.\\d)?$/.test(numeral.textContent))throw Error('Numeric category glyph missing');
-    if(glyph.querySelector('text')&&!/score /.test(glyph.getAttribute('aria-label')))throw Error('Move grade accessible label missing');
-    await report({step:'numeric-glyph',key,label:glyph.getAttribute('aria-label'),reference:numeral.textContent});
+    const artwork=glyph?.querySelector('svg > image');
+    if(!artwork||!glyph.getAttribute('aria-label')||glyph.querySelector('text'))throw Error('Default move icon missing');
+    const iconPath=artwork.getAttribute('href');
+    if(!/^icons\\/chesseditpack\\/[a-z_]+\\.png$/.test(iconPath))throw Error('Unexpected default badge artwork');
+    await new Promise((resolve,reject)=>{const image=new Image();image.onload=resolve;image.onerror=()=>reject(Error('Move icon failed to load'));image.src=iconPath;});
+    await report({step:'move-glyph',key,label:glyph.getAttribute('aria-label'),reference:iconPath});
     await report({step:'completed-review',key,positions:saved.evals.length,engineBuild:saved.engineBuild});
     doc.querySelector('[aria-label="Settings"]').click();
     [...doc.querySelectorAll('.set-tab')].find(button=>button.textContent==='Engine').click();
     const ratingSection=()=>[...doc.querySelectorAll('.set-section')].find(section=>section.textContent.includes('Estimated rating'));
     const labels=[...ratingSection().querySelectorAll('.lib-dd-opt')].map(button=>button.textContent);
     if(JSON.stringify(labels)!==JSON.stringify(['Use recorded rating','Moves only']))throw Error('Rating options missing for '+key);
-    if(key==='nnue') {
+    if(key==='sf19') {
       const tabs=[...doc.querySelectorAll('.set-tab')];
       if(JSON.stringify(tabs.map(tab=>tab.textContent))!==JSON.stringify(['Visual','Engine','Concepts']))throw Error('Concept tab order changed');
       tabs[2].click();
@@ -150,7 +151,7 @@ try {
       }
     }
     await report({step:'rating-controls',key,labels,persistedModes:['moves','context']});
-    if(key==='nnue') {
+    if(key==='sf19') {
       frame.contentWindow.__smokeResponsive();
       const sizes=[[1920,920],[1366,648],[1280,600],[1470,836],[1024,648],[820,648],[768,900],[390,844],[320,640]];
       for(const [width,height] of sizes) {
@@ -212,7 +213,7 @@ try {
   const library=(await browserAPI.storage.local.get('library')).library;
   library[0].fav=true;
   await browserAPI.storage.local.set({username:'reset-user',library,
-    settings:{boardTheme:'custom',pieceStyle:'merida',coach:'professor',soundVolume:37,enginePath:'sf19lite'},
+    settings:{boardTheme:'custom',pieceStyle:'merida',coach:'professor',soundVolume:37,enginePath:'sf19'},
     layout:{board:{x:20,y:30,w:400,h:400}},layoutMode:'custom',layoutVersion:8,
     'job:reset-smoke':resetJob});
   const before=await browserAPI.storage.local.get(null);
@@ -239,7 +240,7 @@ try {
     throw Error('Reset review did not render');
   };
   const defaults=await preferences();
-  for(const [key,value] of Object.entries({boardTheme:'maple',pieceStyle:'image',coach:'old_soviet',soundVolume:50,enginePath:'nnue'})) {
+  for(const [key,value] of Object.entries({boardTheme:'maple',pieceStyle:'image',coach:'old_soviet',soundVolume:50,enginePath:'sf19'})) {
     if(defaults.settings[key]!==value)throw Error('Reset default incorrect: '+key);
   }
   if(defaults.layoutMode!=='auto')throw Error('Reset review retained custom layout');

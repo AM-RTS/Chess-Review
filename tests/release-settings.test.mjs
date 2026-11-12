@@ -62,7 +62,7 @@ for (const previousVersion of ['0.1.0', '0.2.0', '0.2.1']) {
     a.run('S.settings = { ...DEFAULT_SETTINGS, ...__storedSettings };');
     assert.equal(a.state.settings.boardTheme, 'maple');
     assert.equal(a.state.settings.pieceStyle, 'image');
-    assert.equal(a.state.settings.enginePath, 'nnue');
+    assert.equal(a.state.settings.enginePath, 'sf19');
     assert.equal(a.state.settings.coach, 'old_soviet');
     assert.equal(a.state.settings.soundVolume, 50);
     assert.equal(Object.keys(a.state.settings.categoryNames).length, 0);

@@ -120,6 +120,34 @@ test('ongoing engine output extends the search timeout',async t=>{
   eng.worker.line('bestmove e2e4');assert.equal((await result).score.cp,12);
 });
 
+test('a silent exact played-move search stops gracefully and the queue continues',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});const eng=engine(t),fen=new Chess().fen();
+  const limited=eng.analyse(fen,16,1,null,null,{requireExact:true,searchMove:'e2e4'}),next=eng.analyse(fen,8,1);
+  await Promise.resolve();eng.worker.line('info depth 12 score cp -724 wdl 0 0 1000 pv e2e4 e7e5');
+  t.mock.timers.tick(120001);assert.equal(eng.dead,false);assert.equal(eng.worker.commands.at(-1),'stop');
+  eng.worker.line('bestmove e2e4');const result=await limited;
+  assert.equal(result.stoppedEarly,true);assert.equal(result.lines[0].depth,12);assert.equal(result.score.cp,-724);
+  eng.worker.line('info depth 8 score cp 30 pv d2d4');eng.worker.line('bestmove d2d4');
+  assert.equal((await next).stoppedEarly,undefined);t.mock.timers.tick(5001);assert.equal(eng.dead,false);
+});
+
+test('a worker ignoring graceful stop still fails within the fixed grace period',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});const eng=engine(t);
+  const failed=assert.rejects(eng.analyse(new Chess().fen(),16,1,null,null,{requireExact:true,searchMove:'e2e4'}),/timed out/);
+  await Promise.resolve();eng.worker.line('info depth 12 score cp -700 pv e2e4');
+  t.mock.timers.tick(120001);eng.worker.line('info depth 13 score cp -710 pv e2e4');
+  t.mock.timers.tick(5001);await failed;assert.equal(eng.dead,true);
+});
+
+test('bounded or incomplete evidence cannot turn a timed-out played move into a result',async t=>{
+  t.mock.timers.enable({apis:['setTimeout']});
+  for(const line of ['info depth 12 score cp -700 upperbound pv e2e4','info score cp -700 pv e2e4']){
+    const eng=engine(t),failed=assert.rejects(eng.analyse(new Chess().fen(),16,1,null,null,{requireExact:true,searchMove:'e2e4'}),/timed out/);
+    await Promise.resolve();eng.worker.line(line);
+    t.mock.timers.tick(120001);await failed;assert.equal(eng.dead,true);assert.ok(!eng.worker.commands.includes('stop'));
+  }
+});
+
 test('Stockfish 19 Lite fails cleanly if its startup is silent',async t=>{
   t.mock.timers.enable({apis:['setTimeout']});
   const eng=engine(t,{path:'engine/stockfish-19-lite-single.js',noReady:true});
@@ -205,4 +233,11 @@ test('scoring cannot attach a stale exact PV score to a different completed best
   eng.worker.line('info depth 13 score cp 300 lowerbound pv d2d4');
   eng.worker.line('bestmove d2d4');
   await assert.rejects(pending, /exact completed/);
+});
+
+
+test('full engine has no separate rating-worker lifecycle', t => {
+  const full=engine(t);
+  assert.equal(full.getRatingEngine,undefined);assert.equal(full.ratingEngine,undefined);
+  full.terminate();assert.equal(full.worker.terminated,true);
 });

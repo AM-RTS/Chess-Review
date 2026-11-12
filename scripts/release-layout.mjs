@@ -77,7 +77,7 @@ try {
   await ready(review);
   const fresh=await evaluate(review,"import('./analysis.js').then(m=>({engine:m.S.activeEngineBuild,error:m.S.analysisError,settings:m.S.settings}))");
   assert.equal(fresh.engine,'nnue');assert.equal(fresh.error,null);
-  assert.equal(fresh.settings.enginePath,'nnue');
+  assert.equal(fresh.settings.enginePath,'sf19');
   const measure=`(async()=>{const m=await import('./analysis.js');const rect=n=>{const r=n.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom}};return {width:innerWidth,height:innerHeight,zoom:await chrome.tabs.getZoom(),mode:m.S.layoutMode,desktop:document.querySelector('.stage').classList.contains('desktop-layout'),board:rect(document.querySelector('.board')),scroll:{w:document.documentElement.scrollWidth,h:document.documentElement.scrollHeight},modules:[...document.querySelectorAll('.mod')].map(n=>({key:n.dataset.mod,...rect(n)})),error:document.querySelector('#error').textContent}})()`;
   const results=[];
   const capture=async(label)=>{

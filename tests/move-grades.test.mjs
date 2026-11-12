@@ -77,6 +77,7 @@ test('provisional grades change without touching completed evaluation, accuracy 
 
 test('board score changes preserve the focused badge and update its numeral', t => {
   const a = app(t); loadGame(a, '1. e4'); a.call('computeDerived');
+  a.state.settings.badgeDesign = 'points';
   a.state.idx=1; a.state.classif[1]='good'; a.state.moveGrades[1]=5.3;
   a.call('buildUI'); a.call('buildBoard');
   const doc=a.dom.window.document, badge=doc.querySelector('.sq-badge'); badge.focus();

@@ -10,6 +10,8 @@ import {publicMoveQuality, engineExpectedPoints, contextualRating, movesOnlyRati
 import {app,loadGame} from './helpers/app.mjs';
 
 const calibration = JSON.parse(await readFile(new URL('../data/calibration.json', import.meta.url)));
+// Reproduce frozen public observations using their original protocol.
+delete calibration.twoLineRatings;
 const evidence = JSON.parse(gunzipSync(await readFile(new URL('../tools/calibration/public/sf18-evidence.json.gz', import.meta.url))));
 const expected = JSON.parse(await readFile(new URL('../tools/calibration/public/expected-scores.json', import.meta.url)));
 
@@ -32,13 +34,11 @@ test('the actual review scorer reproduces every published player-side accuracy',
       const row = expected.find(r => r.gameId === game.id && r.color === color);
       assert.equal(scored[color].accuracy, row.accuracy);
       assert.equal(scored[color].decisions, row.decisions);
-      assert.ok(Number.isFinite(scored[color].rating));
-      assert.equal(scored[color].rating, contextualRating(players[color].rating, row.accuracy, row.decisions, calibration.context.model).rating);
     }
     assert.ok(scoringEvidenceComplete(bests, game.moves.length, calibration));
     delete bests[0].calibration;
     assert.equal(scoringEvidenceComplete(bests, game.moves.length, calibration), false);
-    assert.equal(calibratedReview(positions, bests, calibration, players).w.rating, null);
+
   }
 });
 
@@ -62,16 +62,16 @@ test('SF18 searches preserve root history and use separate restricted/default an
     }};
   const result = await analyseCalibratedPosition(engine, {fen: history.initialFen, history, played: 'e2e4',
     settings: {enginePath: 'nnue', engineDepth: 16, engineHash: 16, engineSkill: 20, classifyLines: 1}, calibration, needMovesOnly: true});
-  assert.equal(calls.length, 4);
+  assert.equal(calls.length, 2);
   assert.ok(calls.every(call => call.history === history && call.config.cold && call.config.requireExact));
-  assert.deepEqual(calls.map(call => call.config.budget), [{kind: 'depth', value: 16}, {kind: 'depth', value: 16}, {kind: 'nodes', value: 20000}, {kind: 'nodes', value: 20000}]);
-  assert.deepEqual(calls.map(call => call.config.searchMove || null), [null, 'e2e4', null, 'e2e4']);
-  assert.deepEqual(options.map(value => value.Hash), [16, 32, 16]);
+  assert.deepEqual(calls.map(call => call.config.budget), [{kind: 'depth', value: 16}, {kind: 'depth', value: 16}]);
+  assert.deepEqual(calls.map(call => call.config.searchMove || null), [null, 'e2e4']);
+  assert.deepEqual(options.map(value => value.Hash), [16]);
   assert.equal(result.calibration.qualityVersion, calibration.quality.candidateVersion);
-  assert.equal(result.ratingEvidence.candidateVersion, calibration.movesOnly.sf18.candidateVersion);
+  assert.equal(result.ratingEvidence, undefined);
 });
 
-test('SF19 uses its separate fixed-node evidence and refuses the wrong engine identity', async () => {
+test('Lite uses its fixed-node analysis budget and refuses the wrong engine identity', async () => {
   const calls = [], engine = {buildKey: 'sf19lite', identity: 'Stockfish 19 Lite', async setOptions() {},
     async analyse(fen, depth, lines, history, preview, config) {calls.push(config); return {bestmove: 'e2e4', score: {cp: 0, wdl: [200, 600, 200]}};}};
   const request = {fen: new Chess().fen(), history: {initialFen: new Chess().fen(), moves: []}, played: 'e2e4',
@@ -79,8 +79,8 @@ test('SF19 uses its separate fixed-node evidence and refuses the wrong engine id
   const result = await analyseCalibratedPosition(engine, request);
   assert.equal(calls.length, 1); assert.deepEqual(calls[0].budget, {kind: 'nodes', value: 20000});
   assert.equal(result.calibration.qualityVersion, null);
-  assert.equal(result.calibration.contextVersion, calibration.context.sf19.candidateVersion);
-  assert.equal(result.ratingEvidence.candidateVersion, calibration.movesOnly.sf19.candidateVersion);
+  assert.equal(result.calibration.contextVersion, null);
+  assert.equal(result.ratingEvidence, undefined); // Archived models cannot label new searches.
   engine.identity = 'Stockfish 18'; await assert.rejects(analyseCalibratedPosition(engine, request), /identity/);
 });
 
@@ -93,12 +93,34 @@ test('SF19 setup-FEN searches stay outside the standard-start contextual model',
   assert.equal(result.calibration.contextVersion, null);
 });
 
-test('rating settings persist and saved analyses without played-root evidence cannot restore', async t => {
-  const a = app(t), S = loadGame(a, '1. e4 e5');
-  a.replace('startAnalysis', () => {}); a.replace('renderSettings', () => {}); a.replace('renderEngineCurrent', () => {});
-  await a.call('setEngineSetting', 'ratingMode', 'moves');
-  assert.equal(S.settings.ratingMode, 'moves');
-  const saved = {pgn: S.pgn, settingsKey: a.call('analysisSettingsKey'), bests: S.bests, evals: S.evals};
-  assert.equal(a.call('canRestoreAnalysis', saved), false);
-  assert.ok(a.writes.some(write => write.settings?.ratingMode === 'moves'));
+
+
+
+test('full SF19 has independent accuracy evidence and cannot inherit Lite rating models', async t => {
+  const a = app(t), state = loadGame(a, '1. e4');
+  const engine = {buildKey: 'sf19', identity: 'Stockfish 19', async setOptions() {},
+    async analyse() {return {bestmove: 'e2e4', score: {cp: 20, wdl: [250, 550, 200]}};}};
+  const root = await analyseCalibratedPosition(engine, {fen: state.positions[0].fen,
+    history: {initialFen: state.positions[0].fen, moves: []}, played: 'e2e4',
+    settings: {enginePath: 'sf19', engineDepth: 16}, calibration, needMovesOnly: true});
+  assert.equal(root.calibration.build, 'sf19');
+  assert.equal(root.calibration.nodes, null);
+  assert.equal(root.calibration.contextVersion, null);
+  assert.equal(root.ratingEvidence, undefined);
+  root.ratingEvidence = {candidateVersion: calibration.movesOnly.sf19.candidateVersion,
+    best: root.score, played: root.score, bestmove: root.bestmove};
+  const result = calibratedReview(state.positions, [root], calibration, {w: {rating: 1800}});
+  assert.equal(result.w.accuracy, 100);
+  assert.equal(result.w.rating, undefined);
+  assert.equal(result.w.ratingMoves, undefined);
+  assert.equal(scoringEvidenceComplete([root], 1, calibration), true);
+});
+
+
+test('full SF19 without a compatible model does not invent rating evidence or launch Lite', async () => {
+  let searches=0;
+  const full={buildKey:'sf19',identity:'Stockfish 19',async setOptions(){},async getRatingEngine(){assert.fail('Separate rating engine');},async analyse(){searches++;return {bestmove:'e2e4',score:{cp:50,wdl:[300,600,100]}};}};
+  const fen=new Chess().fen();
+  const root=await analyseCalibratedPosition(full,{fen,history:{initialFen:fen,moves:[]},played:'e2e4',settings:{enginePath:'sf19',engineDepth:16,engineHash:16,engineSkill:20},calibration});
+  assert.equal(searches,1);assert.equal(root.score.cp,50);assert.equal(root.ratingEvidence,undefined);
 });

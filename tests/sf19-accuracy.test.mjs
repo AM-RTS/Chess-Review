@@ -35,27 +35,24 @@ test('SF19 game accuracy gives catastrophic moves weight without penalizing perf
   assert.throws(() => sf19GameAccuracy([{eligible: true, quality: NaN}]), /Invalid move quality/);
 });
 
-test('SF19 production review penalizes both colors and keeps WDL rating independent of accuracy', t => {
+test('SF19 production review penalizes both colors', t => {
   const a = app(t), S = loadGame(a, '1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 11. c4 c6 12. Nc3');
   const wdl = [300, 400, 300];
   S.bests = S.positions.slice(1).map(() => ({bestmove: 'different', score: {cp: 800, wdl}, playedScore: {cp: 500, wdl},
-    calibration: {version: calibration.version, build: 'sf19lite', nodes: 20000},
-    ratingEvidence: {candidateVersion: calibration.movesOnly.sf19.candidateVersion,
-      best: {cp: 800, wdl}, played: {cp: 500, wdl}, bestmove: 'different'}}));
+    calibration: {version: calibration.version, build: 'sf19lite', nodes: 20000,
+      ratingVersion:calibration.twoLineRatings.sf19lite.candidateVersion,ratingSettingsMatch:true}}));
+  S.bests.push(structuredClone(S.bests[0]));
   const first = calibratedReview(S.positions, S.bests, calibration);
   for (const color of ['w', 'b']) {
     assert.ok(first[color].complete);
     assert.ok(Math.abs(first[color].accuracy - 68.47133037336374) < 1e-10);
-    assert.ok(Number.isFinite(first[color].rating));
-    assert.equal(first[color].ratingMethod, 'moves');
-    assert.ok(first[color].ratingMoves.every(move => move.loss === 0));
   }
   // Improving centipawn observations with identical WDL changes display quality only.
   for (const root of S.bests) root.playedScore.cp = 799;
   const second = calibratedReview(S.positions, S.bests, calibration);
   for (const color of ['w', 'b']) {
     assert.equal(second[color].accuracy, 100);
-    assert.equal(second[color].rating, first[color].rating);
+    assert.equal(second[color].rating, undefined);
   }
 });
 
@@ -65,7 +62,7 @@ test('saved accuracy from the old scoring version cannot restore', t => {
     calibration: {version: calibration.version, build: 'sf19lite', nodes: 20000}}));
   const saved = {pgn: S.pgn, settingsKey: a.call('analysisSettingsKey'), bests: S.bests, evals: S.evals};
   assert.equal(a.call('canRestoreAnalysis', saved), true);
-  saved.settingsKey = saved.settingsKey.replace('public-scoring-v4', 'public-scoring-v3');
+  saved.settingsKey = saved.settingsKey.replace('public-scoring-v7', 'public-scoring-v3');
   assert.equal(a.call('canRestoreAnalysis', saved), false);
 });
 

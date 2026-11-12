@@ -122,16 +122,15 @@ claim that no lookup identifiers ever leave the device.
 
 Both engine pairs are original release assets from Nathan Rugg's Stockfish.js:
 
-- 18 release: https://github.com/nmrugg/stockfish.js/releases/tag/v18.0.0
-- 18 readable source/build instructions: https://github.com/nmrugg/stockfish.js/tree/v18.0.0
 - 19 release: https://github.com/nmrugg/stockfish.js/releases/tag/v19.0.0
 - 19 readable source/build instructions: https://github.com/nmrugg/stockfish.js/tree/v19.0.0
 
-Exact original asset URLs and SHA-256 values are in engine/checksums.json. The 18
-pair is renamed to stockfish-nnue locally; file contents are unchanged. Networks
+Exact original asset URLs and SHA-256 values are in engine/checksums.json. Networks
 are embedded in WASM. No engine compilation or minification is performed here.
-Stockfish 18 NNUE is the default; 19 Lite is optional. Saved engine preferences
-migrate to supported builds. The engine tooltips disclose the Lite tradeoff.
+Full Stockfish 19 is the default; 19 Lite remains optional. Saved Stockfish 18
+preferences migrate to full Stockfish 19. Both engines provide their own analysis;
+estimated ratings reuse their before/after two-line evaluations with a separately
+fitted model per build. No extra rating pass or companion worker runs.
 
 lib/chess.js is derived from `dist/esm/chess.js` in Jeff Hlywa's chess.js **1.0.0**
 official npm package:

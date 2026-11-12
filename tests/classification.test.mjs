@@ -141,6 +141,7 @@ test('stale, bounded, duplicated, illegal or metadata-free alternatives cannot c
 
 test('Great evidence uses the configured loss boundary and does not change evaluation scores', t => {
   const a = app(t), {S,ply} = greatScenario(a);
+  S.settings.enginePath = 'nnue'; // This fixture exercises the historical calibration curve.
   a.run('CALIB.display = "winpct"');
   a.call('computeDerived');
   const scores = JSON.stringify({acc:S.acc,elo:S.accElo,perMove:S.accMove,evals:S.evals});
@@ -171,4 +172,13 @@ test('failed-punish Miss requires giving back the clear advantage',t=>{
   loadGame(a,'1. e4 e5 2. Nf3',[0,0,500,0].map(cp=>({cp})));
   a.call('computeDerived');assert.equal(S.classif[3],'miss');
   const v=branch(a,1);a.call('classifyVariationMoves');assert.equal(v.positions[2].classif,'miss');
+});
+
+test('a clearly winning runner-up prevents Great for either side',t=>{
+  const a=app(t);
+  for(const color of ['w','b']){
+    const {S,ply}=greatScenario(a,color);S.bests[ply-1].lines[1].score.cp=250;
+    a.call('computeDerived');assert.equal(S.classif[ply],'best');
+    const v=branch(a);a.call('classifyVariationMoves');assert.equal(v.positions[ply].classif,'best');
+  }
 });

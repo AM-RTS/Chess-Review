@@ -2,11 +2,43 @@
 
 Free, open-source game review for your online chess games, powered by Stockfish NNUE running
 locally in your browser. One click turns any **Chess.com** or **Lichess** game into a full
-review — accuracy scores, move-by-move classifications, an evaluation graph, and an estimated
-rating. No account, no server, no manual PGN copying.
+review — accuracy scores, move-by-move classifications, an evaluation graph. No account, no server, no manual PGN copying.
 
-**Learn with Chess Review** opens from the button beneath Engine, beside the move
-controls. By default, the review panels morph into one learning workspace while
+The automatic review layout gives the board the largest area and groups moves,
+accuracy, and Engine beside it. Commentary and Concepts share an insights column.
+**Move breakdown** and **Evaluation graph** expand when needed; narrow windows
+stack the groups. **Reorganize** still supports saved custom panel arrangements.
+
+**Analysis** in the review header or **Open analysis board** in the extension popup
+opens an independent starting board. Play either side, undo/redo or branch from an
+earlier move, and see live Stockfish evaluation, candidate lines, and category badges.
+Use **Load position or game** for FEN/PGN input, **Reset board** for a fresh board,
+and **Copy FEN / Copy PGN** to export. Reload restores that tab's explored line and
+selected move. Live feedback can change while Stockfish searches; this mode does
+not generate game accuracy or save experiments to the library.
+
+Analysis and panel lines default to two, with two as the minimum configurable
+value. Both engines use two analysis lines by default.
+
+Great candidates automatically receive a separate two-line verification when a
+best, high-quality move may be the only good option, including defensive resources
+without a preceding opponent error. Another move that retains a clear advantage
+(the existing clear-advantage setting, default +2 pawns) or also forces mate rules
+out Great, even when the best move scores higher. Routine equal-material exchanges that preserve
+the evaluation, straightforward material grabs, and immediate mate finishes retain
+their ordinary grade. Exchange balance includes the whole capture/recapture sequence.
+Brilliant independently recognizes sound voluntary piece sacrifices with near-best
+evaluation; other winning alternatives do not disqualify them. In addition to the
+expected-score quality threshold, the existing Excellent centipawn tolerance prevents
+throwing away material in an already winning position from receiving Brilliant.
+Both are available in reviews and live analysis. Brilliant
+retains priority; Great verification never replaces accuracy evidence.
+
+
+Moves with only one legal reply use the supplied Forced arrow badge on the board,
+while remaining included under Best in the breakdown.
+
+**Learn with Chess Review** opens from the button beneath Concepts. By default, the review panels morph into one learning workspace while
 the board and top bar stay in place. **Settings → Visual → Learning experience**
 offers **Morph in place**, **Morph in place 2**, **Morph in place 3**, **Studio Morph**, **Minimal morph**, **Board morph**, and
 the original **Separate page** layout. Each morph has its own design and timing. The transition
@@ -29,7 +61,7 @@ and Engine. A separate **Concepts** panel to the right of Accuracy and Engine
 uses those same findings,
 ordered by likely relevance and phrased from your playing side. It follows the
 selected move, includes every match, and separates insights with space. Its top
-aligns with the coach commentary panel; its bottom aligns with Engine. Expand
+sits below the coach commentary, with its own scrolling area. Expand
 an insight's evidence to inspect the original explanation and exact scope.
 Accuracy and the existing move commentary retain their scoring and behavior.
 
@@ -57,12 +89,10 @@ Click the image below to watch the introduction video.
 - **One-click review** of any Chess.com or Lichess game — or paste a game URL / raw PGN.
 - **Accuracy estimates** for both players, calculated from local Stockfish analysis using the extension's scoring rules. Scores can differ from other review tools.
 - **Move classifications** from Brilliant to Blunder, with an evaluation graph and best-move arrows.
-- **Estimated rating** — a rough guide to the level each player performed at in the game.
 - **Opening detection** from an offline book, named even for PGNs without headers.
 - **Rated alternatives** while reviewing a game, using the same classification rules
   as the played moves. Exploring does not change the original game or its accuracy.
-- **Stockfish 18 NNUE is the default**, with **Stockfish 19 Lite** as a compact
-  alternative. Both are bundled locally and available in Settings.
+- **Stockfish 19 is the default full engine**, with **Stockfish 19 Lite** available as a smaller alternative. Both run locally.
 - **Recoverable analysis errors** with a Retry button; unfinished reviews are not
   saved as completed games.
 - **Analysis runs on your machine** — game lookup requests go directly to the chess platforms; no developer backend or analytics.
@@ -77,16 +107,16 @@ You can also paste a game URL or PGN into the popup. If your username cannot be
 detected, enter it once; it is remembered locally. Chess Review is intended for
 review after play.
 
-Settings let you choose an engine, rating mode, board, pieces, sounds, coach and
+Settings let you choose an engine, board, pieces, sounds, coach and
 category-badge appearance. Badge numbers describe move categories; they are
 separate from position evaluation and game accuracy.
 
-Both engines offer **Use recorded rating** and **Moves only**. The first compares
-your performance with public players near the rating saved in the game; the
-second ignores that rating and estimates a blitz rating level from your choices.
-Without a saved rating, the review falls back to Moves only, which needs at least
-ten nonforced decisions. Each engine uses its own models.
+Estimated performance ratings have been removed. Recorded player ratings from game headers remain visible.
 
+If a difficult played-move search exceeds the silence limit, review can continue
+using its last valid completed-depth score. A visible time-limited analysis note
+warns that accuracy and badges may change with deeper analysis. Missing valid
+evidence or an unresponsive engine still produces an error.
 ## Scoring and reproducibility
 
 Chess Review is open source and uses local Stockfish analysis with documented
@@ -94,7 +124,7 @@ scoring models. The repository includes the fitting tools, public-data evidence
 and reference results needed to inspect and reproduce the bundled numerical
 models.
 
-With Node.js 24 or later, reproduce the bundled coefficients and reference scores
+With Node.js 24 or later, reproduce the historical calibration and reference scores
 offline:
 
 ```sh
@@ -103,7 +133,13 @@ node tools/calibration/reproduce-public.mjs
 
 This check replays the included evidence without rerunning engine searches. The
 [methodology](tools/calibration/PUBLIC_METHOD.md) documents the inputs,
-calculations and limitations. Estimated ratings are approximate.
+calculations and limitations. Historical rating experiments remain archived; the app no longer estimates ratings.
+
+The full Git repository also retains the historical two-line rating observations,
+fitting protocol and validation in
+[E281](research/experiments/E281-two-line-rating/plan.md). Replay each engine's
+refit with `node research/experiments/E281-two-line-rating/code/verify.mjs sf19 adjacent`
+or `sf19lite adjacent`; these commands use the guarded public-data loader and run no engine searches.
 
 Move categories follow documented classification rules. See the
 [special annotations guide](tools/calibration/BRILLIANT_MOVES.md) for their
@@ -113,7 +149,7 @@ supporting files.
 ## Research and future methods
 
 The separate [research workspace](research/README.md) investigates improvements
-to accuracy, estimated ratings and move categories against our own documented
+to accuracy and move categories against our own documented
 baseline. It records reproducible experiments, successful and unsuccessful
 findings, evidence limits and implementation decisions. Research candidates
 become part of the extension only through a documented promotion. See the

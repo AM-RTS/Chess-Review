@@ -101,7 +101,7 @@ test('progress counts out-of-order results but navigation only exposes a contigu
 });
 
 test('cache restore requires complete data for the same game and engine settings',t=>{
-  const a=app(t);const S=loadGame(a,'1. e4');
+  const a=app(t);const S=loadGame(a,'1. e4');S.settings.enginePath='nnue';
   S.bests[0].playedScore={cp:0};
   S.bests[0].calibration={version:a.run('CALIB.version'),build:'nnue'};
   const saved={pgn:S.pgn,settingsKey:a.call('analysisSettingsKey'),bests:S.bests,evals:S.evals};
@@ -116,20 +116,20 @@ test('cache restore requires complete data for the same game and engine settings
 
 test('removed engines migrate safely and full SF19 cached analysis is invalidated', t => {
   const a = app(t); const S = loadGame(a, '1. e4');
-  S.settings.enginePath = 'sf19';
+  S.settings.enginePath = 'nnue';
   const saved = { pgn:S.pgn, settingsKey:a.call('analysisSettingsKey'), bests:S.bests, evals:S.evals };
   a.call('migrateEngineSettings', S.settings);
-  assert.equal(S.settings.enginePath, 'sf19lite');
+  assert.equal(S.settings.enginePath, 'sf19');
   assert.equal(a.call('canRestoreAnalysis', saved), false);
-  for (const old of ['wasm', 'asm', 'unknown', undefined]) {
+  for (const old of ['nnue', 'wasm', 'asm', 'unknown', undefined]) {
     S.settings.enginePath = old; a.call('migrateEngineSettings', S.settings);
-    assert.equal(S.settings.enginePath, 'nnue');
+    assert.equal(S.settings.enginePath, 'sf19');
   }
   S.settings.enginePath = 'sf19lite'; a.call('migrateEngineSettings', S.settings);
   assert.equal(S.settings.enginePath, 'sf19lite');
 });
 
-for (const preferred of ['nnue', 'sf19lite']) {
+for (const preferred of ['sf19', 'sf19lite']) {
   test(`${preferred} falls back to the other bundled engine on startup failure`, async t => {
     const a = app(t); a.state.settings.enginePath = preferred;
     const paths = [], engines = [];
@@ -140,7 +140,7 @@ for (const preferred of ['nnue', 'sf19lite']) {
     };
     a.replace('setActiveEngineBuild', () => {});
     const eng = await a.call('createEngine');
-    assert.equal(eng.buildKey, preferred === 'nnue' ? 'sf19lite' : 'nnue');
+    assert.equal(eng.buildKey, preferred === 'sf19' ? 'sf19lite' : 'sf19');
     assert.equal(engines[0].dead, true);
     assert.equal(paths.length, 2);
     assert.notEqual(paths[0], paths[1]);
@@ -157,11 +157,12 @@ test('batch review sends full move prefixes and refuses FEN-only saved analyses'
   const a=app(t),S=loadGame(a,'1. Nf3 Nf6 2. Ng1 Ng8');quiet(a);
   const calls=[];S.settings.engineWorkers=1;a.replace('saveToLibrary',()=>{});
   a.replace('createEngine',async()=>fakeEngine(async(fen,depth,lines,history)=>{
-    calls.push({fen,history});return {score:{cp:0},bestmove:'g1f3',lines:[]};
+    calls.push({fen,history,lines});return {score:{cp:0},bestmove:'g1f3',lines:[]};
   }));
   await a.call('startAnalysis');
-  assert.deepEqual(Array.from(calls.at(-1).history.moves),['g1f3','g8f6','f3g1','f6g8']);
-  assert.equal(calls.at(-1).history.initialFen,S.positions[0].fen);
+  const lastPrimary=calls.find(call=>call.lines===2&&call.history.moves.length===S.total);
+  assert.deepEqual(Array.from(lastPrimary.history.moves),['g1f3','g8f6','f3g1','f6g8']);
+  for(const call of calls) assert.equal(call.history.initialFen,S.positions[0].fen);
   const settingsKey=JSON.stringify([S.settings.enginePath,S.settings.engineDepth,S.settings.classifyLines,S.settings.engineHash,S.settings.engineSkill]);
   assert.equal(a.call('canRestoreAnalysis',{pgn:S.pgn,settingsKey,bests:S.bests,evals:S.evals}),false);
 });

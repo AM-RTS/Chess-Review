@@ -6,6 +6,8 @@ import {calibratedReview, scoringEvidenceComplete} from '../lib/calibrated-revie
 import {app, loadGame} from './helpers/app.mjs';
 
 const calibration = JSON.parse(await readFile(new URL('../data/calibration.json', import.meta.url)));
+// Archived protocol fixtures; current shared-search models have dedicated tests.
+delete calibration.twoLineRatings;
 // Authored legal opening sequence, not a sampled game or human-quality label.
 const pgn = '1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 11. c4 c6 12. Nc3';
 function fixture(build) {
@@ -50,39 +52,10 @@ for (const build of ['nnue', 'sf19lite']) for (const color of ['w', 'b']) {
     }
   });
 
-  test(`${build} ${color}: stale or unidentified rating observations are refused`, () => {
-    for (const mutate of [
-      root => {root.calibration.version = 'stale';},
-      root => {delete root.calibration;},
-      root => {root.calibration.build = 'unknown';},
-      root => {root.ratingEvidence.candidateVersion = 'stale';},
-    ]) {
-      const data = fixture(build), before = review(data);
-      const index = color === 'w' ? 0 : 1, other = color === 'w' ? 'b' : 'w';
-      assert.ok(Number.isFinite(before[color].rating));
-      mutate(data.bests[index]);
-      const after = review(data);
-      assert.equal(after[color].rating, null);
-      assert.equal(after[other].rating, before[other].rating);
-    }
-  });
+
 }
 
-test('SF19 ratings require the fixed-node protocol; SF18 rating evidence stays independent of display compatibility', () => {
-  for (const nodes of [null, 19999, 80000]) {
-    const data = fixture('sf19lite'); data.bests[0].calibration.nodes = nodes;
-    assert.equal(review(data).w.rating, null);
-  }
-  const data = fixture('nnue'), before = review(data);
-  for (const root of data.bests) {
-    root.calibration.qualityVersion = null;
-    delete root.playedScore;
-  }
-  for (const color of ['w', 'b']) {
-    assert.equal(review(data)[color].accuracy, null);
-    assert.equal(review(data)[color].rating, before[color].rating);
-  }
-});
+
 
 test('cache admission rejects malformed scores, sparse roots and mixed engines', () => {
   for (const build of ['nnue', 'sf19lite']) {

@@ -1,5 +1,15 @@
 # Reproducible public calibration
 
+2026-11-12: current SF19/Lite rating estimates use separate two-line models and
+reuse before/after root evaluations. No independent rating search runs. Their
+protocol, registered inputs, failures, refits and development validation are in
+[`E281`](../../research/experiments/E281-two-line-rating/RESULT.md). Run its
+`code/verify.mjs sf19 adjacent` or `sf19lite adjacent` from the full Git repository
+for exact refitting and production-runtime rating replay. The evidence and
+commands below retain the historical calibration for reproducibility; they do
+not refit the new two-line models. These estimates can be wrong by hundreds of
+points; no cross-platform rating or established-strength accuracy is claimed.
+
 The public calibration makes the numerical model, source evidence and fitting
 procedure inspectable. All inputs needed to reconstruct the published SF18
 accuracy/context, SF19 contextual peers and separate SF18/SF19 moves-only rating coefficients are included

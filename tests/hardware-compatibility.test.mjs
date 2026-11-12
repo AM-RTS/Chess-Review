@@ -54,13 +54,13 @@ test('a pool with different startup fallbacks uses one scoring engine throughout
   const a=app(t),S=loadGame(a,'1. e4');S.settings.engineWorkers=2;
   Object.defineProperty(a.context.navigator,'hardwareConcurrency',{value:4,configurable:true});
   for(const name of ['paintBoard','renderEvalBar','renderMoves','renderControls','renderReview','renderStats','renderEngineCurrent','renderBestArrow','renderGraph'])a.replace(name,()=>{});
-  const searches=[],engines=['nnue','sf19lite'].map(buildKey=>Object.assign(fakeEngine(async()=>{
+  const searches=[],engines=['sf19','sf19lite'].map(buildKey=>Object.assign(fakeEngine(async()=>{
     searches.push(buildKey);return {score:{cp:0},bestmove:'e2e4',lines:[]};
   }),{buildKey}));
   let started=0;a.replace('createEngine',async()=>engines[started++]);a.replace('saveToLibrary',()=>{});
   await a.call('startAnalysis');
-  assert.ok(searches.length);assert.ok(searches.every(build=>'nnue'===build));
-  assert.ok(engines.every(engine=>engine.dead));assert.equal(S.activeEngineBuild,'nnue');assert.equal(S.engineFallbackBuild,null);
+  assert.ok(searches.length);assert.ok(searches.every(build=>'sf19'===build));
+  assert.ok(engines.every(engine=>engine.dead));assert.equal(S.activeEngineBuild,'sf19');assert.equal(S.engineFallbackBuild,null);
 });
 
 test('capability detection distinguishes missing WASM and unsupported SIMD',()=>{

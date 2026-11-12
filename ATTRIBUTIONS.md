@@ -65,17 +65,15 @@ Distributed by Lichess (lila); high-quality vector SVGs.
 - **Files:** `engine/stockfish*.js`, `engine/stockfish*.wasm`
 - **Project:** Stockfish.js by Nathan Rugg (nmrugg), a JS/WASM port of Stockfish —
   https://github.com/nmrugg/stockfish.js
-- **Default:** Stockfish.js 18.0.0 Lite single-threaded NNUE, copyright 2026 Chess.com, LLC.
-  Official files `stockfish-18-lite-single.js` and `.wasm` are renamed locally to
-  `engine/stockfish-nnue.js` and `.wasm` without content changes.
-  - Release: https://github.com/nmrugg/stockfish.js/releases/tag/v18.0.0
-  - Source/build instructions: https://github.com/nmrugg/stockfish.js/tree/v18.0.0
+- **Default:** Full Stockfish.js 19.0.0 single-threaded, copyright 2026 Chess.com, LLC.
+  - Official files `engine/stockfish-19-single.js` and `.wasm`, unchanged.
+  - Release: https://github.com/nmrugg/stockfish.js/releases/tag/v19.0.0
+  - Source/build instructions: https://github.com/nmrugg/stockfish.js/tree/v19.0.0
 - **Alternative:** Stockfish.js 19.0.0 Lite single-threaded NNUE, copyright 2026 Chess.com, LLC.
   Official files `engine/stockfish-19-lite-single.js` and `.wasm`, unchanged.
   - Release: https://github.com/nmrugg/stockfish.js/releases/tag/v19.0.0
   - Source/build instructions: https://github.com/nmrugg/stockfish.js/tree/v19.0.0
-- **NNUE networks:** Stockfish team and contributors; 18 lite by Linmiao Xu (linrock),
-  19 lite by sscg13. See https://tests.stockfishchess.org/nns
+- **NNUE networks:** Stockfish team and contributors; 19 lite by sscg13. See https://tests.stockfishchess.org/nns
 - **License:** GPLv3, included in [LICENSE](LICENSE).
   https://github.com/nmrugg/stockfish.js/blob/v19.0.0/Copying.txt
 - **Upstream:** Stockfish by T. Romstad, M. Costalba, J. Kiiski, G. Linscott and contributors:
@@ -125,6 +123,22 @@ Distributed by Lichess (lila); high-quality vector SVGs.
   The SVG files above are reference snapshots of this design, checked against the
   shared renderer by `tests/move-grades.test.mjs`; they are not loaded by the review UI.
 - **License:** GNU GPL v3.0, under the project's [LICENSE](LICENSE).
+
+## ChessEditPack move icons
+- **Active files:** `icons/chesseditpack/*.png`, copied unchanged from the user-supplied
+  `D:/Agent/Others/ChessVideoEdit/media/badges/` files. Brilliant, Great, Best,
+  Excellent, Inaccuracy, and Mistake use its `alight/` variant; the other categories
+  use the top-level 256px artwork.
+- **Use:** default category artwork in place of numeric badges. Great uses
+  `great_find.png`, Inaccuracy uses `inaccuracy.png`, and Miss uses the red cross
+  from `incorrect_256x.png` as `incorrect.png`.
+  Highlight colors match the PNG palette. The earlier supplied SVGs remain as source artwork.
+- **License:** no license or authorship notice was included in the supplied pack;
+  these assets are not covered by the original badge artwork declaration above.
+
+- **Forced board marker:** `icons/chesseditpack/forced.png`, copied unchanged from
+  `D:/Agent/Others/ChessVideoEdit/media/badges/forced_256x.png`. Forced moves remain
+  included under Best in the breakdown; the dedicated artwork appears on the board.
 
 ## Transparent move labels
 - **Files:** `icons/labels/*.png` and `lib/category-label.js`.

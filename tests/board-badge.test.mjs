@@ -17,9 +17,10 @@ function reveal(a) {
   return tip;
 }
 
-test('every category automatically displays its transparent PNG without hovering', t => {
+test('every breakdown category displays its bundled transparent PNG without hovering', t => {
   const a = review(t), doc = a.dom.window.document;
-  for (const [cls, cfg] of Object.entries(a.run('QUALITY'))) {
+  for (const cls of a.run('QUALITY_ORDER')) {
+    const cfg=a.run('QUALITY')[cls];
     a.state.classif[1] = cls; a.call('paintBoard');
     const tip = reveal(a), img = tip.querySelector('img');
     assert.equal(tip.getAttribute('aria-label'), cfg.name);

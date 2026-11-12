@@ -32,6 +32,7 @@ const HANDSHAKE_TIMEOUT_MS = 60000;
 // A silent worker must not leave review or Explore waiting forever. Reset on engine output
 // so a deep search that is still reporting progress is allowed to continue.
 const SEARCH_SILENCE_TIMEOUT_MS = 120000;
+const STOP_GRACE_MS = 5000;
 
 // Both bundled builds use SIMD. Trying the other build cannot fix a missing
 // browser/CPU capability, so report the shared requirement before loading either.
@@ -50,7 +51,7 @@ export function engineCapabilityError(wasm = globalThis.WebAssembly) {
 }
 
 export class Engine {
-  constructor(scriptPath = "engine/stockfish-nnue.js", wasmPath = scriptPath.replace(/\.js$/, ".wasm")) {
+  constructor(scriptPath = "engine/stockfish-19-single.js", wasmPath = scriptPath.replace(/\.js$/, ".wasm")) {
     // Give Stockfish the explicit wasm path via the URL hash (nmrugg reads
     // self.location.hash as the wasm path). Use an absolute extension URL so it's
     // unambiguous regardless of the worker's base URL.
@@ -136,8 +137,18 @@ export class Engine {
   }
 
   _watchSearch() {
+    // Output after stop must not extend the fixed grace period.
+    if(this.current?.stoppedEarly)return;
     clearTimeout(this._searchTimer);
-    this._searchTimer = setTimeout(() => this._onWorkerError("engine search timed out"), SEARCH_SILENCE_TIMEOUT_MS);
+    this._searchTimer = setTimeout(() => {
+      const job=this.current,score=job?.lastScore,line=job?.lines[1];
+      const valid=Number.isFinite(score?.cp)||(Number.isInteger(score?.mate)&&score.mate!==0);
+      if(job?.requireExact&&job.searchMove&&valid&&line?.depth>0&&line.score===score&&line.pv.split(' ')[0]===job.searchMove){
+        job.stoppedEarly=true;
+        this._searchTimer=setTimeout(()=>this._onWorkerError("engine search timed out after stop"),STOP_GRACE_MS);
+        this.stop();
+      }else this._onWorkerError("engine search timed out");
+    }, SEARCH_SILENCE_TIMEOUT_MS);
   }
 
   _handshake() {
@@ -224,6 +235,7 @@ export class Engine {
         score: job.lastScore || { cp: 0 },
         pv: job.lastPv || "",
         lines,
+        ...(job.stoppedEarly?{stoppedEarly:true}:{}),
       });
       this._pump();
     }

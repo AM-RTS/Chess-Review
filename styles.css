@@ -29,6 +29,7 @@
   --q-excellent: #81b64c;
   --q-good:      #95b776;
   --q-book:      #a88865;
+  --q-forced:    #96af8b;
   --q-inacc:     #f7c531;
   --q-mistake:   #f9a85a;
   --q-miss:      #f5746a;
@@ -1189,11 +1190,11 @@ button { font-family: inherit; cursor: pointer; }
 .category-name-reset { flex: 0 0 22px; padding: 0; height: 22px; border: 0; border-radius: 5px;
   background: var(--panel-2); color: var(--ink-2); font-size: 18px; cursor: pointer; }
 .category-name-reset:hover, .category-name-reset:focus-visible { color: var(--accent); }
-.qbreak-row .ct { text-align: center; font-weight: 700; border-radius: 6px; transition: color .12s, background .12s; }
+.qbreak-row .ct { color: var(--category-color); text-align: center; font-weight: 700; border-radius: 6px; transition: color .12s, background .12s; }
 /* a non-zero count is clickable — it jumps to that player's first move of the category */
 .qbreak-row .ct:not(.zero) { cursor: pointer; }
 .qbreak-row .ct:not(.zero):hover { color: var(--accent); background: var(--panel-3); }
-.qbreak-row .ct.zero { color: var(--ink-3); opacity: .5; }
+.qbreak-row .ct.zero { color: var(--category-color); }
 .qbreak-row .ct.left { text-align: right; }
 /* expander: folds the whole category list open/closed */
 .qbreak-toggle {
@@ -1669,183 +1670,109 @@ button { font-family: inherit; cursor: pointer; }
   --pad-l: 36px;          /* keeps the board clear of the Library tab on the left edge */
   --sb: 10px;             /* room for a vertical scrollbar in the 100vw maths */
 }
-/* Column wrappers: boxes only in the wide layout; elsewhere (and on the custom canvas) their
-   modules are placed on the stage directly. */
-.side, .side-cols, .side-a, .side-b { display: contents; }
-
-.stage.auto {
-  --ui-scale: 1;
-  display: grid; gap: var(--gap);
-  justify-content: center; align-items: start;
-  padding: var(--gap) var(--gap) var(--gap) var(--pad-l);
-  --board-hmax: calc(100dvh - var(--topbar-h) - 2 * var(--gap) - 2 * var(--strip-h));
-  --board: max(var(--board-min), min(var(--board-hmax), var(--board-wmax)));
-}
-.stage.auto.no-evalbar { --eb-w: 0px; }
+/* Grouped automatic workspace; the custom canvas retains independent modules. */
+.workspace-board, .analysis-column, .insights-column { display: contents; }
 .player-strip { height: var(--strip-h); }
 .stage.canvas .player-strip { height: auto; }
-.stage.auto .mod[data-mod="evalbar"] { grid-area: eval; align-self: stretch; margin: var(--strip-h) 0; }
-.stage.auto .mod[data-mod="board"] { grid-area: board; width: var(--board); }
-.stage.auto .mod[data-mod="review"] { grid-area: review; height: var(--review-h); }
-.stage.auto .mod[data-mod="moves"] { grid-area: moves; }
-.stage.auto .mod[data-mod="graph"] { grid-area: graph; }
-.stage.auto .mod[data-mod="controls"] { grid-area: controls; }
-.stage.auto .mod[data-mod="learn"] { grid-area: learn; }
-.stage.auto .mod[data-mod="accuracy"] { grid-area: acc; }
-.stage.auto .mod[data-mod="engine"] { grid-area: engine; }
-.stage.auto .mod[data-mod="concepts"] { grid-area: concepts; }
-.stage.auto .evalgraph svg { height: clamp(64px, 11vh, 120px); }
-/* The coach portrait sits in the insight panel's top-right corner. The opening and move rows stop
-   short of it, and a float beside the first lines of commentary keeps the text clear of it; the
-   lines below the portrait run the full width. The portrait is ~1:1 and its rig draws its own
-   buttons below the face, so every coach box keeps height ≈ width × 1.02 (face and shoulders). */
-.stage.auto.has-coach .insight-panel .ip-opening { padding-right: var(--coach-clear); }
-.stage.auto.has-coach .insight-panel .ip-head { padding-right: calc(var(--coach-clear) - var(--pad)); }
-.stage.auto.has-coach .insight-panel .ip-text::before {
-  content: ""; float: right; width: calc(var(--coach-clear) - var(--pad)); height: var(--coach-float-h);
+.stage.auto.workspace-layout {
+  --topbar-h: 44px; --strip-h: 20px; --eb-w: 22px; --ui-scale: 1;
+  --board-size: max(260px, min(calc(100dvh - 100px), calc(100vw - 660px)));
+  display: grid; grid-template-columns: calc(var(--board-size) + var(--eb-w) + 10px) minmax(260px, 360px) minmax(280px, 380px);
+  gap: 12px; align-items: stretch; justify-content: center;
+  width: 100%; max-width: none; height: calc(100dvh - var(--topbar-h));
+  padding: 8px 18px 8px 34px; box-sizing: border-box;
 }
-
-/* wide: eval | board | side */
-@media (min-width: 1100px) and (min-height: 600px) {
-  .stage.auto {
-    --side-w: calc(580px * var(--ui-scale));
-    --board-min: 360px;
-    --board-wmax: calc(100vw - var(--sb) - var(--pad-l) - var(--gap) - var(--eb-w) - var(--side-w) - 2 * var(--gap));
-    --coach-clear: 176px;
-    --side-top: calc(var(--strip-h) / var(--ui-scale));
-    /* the portrait's bottom (188px down the side column) minus where the commentary starts
-       (89px into the insight panel) */
-    --coach-float-h: max(0px, calc(99px - var(--side-top)));
-    grid-template-columns: var(--eb-w) var(--board) var(--side-w);
-    grid-template-areas: "eval board side" "concepts concepts concepts";
-  }
-  /* The side column is exactly as tall as the board block (contain: size keeps the long move list
-     from stretching the row) and starts level with the board, under the top player strip, so the
-     coach can lean over the insight panel into that strip. On big screens it is scaled up with the
-     board, so the panels keep their proportion to it. */
-  .stage.auto .side {
-    grid-area: side; align-self: stretch; contain: size;
-    position: relative; zoom: var(--ui-scale);
-    display: flex; flex-direction: column; gap: var(--gap);
-    padding-top: var(--side-top);
-  }
-  .stage.auto .side-cols {
-    flex: 1; min-height: 0;
-    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: var(--gap);
-  }
-  .stage.auto .side-a, .stage.auto .side-b { display: flex; flex-direction: column; gap: var(--gap); min-height: 0; }
-  .stage.auto .mod[data-mod="review"] { flex: none; }
-  .stage.auto .mod[data-mod="moves"] { flex: 1 1 0; min-height: 120px; }
-  .stage.auto .mod[data-mod="accuracy"] { flex: 0 1 auto; }
-  .stage.auto .mod[data-mod="engine"] { flex: 1 1 0; min-height: 140px; }
-  /* at the top of the side column, so the head leans up into the strip beside the board */
-  .stage.auto .mod[data-mod="coach"] { position: absolute; top: 0; right: 16px; width: 184px; height: 188px; }
+.stage.auto.workspace-layout.no-evalbar { --eb-w: 0px; }
+.stage.auto.workspace-layout .mod { grid-area: auto; min-width: 0; min-height: 0; contain: none; }
+.stage.auto.workspace-layout .workspace-board {
+  display: grid; grid-template-columns: var(--eb-w) minmax(0,1fr); grid-template-rows: auto;
+  grid-template-areas: "eval board"; gap: 6px; align-content: start; min-width: 0;
 }
-/* A separate right-hand concepts column when the unzoomed grid has room. */
-@media (min-width: 1500px) and (min-height: 600px) {
-  .stage.auto:not(.desktop-layout) {
-    --concepts-w: 294px;
-    --board-wmax: calc(100vw - var(--sb) - var(--pad-l) - var(--gap) - var(--eb-w) - var(--side-w) - var(--concepts-w) - 3 * var(--gap));
-    grid-template-columns: var(--eb-w) var(--board) var(--side-w) var(--concepts-w);
-    grid-template-areas: "eval board side concepts";
+.stage.auto.workspace-layout .mod[data-mod="board"] { grid-area: board; width: var(--board-size); }
+.stage.auto.workspace-layout .mod[data-mod="evalbar"] { grid-area: eval; margin: var(--strip-h) 0; }
+.stage.auto.workspace-layout .mod[data-mod="controls"] { padding: 6px 8px; }
+.stage.auto.workspace-layout .board-wrap, .stage.auto.workspace-layout .board { width: var(--board-size); height: var(--board-size); }
+.stage.auto.workspace-layout .player-strip { min-height: 20px; padding: 1px 0; box-sizing: border-box; }
+.app:has(> .stage.auto.workspace-layout) .topbar { height: 44px; }
+.stage.auto.workspace-layout .player-strip .avatar { width: 18px; height: 18px; font-size: 11px; border-radius: 5px; }
+.stage.auto.workspace-layout .player-strip .who { transform: none; flex-direction: row; align-items: center; gap: 8px; }
+.stage.auto.workspace-layout .player-strip .name, .stage.auto.workspace-layout .player-strip .name .elo { font-size: 11px; }
+.stage.auto.workspace-layout .captured { height: 10px; min-height: 10px; margin-top: 0; }
+.stage.auto.workspace-layout .cap-tray { min-height: 10px; height: 10px; padding: 0 2px; }
+.stage.auto.workspace-layout .cap-pc { width: 10px; height: 10px; }
+.stage.auto.workspace-layout .controls { flex-wrap: wrap; gap: 6px; }
+.stage.auto.workspace-layout .controls button { height: 36px; min-width: 38px; }
+.stage.auto.workspace-layout .controls button.play { min-width: 56px; }
+.feedback-topbar { text-decoration: none; }
+.stage.auto.workspace-layout .player-strip .name { font-size: 13px; }
+.stage.auto.workspace-layout .analysis-column, .stage.auto.workspace-layout .insights-column {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: auto;
+}
+.stage.auto.workspace-layout .analysis-column > .mod, .stage.auto.workspace-layout .insights-column > .mod { flex: none; }
+.stage.auto.workspace-layout .analysis-column > .mod + .mod, .stage.auto.workspace-layout .insights-column > .mod + .mod:not([data-mod="coach"]) { border-top: 1px solid var(--line); }
+.stage.auto.workspace-layout .analysis-column .panel, .stage.auto.workspace-layout .insights-column .panel { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.stage.auto.workspace-layout .mod[data-mod="moves"] { flex: 1 0 180px; height: 180px; }
+.stage.auto.workspace-layout .mod[data-mod="engine"] { max-height: min(280px, 36dvh); overflow: auto; }
+.stage.auto.workspace-layout .mod[data-mod="review"] { height: 118px; min-height: 118px; }
+.stage.auto.workspace-layout .mod[data-mod="concepts"] { flex: 1 0 220px; height: 220px; min-height: 0; }
+.stage.auto.workspace-layout .mod[data-mod="learn"] { padding: 10px 12px; }
+.stage.auto.workspace-layout .mod[data-mod="coach"] { position: absolute; top: 8px; right: 12px; width: 90px; height: 98px; border: 0; }
+.stage.auto.workspace-layout.has-coach .insight-panel .ip-opening { padding-right: 96px; }
+.stage.auto.workspace-layout.has-coach .insight-panel .ip-head { padding-right: 96px; }
+.stage.auto.workspace-layout.has-coach .insight-panel .ip-text::before { content: ""; float: right; width: 84px; height: 44px; }
+.stage.auto.workspace-layout .panel-head { padding: 8px 12px; }
+.stage.auto.workspace-layout .panel-head h3 { font-size: 11px; letter-spacing: 1px; }
+.stage.auto.workspace-layout .panel-body { padding: 9px 12px; }
+.stage.auto.workspace-layout .acc-head { padding-bottom: 7px; }
+.stage.auto.workspace-layout .acc-head + .panel-body { padding-top: 4px; }
+.stage.auto.workspace-layout .acc-val { font-size: 30px; }
+.stage.auto.workspace-layout .acc-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stage.auto.workspace-layout .acc-cell { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 5px 8px; align-items: center; }
+.stage.auto.workspace-layout .acc-cell .acc-name { grid-column: 1; grid-row: 1; }
+.stage.auto.workspace-layout .acc-cell .acc-val { grid-column: 2; grid-row: 1; }
+.stage.auto.workspace-layout .acc-cell .acc-bar, .stage.auto.workspace-layout .acc-cell .est-rating { grid-column: 1 / -1; }
+.stage.auto.workspace-layout .acc-cell.right { text-align: right; }
+.stage.auto.workspace-layout .acc-row { gap: 8px; }
+.stage.auto.workspace-layout .ml-move { font-size: 15px; min-height: 32px; }
+.stage.auto.workspace-layout .ml-num { font-size: 12px; }
+.stage.auto.workspace-layout .engine-line .moves { font-size: 14px; }
+.stage.auto.workspace-layout .engine-line .ev { font-size: 14px; }
+.stage.auto.workspace-layout .coach-insights-body { padding: 10px 12px; font-size: 13px; line-height: 1.5; }
+.stage.auto.workspace-layout .coach-move-quality, .stage.auto.workspace-layout .coach-status, .stage.auto.workspace-layout .coach-perspective { font-size: 12px; }
+.stage.auto.workspace-layout .coach-insight details { font-size: 12px; }
+.stage.auto.workspace-layout .ip-text { font-size: 14px; line-height: 1.55; }
+.accuracy-breakdown { margin-top: 10px; border-top: 1px solid var(--line); }
+.accuracy-breakdown > summary, .graph-disclosure > summary { padding: 10px 0; color: var(--ink-2); font-size: 12px; font-weight: 650; cursor: pointer; }
+.accuracy-breakdown > summary:focus-visible, .graph-disclosure > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; }
+.accuracy-breakdown .qbreak { max-height: 300px; overflow: auto; margin-top: 4px; }
+.graph-disclosure { width: 100%; min-width: 0; }
+.graph-disclosure > summary { padding: 12px 14px; }
+.graph-disclosure .panel-head { display: none; }
+.stage.auto.workspace-layout .evalgraph svg { height: 110px; }
+.stage.canvas .graph-disclosure { overflow: auto; }
+.stage.workspace-layout.learning-active .workspace-board > .mod,
+.stage.workspace-layout.learning-active .analysis-column .mod,
+.stage.workspace-layout.learning-active .insights-column .mod { visibility: hidden; }
+.stage.workspace-layout.learning-active .analysis-column, .stage.workspace-layout.learning-active .insights-column { background: transparent; border-color: transparent; }
+@media (min-width: 820px) and (max-width: 1199.98px) {
+  .stage.auto.workspace-layout {
+    --board-size: max(260px, min(calc(100dvh - 100px), calc(100vw - 410px)));
+    grid-template-columns: calc(var(--board-size) + var(--eb-w) + 10px) minmax(280px, 1fr); height: auto;
   }
-  .stage.auto:not(.desktop-layout) .mod[data-mod="concepts"] { margin-top: var(--side-top); }
+  .stage.auto.workspace-layout .analysis-column { height: calc(var(--board-size) + 90px); }
+  .stage.auto.workspace-layout .insights-column { grid-column: 1 / -1; min-height: 420px; }
+  .stage.auto.workspace-layout .mod[data-mod="concepts"] { flex-basis: 320px; height: 320px; }
 }
-/* short but wide windows (laptops): the side column starts with the top strip, for more room, and
-   the coach then covers the insight panel's whole right side */
-@media (min-width: 1100px) and (min-height: 600px) and (max-height: 799.98px) {
-  .stage.auto { --side-top: 0px; --coach-float-h: 0px; }
-  .stage.auto.has-coach .insight-panel .ip-body { padding-right: var(--coach-clear); }
-  .stage.auto.has-coach .insight-panel .ip-head { padding-right: 0; }
-}
-@media (min-width: 1400px) and (min-height: 1000px) { .stage.auto { --ui-scale: 1.1; } }
-@media (min-width: 1650px) and (min-height: 1120px) { .stage.auto { --ui-scale: 1.2; } }
-@media (min-width: 1900px) and (min-height: 1240px) { .stage.auto { --ui-scale: 1.3; } }
-
-/* medium: eval | board | side (insight, moves, controls); accuracy, graph and engine below */
-@media (min-width: 820px) and (max-width: 1099.98px), (min-width: 1100px) and (max-height: 599.98px) {
-  .stage.auto {
-    --side-w: clamp(300px, 32vw, 360px);
-    --board-min: 300px;
-    --board-wmax: calc(100vw - var(--sb) - var(--pad-l) - var(--gap) - var(--eb-w) - var(--side-w) - 2 * var(--gap));
-    --review-h: 200px;
-    grid-template-columns: var(--eb-w) var(--board) var(--side-w);
-    grid-template-rows: var(--review-h) minmax(0, 1fr) auto auto auto;
-    grid-template-areas:
-      "eval  board review"
-      "eval  board moves"
-      "eval  board controls"
-      "graph graph graph"
-      "acc   acc   engine"
-      "learn learn learn"
-      "concepts concepts concepts";
-  }
-  /* the move list fills whatever the board leaves, without its length stretching the row */
-  .stage.auto .mod[data-mod="moves"] { align-self: stretch; contain: size; min-height: 120px; }
-  .stage.auto .mod[data-mod="engine"] { align-self: stretch; }
-}
-
-/* medium and narrow: a small coach in the insight panel's top-right corner, beside the opening
-   and move rows; the commentary below it runs the full width */
-@media (max-width: 1099.98px), (max-height: 599.98px) {
-  .stage.auto { --coach-clear: 116px; --coach-float-h: 22px; }
-  .stage.auto .mod[data-mod="coach"] {
-    grid-area: review; justify-self: end; align-self: start;
-    width: 104px; height: 106px; margin: 2px 8px 0 0;
-  }
-}
-
-/* narrow: one column. The board and controls fit the first screen; the panels follow. */
 @media (max-width: 819.98px) {
-  .stage.auto {
-    --board-min: 240px;
-    --board-wmax: calc(100vw - var(--sb) - var(--pad-l) - var(--gap) - var(--eb-w) - var(--gap));
-    --board-hmax: calc(100dvh - var(--topbar-h) - 3 * var(--gap) - 2 * var(--strip-h) - var(--controls-h));
-    --board: min(var(--board-wmax), max(var(--board-min), var(--board-hmax)));
-    --review-h: 190px;
-    grid-template-columns: var(--eb-w) var(--board);
-    grid-template-areas: "eval board" "controls controls" "review review" "moves moves" "graph graph" "acc acc" "engine engine" "learn learn" "concepts concepts";
-  }
-  .stage.auto .mod[data-mod="moves"] { height: min(420px, 60dvh); }
-  .stage.auto .player-strip .name { display: block; overflow: hidden; text-overflow: ellipsis; }
+  .stage.auto.workspace-layout { --eb-w: 18px; --board-size: min(600px, calc(100vw - 64px)); display: flex; flex-direction: column; height: auto; padding: 12px 12px 20px 22px; }
+  .stage.auto.workspace-layout .workspace-board { align-self: center; }
+  .stage.auto.workspace-layout .analysis-column, .stage.auto.workspace-layout .insights-column { overflow: hidden; }
+  .stage.auto.workspace-layout .mod[data-mod="moves"] { height: min(400px, 55dvh); flex-basis: min(400px, 55dvh); }
+  .stage.auto.workspace-layout .mod[data-mod="concepts"] { flex-basis: 420px; height: 420px; }
+  .stage.auto.workspace-layout .engine-line .moves { white-space: normal; }
 }
 
-/* Desktop uses DEFAULT_LAYOUT from analysis.js as its single geometry source.
-   fitTabZoom selects this using the
-   unzoomed WINDOW size and scales the entire page uniformly, including type and spacing.
-   The grid above remains available on narrow windows and browsers without tab zoom APIs. */
-.stage.auto.desktop-layout {
-  position: relative; display: block; padding: 12px;
-  min-width: var(--desktop-width, 2126px); min-height: 960px;
-  --coach-clear: 194px; --coach-float-h: 47px;
-}
-.stage.auto.desktop-layout .player-strip { height: auto; }
-.stage.auto.desktop-layout .mod {
-  position: absolute; margin: 0; min-height: 0; contain: none;
-}
-.stage.auto.desktop-layout .board-wrap {
-  flex: 1; min-height: 0; align-items: stretch; justify-content: center;
-}
-.stage.auto.desktop-layout .board {
-  flex: 0 1 auto; height: 100%; width: auto; aspect-ratio: 1; max-width: 100%; margin: auto;
-}
-.stage.auto.desktop-layout .side,
-.stage.auto.desktop-layout .side-cols,
-.stage.auto.desktop-layout .side-a,
-.stage.auto.desktop-layout .side-b {
-  display: contents; position: static;
-  padding: 0; contain: none; zoom: 1;
-}
-.stage.auto.desktop-layout .mod[data-mod="evalbar"] { margin: 0; }
-.stage.auto.desktop-layout .mod[data-mod="moves"],
-.stage.auto.desktop-layout .mod[data-mod="engine"] { min-height: 0; contain: none; }
-.stage.auto.desktop-layout .evalgraph svg { height: 120px; }
-.stage.auto.desktop-layout .mod[data-mod="coach"] { right: auto; margin: 0; }
-.stage.auto.desktop-layout.has-coach .insight-panel .ip-body { padding-right: var(--pad); }
-/* Match the free canvas: the evaluation stays at the right edge beside the coach. */
-.stage.auto.desktop-layout.has-coach .insight-panel .ip-head { padding-right: 0; }
-
-/* top bar and settings on small windows */
 @media (max-width: 760px) { .topbar-meta { display: none; } }
 @media (max-width: 520px) {
   .topbar { padding: 0 12px; gap: 10px; }
@@ -2244,19 +2171,33 @@ button { font-family: inherit; cursor: pointer; }
 .promotion-options img { width:40px; height:40px; }
 .promotion-cancel { margin-top:16px; }
 
-/* A hidden Concepts panel also releases its automatic-layout column/row. */
+/* Hidden concepts release their space inside the shared insights surface. */
 .stage .mod[data-mod="concepts"][hidden] { display:none !important; }
-@media (min-width:1100px) and (min-height:600px) {
-  .stage.auto:not(.desktop-layout) .side-b .mod[data-mod="learn"] { flex:0 0 var(--controls-h); }
-  .stage.auto.no-concepts:not(.desktop-layout) {
-    --board-wmax:calc(100vw - var(--sb) - var(--pad-l) - var(--gap) - var(--eb-w) - var(--side-w) - 2 * var(--gap));
-    grid-template-columns:var(--eb-w) var(--board) var(--side-w);
-    grid-template-areas:"eval board side";
-  }
+
+/* The analysis board reuses review modules without game-only statistics. */
+.analysis-nav { color: var(--ink); text-decoration: none; font-weight: 650; font-size: 13px; padding: 8px; border-radius: 8px; }
+.analysis-nav:hover { background: var(--panel-2); }
+.analysis-tools .analysis-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.analysis-tools button { font: inherit; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; cursor: pointer; }
+.analysis-tools details { margin-top: 10px; }
+.analysis-tools summary { cursor: pointer; font-size: 13px; }
+.analysis-tools label { display: block; font-size: 12px; margin-top: 10px; }
+.analysis-tools textarea { width: 100%; box-sizing: border-box; resize: vertical; background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 8px; font: inherit; margin: 6px 0; }
+.analysis-input-status { font-size: 12px; margin-top: 8px; }
+.standalone-analysis .mod[data-mod="graph"] { display: none; }
+.standalone-analysis .ml-move { background: transparent; border: 0; color: var(--ink); font: inherit; cursor: pointer; }
+.analysis-nav:focus-visible,.analysis-tools button:focus-visible,.analysis-tools textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media(max-width:520px) {
+  .topbar { padding: 0 8px; gap: 6px; }
+  .topbar-right { gap: 4px; }
+  .topbar-right .icon-btn { width: 30px; height: 32px; flex: none; }
+  .analysis-nav { padding: 6px 4px; font-size: 12px; }
 }
-@media (min-width:820px) and (max-width:1099.98px), (min-width:1100px) and (max-height:599.98px) {
-  .stage.auto.no-concepts:not(.desktop-layout) { grid-template-areas:"eval board review" "eval board moves" "eval board controls" "graph graph graph" "acc acc engine" "learn learn learn"; }
-}
-@media (max-width:819.98px) {
-  .stage.auto.no-concepts:not(.desktop-layout) { grid-template-areas:"eval board" "controls controls" "review review" "moves moves" "graph graph" "acc acc" "engine engine" "learn learn"; }
-}
+
+.stage.auto.workspace-layout.standalone-analysis .mod[data-mod="review"] { height: 154px; min-height: 154px; }
+.stage.auto.workspace-layout.standalone-analysis .ip-text::before { display: none; }
+
+.standalone-analysis .mod[data-mod="coach"] { display: none; }
+.stage.auto.workspace-layout.standalone-analysis .insight-panel .ip-head,
+.stage.auto.workspace-layout.standalone-analysis .insight-panel .ip-opening { padding-right: 0; }

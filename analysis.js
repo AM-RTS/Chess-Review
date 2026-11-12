@@ -47,9 +47,6 @@ function validCalibration(data) {
   return data?.schema === "chess-review-public-calibration-v1" && typeof data.version === "string" && !!data.version
     && data.quality?.outcome?.schema === "human-outcome-v1" && Number.isFinite(data.quality.outcome.slopePerPawn) && data.quality.outcome.slopePerPawn > 0
     && data.quality?.choice?.schema === "human-choice-v1" && !!data.quality.candidateVersion
-    && data.context?.model?.schema === "fullgame-equivalent-context-v1" && !!data.context.candidateVersion
-    && data.context?.sf19?.model?.schema === "fullgame-equivalent-context-v1" && !!data.context.sf19.candidateVersion
-    && ["sf18","sf19"].every(build => data.movesOnly?.[build]?.model && !!data.movesOnly[build].candidateVersion)
     && ["good","inacc","mistake","blunder"].every(key => Number.isFinite(data.clsWp?.[key]));
 }
 async function loadCalibration() {
@@ -104,7 +101,7 @@ const ACCENTS = {
 };
 // Display names are independent of stored classification keys and scoring rules.
 // Annotation names and colors stay independent of move grades.
-// Move glyphs are rendered per ply by the shared numerical SVG renderer.
+// Move glyphs are rendered per ply by the shared badge renderer.
 const QUALITY = {
   brilliant: { name: "Brilliant",  color: "var(--q-brilliant)" },
   great:     { name: "Great",      color: "var(--q-great)" },
@@ -112,6 +109,7 @@ const QUALITY = {
   excellent: { name: "Excellent",  color: "var(--q-excellent)" },
   good:      { name: "Good",       color: "var(--q-good)" },
   book:      { name: "Book",       color: "var(--q-book)" },
+  forced:    { name: "Forced",     color: "var(--q-forced)" },
   inacc:     { name: "Inaccuracy", color: "var(--q-inacc)" },
   mistake:   { name: "Mistake",    color: "var(--q-mistake)" },
   miss:      { name: "Miss",       color: "var(--q-miss)" },
@@ -133,15 +131,16 @@ function badgeLabelStyle(value = S.settings.badgeTooltip) {
 }
 // Accuracy breakdown: compact (default) vs. full list (expanded via the expander arrow).
 const QBREAK_SUMMARY = ["brilliant","great","best","mistake","miss","blunder"];
-const QBREAK_FULL = ["brilliant","great","best","excellent","good","inacc","mistake","miss","blunder","book"];
+const QBREAK_FULL = ["brilliant","great","book","best","excellent","good","inacc","mistake","miss","blunder"];
 const NOTEWORTHY = new Set(["brilliant","great","inacc","mistake","miss","blunder"]);
 // Explanation for each category (shown as a tooltip in the accuracy panel). The classifier
 // (computeDerived → classifyMove) works on the engine's eval in PAWNS: "loss" is how much the
 // eval drops after your move vs. the best continuation; a "sacrifice" is a real, voluntary
 // give-up of material (not a recapture/trade), detected on the board.
 const QUALITY_DESC = {
-  brilliant: "A strong, sound piece sacrifice: you voluntarily offer material while keeping a satisfactory position. Ordinary trades and unnecessary sacrifices in clearly winning positions do not count.",
-  great:     "An only-good move that capitalises on the opponent's mistake or blunder.",
+  forced: "The only legal move. Included under Best in the move breakdown.",
+  brilliant: "A sound voluntary piece sacrifice that keeps a satisfactory, near-best evaluation. Ordinary trades, forced moves and substantial evaluation losses do not count. Other winning alternatives do not disqualify it.",
+  great:     "A non-routine best move with a significant gap to the second-best alternative. If another move still retains a clear advantage or forces mate, it remains Best. Ordinary trades, material grabs, and immediate mate finishes also stay Best. No preceding error is required.",
   best:      "Exactly the engine's top move — the best possible move in the position (also shown for forced, only-legal moves).",
   excellent: "An alternative nearly as strong as the engine's top move: loses less than 2 percentage points in estimated winning chances, or begins or preserves a forced mate.",
   good:      "A small loss of estimated winning chances (2–5 percentage points), or a move that takes longer to deliver a forced mate.",
@@ -152,16 +151,15 @@ const QUALITY_DESC = {
   blunder:   "A loss of at least 20 percentage points in estimated winning chances, or a severe forced-mate error. Special cases such as a missed opportunity can receive another label.",
 };
 // Explanations for the accuracy and elo numbers (shown as a tooltip like the categories).
-const ACCURACY_INFO = "SF18 uses the published public-data move-quality model. SF19 estimates accuracy from centipawn evaluations using a public winning-chance curve and combines ordinary and harmonic move averages to give mistakes more weight. Forced moves are excluded and opening moves are included. Annotations do not alter accuracy. Scores are estimates, not official platform scores.";
-const ELO_INFO = "Both engines support both rating modes using their own models. Use recorded rating compares this game's performance with players around the rating saved in the game. Stockfish 18 uses calibrated accuracy; Stockfish 19 uses its own expected-point losses, separately from displayed accuracy. Moves only ignores the saved rating and estimates a blitz rating level from the moves themselves; it needs at least 10 moves with more than one legal choice. Neither estimate changes your account rating.";
+const ACCURACY_INFO = "Stockfish 19 estimates accuracy from centipawn evaluations using a public winning-chance curve and combines ordinary and harmonic move averages to give mistakes more weight. Forced moves are excluded and opening moves are included. Annotations do not alter accuracy. Scores are estimates, not official platform scores.";
 // Explanations for the engine settings (shown on hover, same tooltip as the accuracy panel).
 const ENGINE_INFO = {
-  engineLines:   "How many candidate moves (lines) the engine panel shows for the position you're viewing. Extra lines are searched on demand — changing this doesn't re-analyze the game.",
-  classifyLines: "Lines searched for annotation and candidate inspection. Calibrated SF18 numerical scores require one analysis line. Changing this re-analyzes the game.",
+  engineLines:   "How many candidate moves (2–4 lines) the engine panel shows for the position you're viewing. Extra lines are searched on demand — changing this doesn't re-analyze the game.",
+  classifyLines: "Base lines (2–4) searched by either engine for annotation and candidate inspection. Great candidates receive a separate check if root alternatives are incomplete. Brilliant uses material-offer and evaluation evidence independently. Rating models were tested with two lines; estimates at other settings remain approximate. Changing this re-analyzes the game.",
   engineDepth:   "How many plies (half-moves) deep Stockfish searches each position. Higher depth gives more accurate evaluations and fewer false mistakes, but takes longer.",
   engineWorkers: "Number of Stockfish instances analysing positions in parallel. The default uses available CPU cores, up to four workers. Your selection is respected; if a worker fails to start, the review continues with the workers that did start. Search depth and scoring settings stay the same.",
   fastAnalysis:  "Trades quality for speed: the classification pass uses fewer engine lines. ~1.3×/1.6× faster, but evals shift slightly and clean games can pick up a few false inaccuracies.",
-  enginePath:    "Stockfish 18 NNUE is the default. Stockfish 19 Lite uses a smaller evaluation network for a compact alternative. Both run locally; Lite is not the full-strength Stockfish 19 build.",
+  enginePath:    "Stockfish 19 is the default full engine. Stockfish 19 Lite remains available as a smaller alternative. Both run locally.",
   engineSkill:   "Caps the engine's playing strength (Stockfish 'Skill Level'). Max (20) = full strength. Lower values play deliberately weaker — useful for more human-like suggestions.",
   engineHash:    "Recommended: 16 MB for most reviews (the default). Try 32–64 MB for deeper analysis if your computer has spare memory. Each parallel worker uses its own hash table, so memory use is roughly Hash × Workers.",
 };
@@ -177,7 +175,7 @@ function gradeBadge(cls, score, className, attrs = {}, example = false) {
   });
 }
 function badgeRenderKey(cls, score, example) {
-  return JSON.stringify([cls, score, example, categoryName(cls), S.settings.badgeFont]);
+  return JSON.stringify([cls, score, example, categoryName(cls), S.settings.badgeFont, S.settings.badgeDesign]);
 }
 function activeMoveGrade() {
   return S.analysisMode ? activePos().moveGrade : S.moveGrades[S.idx];
@@ -185,7 +183,7 @@ function activeMoveGrade() {
 function updateGradeBadge(node, cls, score, example = false) {
   const key = badgeRenderKey(cls, score, example);
   if (node.dataset.renderKey === key) return;
-  const next = cls === "book" ? "book" : gradeText(score, true);
+  const next = ["book","forced"].includes(cls) ? cls : gradeText(score, true);
   node.dataset.grade = next;
   node.dataset.score = Number.isFinite(score) ? score : "";
   node.dataset.renderKey = key;
@@ -292,7 +290,7 @@ const DEFAULT_SETTINGS = {
   categoryNames: {},
   theme: "dark", accent: "#7fb45f", accentCustom: "#9b72d0", density: "compact",
   evalView: "both", mlStyle: "rows", badgeStyle: "icon", badgeScale: 1,
-  badgeFont: "spacemono", badgeTooltip: "off",
+  badgeDesign: "chesseditpack", badgeFont: "spacemono", badgeTooltip: "off",
   // Eval-graph look (see renderGraph), eval-BAR look (see renderEvalBar) and the Insight-panel text size (px).
   graphStyle: "area", barStyle: "gradient", insightFont: 18,
   // Board coordinate labels (the a–h / 1–8 ticks in the squares' corners): on/off + size in px.
@@ -333,15 +331,15 @@ const DEFAULT_SETTINGS = {
   // Engine panel: how many candidate lines to show. The batch only searches the single best line
   // (all the classification logic needs); extra lines are searched on demand for the position you're
   // viewing, so changing this never re-analyzes — it just refreshes the panel.
-  // Default SF18 searches match the published depth16/Hash16 quality model.
-  engineLines: 1, engineDepth: 16, enginePath: "nnue", engineHash: 16, engineSkill: 20,
+  // Full Stockfish 19 reviews use these search settings; Lite uses its fixed-node protocol.
+  engineLines: 2, engineDepth: 16, enginePath: "sf19", engineHash: 16, engineSkill: 20,
   // Parallel analysis workers: independent single-threaded Stockfish instances that pull
   // positions from a shared queue. Each position is still searched identically (cold, same
   // depth/lines), so results are unchanged — only the wall-clock is parallelized. Default ≈
   // (CPU cores − 1), capped at 4. Manual selections are respected.
   engineWorkers: engineWorkerCount(),
-  // Extra lines serve annotation and candidate inspection. Calibrated SF18 scores use one line.
-  classifyLines: 1,
+  // Extra lines serve annotation and candidate inspection. Stockfish 19 Lite batch reviews use one line.
+  classifyLines: 2,
   // Fast analysis: kept for backwards compatibility, but now a no-op for line count — the batch
   // already searches a single line, so there are no extra lines to drop.
   fastAnalysis: false, fastLines: 3,
@@ -353,24 +351,24 @@ const DEFAULT_SETTINGS = {
   clsClearAdv: 2.0,    // a "clear advantage" is this many pawns (drives Mistake / Miss / Great context)
   clsMistakeLoss: 1.2, // minimum eval lost for a move to count as a Mistake / a punishable slip
   clsMissTol: 0.5,     // how close to giving back the whole advantage still counts as a Miss
-  ratingMode: "context",
 };
 // Keys reset by "Reset engine defaults" (everything in the Engine tab), and their default values.
 const ENGINE_SETTING_KEYS = [
   "engineDepth", "classifyLines", "engineLines", "engineWorkers", "enginePath", "engineHash", "engineSkill",
   "clsGood", "clsInacc", "clsBlunder", "clsClearAdv", "clsMistakeLoss", "clsMissTol",
-  "ratingMode",
 ];
-// Two single-threaded builds; the app parallelizes positions across independent workers.
-const ENGINE_BUILDS = { nnue: "engine/stockfish-nnue.js", sf19lite: "engine/stockfish-19-lite-single.js" };
-const ENGINE_FALLBACK_ORDER = ["nnue", "sf19lite"];
+// The app parallelizes positions across independent Stockfish 19 Lite workers.
+const ENGINE_BUILDS = { sf19: "engine/stockfish-19-single.js", sf19lite: "engine/stockfish-19-lite-single.js" };
+const ENGINE_FALLBACK_ORDER = ["sf19", "sf19lite"];
 
 function migrateEngineSettings(settings) {
-  if (settings.enginePath === "sf19") settings.enginePath = "sf19lite";
+  if (settings.enginePath === "nnue") settings.enginePath = "sf19";
   if (!Object.hasOwn(ENGINE_BUILDS, settings.enginePath)) settings.enginePath = DEFAULT_SETTINGS.enginePath;
+  for(const key of ["classifyLines","engineLines"]) settings[key]=clampEngineLines(settings[key]);
 }
 // The engine panel shows up to this many candidate lines (searched on demand for the viewed position).
-const ENGINE_MAX_LINES = 4;
+const ENGINE_MIN_LINES = 2, ENGINE_MAX_LINES = 4;
+function clampEngineLines(value) {return Math.max(ENGINE_MIN_LINES,Math.min(ENGINE_MAX_LINES,Math.round(Number(value)||ENGINE_MIN_LINES)));}
 // Best-move arrow color — a muted hint green.
 const ARROW_COLOR = "#85ae4a";
 // User arrow color — yellow/orange.
@@ -491,7 +489,7 @@ function shareGame(ev) {
     // Preserve board orientation and only an identified playing side. A flipped
     // anonymous import must remain anonymous when reopened through a share link.
     const meta = { ...S.meta, flip: S.flipped, myName: S.playerKnown === false ? "" : (S.players?.[S.meSide]?.name) || S.username || "" };
-    const data = encodeURIComponent(b64encode(JSON.stringify({ pgn: S.pgn, meta })));
+    const data = encodeURIComponent(b64encode(JSON.stringify({ pgn: S.standalone ? standalonePgn() : S.pgn, meta })));
     const carrier = ((S.meta && S.meta.url) ? S.meta.url : "https://www.chess.com/").split("#")[0];
     const url = carrier + "#gambit=" + data;
     navigator.clipboard.writeText(url)
@@ -701,7 +699,7 @@ const S = {
   evalEngines: [], autoTimer: null,
   // Re-analysis + analysis mode
   batchGen: 0, settingsTab: "visual", analyzedMultipv: null,
-  analysisMode: false, variation: null, liveEngine: null, liveEnginePromise: null, liveEngineGeneration: 0, liveError: null, liveToken: 0, panelToken: 0, _panelCache: null, selectedSq: null,
+  standalone: false, analysisMode: false, variation: null, liveEngine: null, liveEnginePromise: null, liveEngineGeneration: 0, liveError: null, liveToken: 0, panelToken: 0, _panelCache: null, selectedSq: null,
   // The build that is ACTUALLY running (set by createEngine; may differ from settings.enginePath if
   // the chosen build failed to load and we fell back). The Engine tab shows this, not the selection.
   activeEngineBuild: null, engineFallbackBuild: null,
@@ -735,12 +733,13 @@ function activePos() {
   return S.analysisMode && S.variation ? S.variation.positions[S.variation.idx] : S.positions[S.idx];
 }
 function activeEval() {
-  return S.analysisMode && S.variation ? (activePos().eval ?? null) : S.evals[S.idx];
+  if(S.analysisMode && S.variation){const pos=activePos();return pos.searchPreview ? whiteRel(pos.searchPreview.score,pos.fen) : pos.eval ?? null;}
+  return S.evals[S.idx];
 }
 // Best-move data for the current view. In analysis mode: the current position's
 // live analysis. On the mainline: the position BEFORE the played move (the alternative).
 function activeBest() {
-  if (S.analysisMode && S.variation) return activePos().best || null;
+  if (S.analysisMode && S.variation) return activePos().searchPreview || activePos().best || null;
   return S.idx > 0 ? S.bests[S.idx - 1] : null;
 }
 
@@ -757,6 +756,7 @@ async function loadJob() {
     const session = JSON.parse(window.sessionStorage.getItem(key));
     if (session && typeof session.pgn === "string") return session;
   } catch { /* Unavailable or corrupt session storage: use the launch handoff. */ }
+  if (jobId === "analysis") return {mode: "analysis", pgn: "*", meta: {}, analysis: null};
   const data = await browserAPI.storage.local.get(key);
   const payload = data[key];
   if (!payload) throw new Error("Analysis data not found (open via the popup).");
@@ -769,7 +769,9 @@ function rememberReviewJob() {
   if (!jobId || !S.pgn) return false;
   try {
     // Analysis is looked up separately using the current scoring/settings key.
-    window.sessionStorage.setItem(`job:${jobId}`, JSON.stringify({ pgn: S.pgn, meta: S.meta }));
+    window.sessionStorage.setItem(`job:${jobId}`, JSON.stringify(S.standalone
+      ? {mode: "analysis", pgn: standalonePgn(), meta: {...S.meta, flip:S.flipped, analysisIndex:S.variation.idx}, analysis:null}
+      : {pgn:S.pgn, meta:S.meta}));
     return true;
   } catch { return false; }
 }
@@ -918,7 +920,7 @@ function winPct(cp) { return Number.isFinite(cp) && CALIB?.quality?.outcome ? 10
 function moverWin(wr, mover) { const wp = winPct(scoreToCp(wr)); return mover === "w" ? wp : 100 - wp; }
 function annotationOutcome(i, state) {
   const build = state.bests[i - 1]?.calibration?.build || state.settings.enginePath;
-  return build === "sf19lite" ? SF19_OUTCOME : CALIB?.quality?.outcome;
+  return ["sf19", "sf19lite"].includes(build) ? SF19_OUTCOME : CALIB?.quality?.outcome;
 }
 function annotationPoints(score, i, state) {
   try { return 100 * expectedPoints(score, annotationOutcome(i, state)); } catch { return null; }
@@ -969,7 +971,7 @@ function decisionMate(i, which, mover, state) {
   return decisionScore(i, which, mover, state)?.mate ?? null;
 }
 function sideAccuracies() {
-  S.calibrated = calibratedReview(S.positions, S.bests, CALIB, S.players, S.settings.ratingMode || "context");
+  S.calibrated = calibratedReview(S.positions, S.bests, CALIB);
   for (const side of ["w", "b"]) for (const move of S.calibrated[side].moves) S.accMove[move.ply] = move.quality;
   return {w: S.calibrated.w.accuracy, b: S.calibrated.b.accuracy};
 }
@@ -1073,8 +1075,61 @@ function isSacrifice(move) {
   }
   return false;
 }
+// Annotation-only evidence: never overwrite the primary search or rating inputs.
+const greatVerificationCache = new Map();
+function greatVerificationKey(state,i) {
+  const settings=state.settings;
+  return JSON.stringify(["only-good-v1",state.bests[i-1]?.calibration?.build || state.activeEngineBuild || settings.enginePath,
+    settings.engineDepth,settings.engineHash,settings.engineSkill,searchHistory(state.positions,i-1)]);
+}
+function greatComparisonRoot(state,i) {
+  return greatVerificationCache.get(greatVerificationKey(state,i)) || state.bests[i-1];
+}
+async function verifyGreatCandidates(state,getEngine,isCurrent,plies=state.greatCandidates || []) {
+  let engine;
+  for(const i of plies) {
+    if(!isCurrent()) return;
+    if(!state.greatCandidates?.includes(i)) continue;
+    const key=greatVerificationKey(state,i);
+    if(greatVerificationCache.has(key) || greatReplyLines(state.bests[i-1],state.positions[i-1].fen)) continue;
+    try {
+      engine ||= await getEngine();
+      if(!isCurrent() || key!==greatVerificationKey(state,i)) return;
+      const build=JSON.parse(key)[1];
+      if(engine.buildKey && engine.buildKey!==build) return;
+      await engine.setOptions({Hash:state.settings.engineHash,"Skill Level":state.settings.engineSkill});
+      if(!isCurrent() || key!==greatVerificationKey(state,i)) return;
+      const result=await engine.analyse(state.positions[i-1].fen,state.settings.engineDepth,2,
+        searchHistory(state.positions,i-1),null,{cold:true,requireExact:true});
+      if(!isCurrent() || key!==greatVerificationKey(state,i)) return;
+      if(!greatReplyLines(result,state.positions[i-1].fen)) continue;
+      if(greatVerificationCache.size>=128) greatVerificationCache.delete(greatVerificationCache.keys().next().value);
+      greatVerificationCache.set(key,{bestmove:result.bestmove,lines:result.lines});
+    } catch {
+      // Optional badge evidence must not turn a completed review into an analysis failure.
+      if(!isCurrent() || engine?.dead) return;
+    }
+  }
+}
+async function verifyRestoredGreatMoves() {
+  const gen=S.batchGen,positions=S.positions;
+  const valid=()=>gen===S.batchGen && S.positions===positions;
+  let engine;
+  try {
+    await verifyGreatCandidates(S,async()=>{
+      engine=await createEngine({Hash:S.settings.engineHash,"Skill Level":S.settings.engineSkill});
+      if(valid()) S.evalEngines.push(engine);
+      return engine;
+    },valid);
+    if(valid()) flushProgress(gen);
+  } finally {
+    engine?.terminate();
+    S.evalEngines=S.evalEngines.filter(e=>e!==engine);
+  }
+}
+
 // Independent annotation policy, deliberately not coefficients fitted to recorded ratings.
-const BRILLIANT_POLICY = { minAfterPawns: -0.5, clearlyWinningPawns: 5 };
+const BRILLIANT_POLICY = { minAfterPawns: -0.5 };
 function brilliantEligible(i, mover, std, wpDrop, state) {
   if (std[i] !== "excellent" || !Number.isFinite(wpDrop?.[i])) return false;
   const root = state.bests[i - 1], topLine = root?.lines?.[0];
@@ -1084,48 +1139,75 @@ function brilliantEligible(i, mover, std, wpDrop, state) {
   const mateAfter = decisionMate(i, "played", mover, state), mateBefore = decisionMate(i, "best", mover, state);
   if (!Number.isFinite(after) || !Number.isFinite(before)
     || (mateAfter != null ? mateAfter <= 0 : after < BRILLIANT_POLICY.minAfterPawns)) return false;
-  // A sound offer in an undecided position does not depend on a preceding opponent error.
-  if (!(mateBefore > 0) && before < BRILLIANT_POLICY.clearlyWinningPawns) return true;
-  // Root MultiPV scores are already from the mover's perspective, unlike state.evals. The
-  // highest-ranked other move tests whether a clearly winning alternative is available. With
-  // only one line this counterfactual is unknown: keep Best/Excellent instead of inventing it.
-  const p = state.positions[i], played = (p.from || "") + (p.to || "") + (p.promotion || "");
-  const topMove = (topLine?.pv || "").split(" ")[0];
-  if (!topMove || topMove !== root?.bestmove || topLine?.multipv !== 1 || !topLine.depth) return false;
-  const rank = topMove === played ? 2 : 1;
-  const line = root.lines.find(l => l.multipv === rank);
-  if (!line || line.bound !== "exact" || line.depth !== topLine.depth) return false;
-  const alternative = line.score;
-  if (!alternative) return false;
-  if (alternative.mate != null) return alternative.mate < 0;
-  return Number.isFinite(alternative.cp) && alternative.cp / 100 < BRILLIANT_POLICY.clearlyWinningPawns;
+  // Expected-score loss saturates in winning positions; also reject a substantial raw eval loss.
+  const maxLoss=Number.isFinite(state.settings.clsGood)&&state.settings.clsGood>=0 ? state.settings.clsGood : DEFAULT_SETTINGS.clsGood;
+  if(mateBefore==null && mateAfter==null && before-after>maxLoss) return false;
+  return true;
 }
-// Great means finding the only good reply, not merely replying after an error. The runner-up
-// must be worse than the Good band in the same completed root depth. With one line, this is
-// unknown; retain the ordinary category without scheduling more engine searches.
-function onlyGoodReply(i, state) {
-  const root = state.bests[i - 1], top = root?.lines?.find(l => l.multipv === 1);
-  const next = root?.lines?.find(l => l.multipv === 2);
-  const move = state.positions[i];
-  const played = (move.from || "") + (move.to || "") + (move.promotion || "");
-  const topMove = (top?.pv || "").split(" ")[0], nextMove = (next?.pv || "").split(" ")[0];
-  if (!top || !next || top.bound !== "exact" || next.bound !== "exact"
-    || !Number.isInteger(top.depth) || top.depth <= 0 || next.depth !== top.depth
-    || topMove !== played || topMove !== root.bestmove || !nextMove || nextMove === topMove
-    || !Number.isFinite(top.score?.cp)) return false;
-  if (!state.annotationEvidence[i]?.paired && state.bests[i]?.lines?.some(l => l.multipv === 1 && l.bound && l.bound !== "exact")) return false;
-  const other = next.score;
-  if (!other || (other.mate != null ? !Number.isFinite(other.mate) || other.mate === 0 : !Number.isFinite(other.cp))) return false;
-  // Root PVs must identify distinct legal moves, including promotion identity.
+// Great means finding the only good move, including defense without a preceding error. The runner-up
+// must be worse than the Good band in the same completed root depth. A separate two-line
+// check supplies missing evidence only after the other candidate conditions pass.
+function greatReplyLines(root,fen) {
+  const top=root?.lines?.find(l=>l.multipv===1), next=root?.lines?.find(l=>l.multipv===2);
+  const validScore=score=>score?.mate!=null ? Number.isInteger(score.mate)&&score.mate!==0 : Number.isFinite(score?.cp);
+  if(!top || !next || top.bound!=="exact" || next.bound!=="exact"
+    || !Number.isInteger(top.depth) || top.depth<=0 || next.depth!==top.depth
+    || !validScore(top.score) || !validScore(next.score)) return null;
+  const first=(top.pv || "").split(" ")[0], second=(next.pv || "").split(" ")[0];
+  if(!first || first!==root.bestmove || !second || second===first) return null;
   try {
-    const before = new Chess(state.positions[i - 1].fen);
-    if (before.turn() !== move.color) return false;
-    const legal = before.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ""));
-    if (!legal.includes(topMove) || !legal.includes(nextMove)) return false;
-  } catch { return false; }
-  const threshold = CALIB?.clsWp?.inacc ?? 5;
-  return Number.isFinite(threshold) && threshold > 0
-    && annotationPoints(top.score, i, state) - annotationPoints(other, i, state) >= threshold;
+    const legal=new Chess(fen).moves({verbose:true}).map(m=>m.from+m.to+(m.promotion || ""));
+    return legal.includes(first)&&legal.includes(second) ? [top,next] : null;
+  } catch {return null;}
+}
+function greatReplyEvidence(i,state,root) {
+  const pair=greatReplyLines(root,state.positions[i-1].fen), move=state.positions[i];
+  if(!pair || root.bestmove!==move.from+move.to+(move.promotion || "")) return null;
+  if (!state.annotationEvidence[i]?.paired && state.bests[i]?.lines?.some(l => l.multipv === 1 && l.bound && l.bound !== "exact")) return null;
+  const alternative=pair[1].score;
+  const clearAdv=Number.isFinite(state.settings.clsClearAdv)&&state.settings.clsClearAdv>0 ? state.settings.clsClearAdv : DEFAULT_SETTINGS.clsClearAdv;
+  // A smaller winning advantage is still a good alternative, not a unique-resource situation.
+  if(alternative.mate>0 || Number.isFinite(alternative.cp)&&alternative.cp/100>=clearAdv) return false;
+  const threshold=CALIB?.clsWp?.inacc ?? 5;
+  return Number.isFinite(threshold) && threshold>0
+    && annotationPoints(pair[0].score,i,state)-annotationPoints(pair[1].score,i,state)>=threshold;
+}
+function unchangedTradeEvaluation(state,beforePly,afterPly) {
+  const before=state.evals[beforePly],after=state.evals[afterPly];
+  if(!before || !after) return true;
+  const build=state.bests[afterPly-1]?.calibration?.build || state.activeEngineBuild || state.settings.enginePath;
+  const outcome=["sf19","sf19lite"].includes(build) ? SF19_OUTCOME : CALIB?.quality?.outcome;
+  // Independent position searches fluctuate; changes inside the Good band remain routine.
+  try {return 100*Math.abs(expectedPoints(before,outcome)-expectedPoints(after,outcome))<(CALIB?.clsWp?.inacc ?? 5);}
+  catch {return true;}
+}
+// A large engine gap alone does not make an obvious material recovery exceptional.
+function routineGreatMove(i,state,sacrifice=false) {
+  if(_isCheckmate(i,state)) return true;
+  const move=state.positions[i],previous=state.positions[i-1];
+  if(!move.captured || move.promotion || sacrifice) return false;
+  if(previous.captured && previous.to===move.to) {
+    let first=i,material=0;
+    while(first>1 && state.positions[first-1].captured && state.positions[first-1].to===move.to) first--;
+    for(let ply=first;ply<=i;ply++) {
+      const p=state.positions[ply];
+      material+=(p.color===move.color ? 1 : -1)*((SAC_VAL[p.captured] || 0)+(p.promotion ? SAC_VAL[p.promotion]-1 : 0));
+    }
+    if(material===0) return unchangedTradeEvaluation(state,first-1,i);
+  }
+  try {
+    const after=new Chess(move.fen);
+    if(!after.attackers(move.to,_opp(move.color)).length) return true;
+    const attacker=new Chess(previous.fen).get(move.from);
+    const reply=exchangeGain(after,move.to,{nodes:0,maxNodes:128});
+    if(reply==null) return true;
+    if(reply===SAC_VAL[move.captured]) return unchangedTradeEvaluation(state,i-1,i);
+    if((SAC_VAL[move.captured] || 0)>(SAC_VAL[attacker?.type] || 0)) return reply<SAC_VAL[move.captured];
+  } catch {return true;}
+  return false;
+}
+function onlyGoodReply(i, state) {
+  return greatReplyEvidence(i,state,greatComparisonRoot(state,i)) === true;
 }
 function _isCheckmate(k, state = S) { try { return new Chess(state.positions[k].fen).isCheckmate(); } catch { return false; } }
 // Baseline bucket on the WIN%-DROP (the "expected points" model),
@@ -1144,10 +1226,10 @@ function getStandardRating(wp) {
 // Per-ply move category, ported from getMoveRating(). `mover` made move i; `isTop` = it was the
 // engine's #1; `book` = the resulting position is theory; arrays sac/std/loss are indexed by ply.
 function classifyMove(i, mover, isTop, book, sac, std, loss, wpDrop, state = S) {
-  if (book) return "book";
   // "Forced": only one legal move in the position before — we have no separate icon, so it reads
   // as Best (you couldn't have done better).
   if (_forcedAt(i, state)) return "best";   // only one legal move — you couldn't have done better
+  if (book) return "book";
 
   // Contextual thresholds in pawns of eval; retain saved values from earlier versions.
   const CA = state.settings.clsClearAdv, ML = state.settings.clsMistakeLoss, MT = state.settings.clsMissTol;
@@ -1175,11 +1257,13 @@ function classifyMove(i, mover, isTop, book, sac, std, loss, wpDrop, state = S) 
   // Do not reward delays of a known mate or moves that merely remain best in a decided position.
   const beforeMate = decisionMate(i, "best", mover, state), afterMate = decisionMate(i, "played", mover, state);
   const soundMate = !(beforeMate > 0) || (afterMate > 0 && keepMating(i));
-  if (sac[i] && soundMate && brilliantEligible(i, mover, std, wpDrop, state)) return "brilliant";
+  if(sac[i] && soundMate && brilliantEligible(i,mover,std,wpDrop,state)) return "brilliant";
 
-  // Great — an only-good move that capitalises on the opponent's mistake/blunder.
-  if (!previousMiss && wasNotMateRel(0) && notMateRel && std[i] === "excellent"
-    && (previousMistake || pStd(0) === "blunder") && onlyGoodReply(i, state)) return "great";
+  // Only-good defensive resources and tactics do not depend on a preceding error.
+  if(std[i]==="excellent" && isTop && soundMate && !(afterMate<0) && !routineGreatMove(i,state,sac[i])) {
+    state.greatCandidates?.push(i);
+    if(onlyGoodReply(i,state)) return "great";
+  }
 
   // Mate signs are relative to the mover. Reversing who wins is not delaying one's own mate;
   // already being mated supplies no expected-result reason to reward faster defeat.
@@ -1240,7 +1324,7 @@ function classifyVariationMoves() {
     positions: [...S.positions.slice(0, branch + 1), ...nodes],
     evals: [...S.evals.slice(0, branch), ...v.positions.map(p => p.searchPreview ? whiteRel(p.searchPreview.score, p.fen) : p.eval)],
     bests,
-    settings: S.settings, players: S.players, openingHeader: S.openingHeader,
+    settings: S.settings, activeEngineBuild:S.activeEngineBuild, players: S.players, openingHeader: S.openingHeader,
     _sacCache: [...S._sacCache.slice(0, branch + 1), ...nodes.map(p => p._sac)],
     _forcedCache: [...S._forcedCache.slice(0, branch + 1), ...nodes.map(p => p._forced)],
     total: branch + nodes.length,
@@ -1253,6 +1337,7 @@ function classifyVariationMoves() {
     p._sac = state._sacCache[ply];
     p._forced = state._forcedCache[ply];
   });
+  return state;
 }
 
 function variationOpening() {
@@ -1285,22 +1370,13 @@ function _forcedAt(i, state = S) {
   state._forcedCache[i] = v;
   return v;
 }
-// Estimated ratings are reported in steps of 50, so we quantize to the NEAREST 50 (round-to-nearest
-// keeps the average bias ~0; a ceiling would add a spurious ~+26 upward bias for nothing).
-const round50 = (v) => Math.round(v / 50) * 50;
-// Display rounding is separate from the full-precision published models.
-function estimateElo(acc, rating, side = null) {
-  side ||= ["w", "b"].find(color => Number(S.players[color]?.rating) === Number(rating));
-  const value = S.calibrated?.[side]?.rating;
-  return Number.isFinite(value) ? round50(Math.max(0, Math.min(5000, value))) : null;
-}
-
 function classifyLine(state) {
   const N = state.total;
   state.classif = new Array(N + 1).fill(null);
   state.accMove = new Array(N + 1).fill(null);
   state.moveGrades = new Array(N + 1).fill(null);
   state.annotationEvidence = new Array(N + 1).fill(null);
+  state.greatCandidates=[];
   if (!state._sacCache || state._sacCache.length !== N + 1) { state._sacCache = new Array(N + 1).fill(undefined); state._forcedCache = new Array(N + 1).fill(undefined); }
 
   // Per-ply inputs for the ported classifier. The classifier only ever looks BACKWARDS, so one
@@ -1345,7 +1421,7 @@ function classifyLine(state) {
     const safeBook = bookAt[i] && !((decisionMate(i, "played", state.positions[i].color, state) ?? 0) < 0)
       && wpDrop[i] != null && wpDrop[i] < (CALIB?.clsWp?.inacc ?? 5);
     state.classif[i] = classifyMove(i, state.positions[i].color, isTop[i], safeBook, sac, std, loss, wpDrop, state);
-    const root = state.bests[i - 1];
+    const root = state.classif[i] === "great" ? greatComparisonRoot(state,i) : state.bests[i - 1];
     const top = root?.lines?.find(l => l.multipv === 1), runnerUp = root?.lines?.find(l => l.multipv === 2);
     const criticalLoss = top && runnerUp ? Math.max(0, annotationPoints(top.score, i, state) - annotationPoints(runnerUp.score, i, state)) : null;
     state.moveGrades[i] = moveGrade(state.classif[i], wpDrop[i], CALIB?.clsWp, criticalLoss);
@@ -1439,12 +1515,14 @@ function buildUI() {
     ),
     el("div", { class: "topbar-meta", id: "meta" }),
     el("div", { class: "topbar-right" },
+      el("a", { class: "analysis-nav", href: _url("analysis.html#analysis"), target: "_blank", rel: "noopener" }, "Analysis"),
       // aria-label (not title) → keeps the buttons labelled for screen readers without the native
       // hover tooltip the user found unnecessary.
       el("button", { class: "icon-btn", "aria-label": "Flip board", onclick: toggleFlip }, icon("flip")),
       el("button", { class: "icon-btn", "aria-label": "Share game (copy link)", onclick: shareGame }, icon("share")),
       el("button", { class: "icon-btn", "aria-label": "Credits & attributions", onclick: openCredits }, icon("info")),
       el("button", { class: "icon-btn", "aria-label": "Settings", onclick: toggleSettings }, icon("gear")),
+      feedbackLink("icon-btn feedback-topbar"),
     ),
   );
 
@@ -1473,21 +1551,25 @@ function buildUI() {
   const learnMount = el("div", { class: "learn-entry" },
     el("button", { class: "learn-entry-button", onclick: openLearning }, icon("book"), "Learn with Chess Review"));
 
-  // The stage holds every module. In the automatic layout the side wrappers group the panels into
-  // columns (styles.css picks wide / medium / narrow by window size); in the custom layout they are
-  // display:contents, so each module is placed on the free canvas on its own.
-  const canvas = el("div", { class: "stage auto", id: "canvas" },
-    makeMod("evalbar", evalbarMount),
-    makeMod("board", playerTop, boardWrap, playerBot),
-    el("div", { class: "side" },
+  const graphDetails = el("details", {class: "graph-disclosure", ontoggle: () => {
+    if (graphDetails.open) renderGraph();
+  }}, el("summary", {}, "Evaluation graph"), graphMount);
+  // Automatic groups share one surface; custom layouts keep every module movable.
+  const canvas = el("div", { class: "stage auto workspace-layout", id: "canvas" },
+    el("div", {class: "workspace-board"},
+      makeMod("evalbar", evalbarMount),
+      makeMod("board", playerTop, boardWrap, playerBot)),
+    el("section", {class: "analysis-column", "aria-label": "Moves and analysis"},
+      makeMod("accuracy", statsMount),
+      makeMod("moves", movesPanel),
+      makeMod("controls", controls),
+      makeMod("engine", engineMount),
+      makeMod("graph", graphDetails)),
+    el("section", {class: "insights-column", "aria-label": "Insights"},
       makeMod("review", reviewMount),
-      el("div", { class: "side-cols" },
-        el("div", { class: "side-a" }, makeMod("moves", movesPanel), makeMod("graph", graphMount), makeMod("controls", controls)),
-        el("div", { class: "side-b" }, makeMod("accuracy", statsMount), makeMod("engine", engineMount), makeMod("learn", learnMount)),
-      ),
       makeMod("coach", coachMount),
-    ),
-    makeMod("concepts", conceptsMount),
+      makeMod("concepts", conceptsMount),
+      makeMod("learn", learnMount)),
   );
 
   const settings = el("div", { class: "settings-pop", id: "settings", hidden: true });
@@ -1518,14 +1600,13 @@ function buildUI() {
   });
 
   const saveStatus = el("div", {class:"review-save-status", hidden:true, "aria-live":"polite"});
-  root.append(el("div", { class: "app" }, topbar, canvas, settings, libRail, saveStatus,
-    feedbackLink("feedback-floating", el("span", {}, "Feedback"))));
+  root.append(el("div", { class: "app" }, topbar, canvas, settings, libRail, saveStatus));
 
   UI = {
     meta: document.getElementById("meta"), settings, canvas, boardWrap,
     playerTop, playerBot, controls, coach: coachMount, evalbar: evalbarMount,
     review: reviewMount, movesBody, movesCount, movesFoot,
-    graph: graphMount, stats: statsMount, engine: engineMount, concepts: conceptsMount,
+    graph: graphMount, graphDetails, stats: statsMount, engine: engineMount, concepts: conceptsMount,
     libRail, libControls, libList, libCount, libPanel:libRail.querySelector(".lib-panel"), saveStatus,
   };
 
@@ -1839,8 +1920,8 @@ function toggleReorganize() {
     S.layoutMode = "custom";
     applyLayoutMode();
     saveLayout();
-    // The snapshot already fits at the current zoom. Refitting here would change
-    // every panel's apparent size just for unlocking its drag handles.
+    // Custom canvas bounds and content minima can exceed the responsive viewport.
+    fitTabZoom(true);
   }
   S.reorganize = !S.reorganize;
   UI.canvas.classList.toggle("reorganizing", S.reorganize);
@@ -1861,6 +1942,16 @@ function renderReorgBanner() {
 }
 
 /* ---------------- Board ---------------- */
+function boardFeedbackCategory(cls) {
+  if(cls!=="best") return cls;
+  if(!S.analysisMode) return S.idx>0 && _forcedAt(S.idx) ? "forced" : cls;
+  const v=S.variation;
+  if(!v || v.idx<1) return cls;
+  const node=v.positions[v.idx];
+  if(node._forced!=null) return node._forced ? "forced" : cls;
+  try {return new Chess(v.positions[v.idx-1].fen).moves().length===1 ? "forced" : cls;}
+  catch {return cls;}
+}
 function makeBoardBadge(cls, score = null) {
   return gradeBadge(cls, score, "sq-badge", {
     tabindex: "0",
@@ -1889,11 +1980,11 @@ function categoryLabelArtwork(cls, style) {
 }
 function categoryLabelSource(cls) {
   const name = categoryName(cls);
-  if (name === QUALITY[cls].name) return _url(`icons/labels/${cls}.png`);
+  if (name === QUALITY[cls].name && cls!=="forced") return _url(`icons/labels/${cls}.png`);
   const key = JSON.stringify([cls, name]);
   if (!categoryLabelImages.has(key)) {
     const ready = document.fonts?.load(CATEGORY_LABEL_FONT, name) || Promise.resolve();
-    categoryLabelImages.set(key, ready.then(() => categoryLabelPng(document, name, MOVE_GRADE_CONFIG[cls].color)));
+    categoryLabelImages.set(key, ready.then(() => categoryLabelPng(document, name, MOVE_GRADE_CONFIG[cls]?.color || "#96af8b")));
     // Bound artwork retained after repeated renames.
     if (categoryLabelImages.size > 32) categoryLabelImages.delete(categoryLabelImages.keys().next().value);
   }
@@ -2041,6 +2132,8 @@ function paintBoard() {
       cls = S.classif[S.idx] || null;
     }
   }
+  cls=boardFeedbackCategory(cls);
+  const badgeScore=cls==="forced" ? null : activeMoveGrade();
   // The from/to squares are tinted with the classification color at 0.5 alpha;
   // without a classification we fall back to the neutral yellow highlight.
   const tint = cls && QUALITY[cls]
@@ -2067,9 +2160,9 @@ function paintBoard() {
     else sq.style.removeProperty("--hl-color");
     if (ch && !keepPiece) sq.append(makePiece(ch.toUpperCase(), ch === ch.toUpperCase() ? "w" : "b"));
     if (name === pos.to && cls && QUALITY[cls]) {
-      if (keepBadge) updateGradeBadge(oldBadge, cls, activeMoveGrade());
+      if (keepBadge) updateGradeBadge(oldBadge, cls, badgeScore);
       else {
-        const badge = makeBoardBadge(cls, activeMoveGrade());
+        const badge = makeBoardBadge(cls, badgeScore);
         badge.dataset.category = cls; badge.dataset.move = pos.fen;
         sq.append(badge);
       }
@@ -2751,6 +2844,7 @@ async function requestLiveEval() {
   const token = ++S.liveToken; // navigation always invalidates pending work, even on cache hits
   if (!S.analysisMode || !S.variation) return;
   const v = S.variation, idx = v.idx, pos = v.positions[idx];
+  if(S.standalone) rememberReviewJob();
   const valid = () => token === S.liveToken && S.analysisMode && S.variation === v
     && v.idx === idx && v.positions[idx] === pos;
   for (const node of v.positions) node.searchPreview = null;
@@ -2764,8 +2858,8 @@ async function requestLiveEval() {
     for (let i = idx; i >= Math.max(0, idx - 4); i--) {
       if (!v.positions[i].best || !v.positions[i].eval) missing.push(i);
     }
-    if (!missing.length) return;
-    const eng = await ensureLiveEngine();
+    let eng;
+    if(missing.length) eng=await ensureLiveEngine();
     if (!valid()) return;
     for (const i of missing) {
       const node = v.positions[i];
@@ -2782,6 +2876,8 @@ async function requestLiveEval() {
       node.searchPreview = null;
       refreshVariation();
     }
+    const state=classifyVariationMoves();
+    await verifyGreatCandidates(state,async()=>eng ||= await ensureLiveEngine(),valid,[v.branchIdx+idx]);
   } catch (e) {
     if (!valid()) return;
     S.liveError = "Stockfish stopped before this position was ready.";
@@ -2843,8 +2939,10 @@ function variationTerminal(v, idx) {
 // (Analysis mode is indicated/closed via the Exit button in the controls bar.)
 function exitAnalysis(mainIdx) {
   stopLineWalk();
+  if (S.standalone) return;
   if (!S.analysisMode) { if (mainIdx != null) go(mainIdx); return; }
   S.analysisMode = false; S.variation = null; S.selectedSq = null; S.liveToken++;
+  S.liveEngine?.cancelPending(); S.liveEngine?.stop();
   if (mainIdx != null) { go(mainIdx); return; }
   paintBoard(); renderEvalBar(); renderPlayers(); renderControls(); renderReview(); renderEngineCurrent();
 }
@@ -3023,7 +3121,7 @@ function alignPlayers() {
 
 /* ---------------- Controls ---------------- */
 function renderControls() {
-  const mode = S.practice ? "practice" : S.analysisMode && S.variation ? "variation" : "mainline";
+  const mode = S.practice ? "practice" : S.standalone ? "standalone" : S.analysisMode && S.variation ? "variation" : "mainline";
   let refs = UI.controlRefs;
   // Progress updates can arrive between mouse-down and mouse-up. Keep the buttons
   // (and their icons) mounted so clicks, focus and hover survive those updates.
@@ -3035,11 +3133,13 @@ function renderControls() {
       UI.controls.replaceChildren(refs.position, refs.status,
         el("button", { class: "exit-analysis", title: "Exit practice (Esc)", onclick: exitPractice }, el("span", { class: "ea-x" }, "✕"), "Exit"));
     } else {
-      const variation = mode === "variation";
+      const variation = mode === "variation" || mode === "standalone";
       refs.first = el("button", { "aria-label": variation ? "Variation start" : "Start",
         onclick: variation ? () => gotoVar(0) : () => go(0) }, icon("first"));
       refs.previous = el("button", { "aria-label": variation ? "Previous move" : "Previous", onclick: navPrev }, icon("prev"));
-      refs.center = variation
+      refs.center = S.standalone
+        ? el("button", {class:"play", "aria-label":"Flip board", onclick:toggleFlip}, icon("flip"))
+        : variation
         ? el("button", { class: "exit-analysis", title: "Exit analysis (Esc)", onclick: () => exitAnalysis(S.variation.branchIdx) }, el("span", { class: "ea-x" }, "✕"), "Exit")
         : el("button", { class: "play", onclick: toggleAuto });
       refs.next = el("button", { "aria-label": variation ? "Next move" : "Next", onclick: navNext }, icon("next"));
@@ -3067,6 +3167,7 @@ function renderControls() {
     // Same layout as the normal controls — the central green Play slot becomes a red Exit button.
     const atStart = v.idx <= 0;
     if (refs.first.disabled !== atStart) refs.first.disabled = atStart;
+    if (S.standalone) refs.previous.disabled = atStart;
     if (refs.next.disabled !== atEnd) refs.next.disabled = atEnd;
     if (refs.last.disabled !== atEnd) refs.last.disabled = atEnd;
     return;
@@ -3530,7 +3631,15 @@ function renderReview() {
     // .ip-text) so the font, colour and vertical position match the mainline commentary.
     const body = el("div", { class: "ip-body" });
     body.append(el("div", { class: "ip-head" }));
-    body.append(el("div", { class: "ip-text" }, "Exploring a variation."));
+    if (S.standalone) {
+      const pos=activePos(), cls=pos.classif, head=body.firstChild;
+      if (cls) head.append(gradeBadge(cls,pos.moveGrade,"ip-badge"));
+      head.append(el("span",{class:"ip-move"},pos.san || "Starting position"));
+      const ev=activeEval();
+      if(ev) head.append(el("span",{class:"ip-eval"},evalText(ev)));
+      body.append(el("div",{class:"ip-text"}, cls ? `${categoryName(cls)} move. Live feedback may change as the search deepens.`
+        : pos.san ? "Analyzing move… Feedback may change as the search deepens." : "Move pieces for either side to explore. Evaluation updates live."));
+    } else body.append(el("div", { class: "ip-text" }, "Exploring a variation."));
     panel.append(body);
     UI.review.replaceChildren(panel);
     return;
@@ -3760,10 +3869,10 @@ function categoryLabel(cls) {
   return label;
 }
 function renderStats() {
+  if (S.standalone) {renderAnalysisTools(); return;}
+  const breakdownOpen = UI.stats.querySelector(".accuracy-breakdown")?.open || false;
   const opSide = S.meSide === "w" ? "b" : "w";
   const meAcc = S.acc[S.meSide], opAcc = S.acc[opSide];
-  const meRating = S.players[S.meSide]?.rating, opRating = S.players[opSide]?.rating;
-  const meEloAcc = S.accElo[S.meSide], opEloAcc = S.accElo[opSide];
   // Compact list by default; the expander arrow unfolds the whole list (incl. book moves).
   const list = S.qbreakExpanded ? QBREAK_FULL : QBREAK_SUMMARY;
 
@@ -3784,7 +3893,7 @@ function renderStats() {
     const meCt = el("span", { class: "ct left " + (cMe ? "" : "zero"), onclick: () => jumpToCategory(S.meSide, k) }, cMe);
     const opCt = el("span", { class: "ct " + (cOp ? "" : "zero"), onclick: () => jumpToCategory(opSide, k) }, cOp);
     rows[k] = { me: meCt, op: opCt };
-    return el("div", { class: "qbreak-row" },
+    return el("div", { class: "qbreak-row", style: { "--category-color": QUALITY[k].color } },
       meCt,
       // The category explainer tooltip lives on the label only — hovering the counts (which are
       // clickable jump targets) must not trigger it.
@@ -3812,18 +3921,21 @@ function renderStats() {
           S.analyzing
             ? loaderNode("acc-val", "var(--accent)")
             : el("span", { class: "acc-val", style: { color: "var(--accent)" }, onmouseenter: (e) => showInfoTip(e.currentTarget, "Accuracy", ACCURACY_INFO), onmouseleave: hideQTip }, meAcc == null ? "—" : meAcc.toFixed(1)),
-          el("span", { class: "acc-bar" }, el("i", { style: { width: (S.analyzing ? 0 : (meAcc || 0)) + "%", background: "var(--accent)" } })),
-          el("span", { class: "est-rating", onmouseenter: (e) => showInfoTip(e.currentTarget, "Estimated Elo", ELO_INFO), onmouseleave: hideQTip }, S.analyzing ? "≈ ··· elo" : "≈ " + (estimateElo(meEloAcc, meRating, S.meSide) ?? "—") + " elo")),
+          el("span", { class: "acc-bar" }, el("i", { style: { width: (S.analyzing ? 0 : (meAcc || 0)) + "%", background: "var(--accent)" } }))),
+
         el("span", { class: "acc-vs" }, "VS"),
         el("div", { class: "acc-cell right" },
           el("span", { class: "acc-name" }, S.players[opSide].name),
           S.analyzing
             ? loaderNode("acc-val", "var(--accent)")
             : el("span", { class: "acc-val", style: { color: "var(--ink-2)" }, onmouseenter: (e) => showInfoTip(e.currentTarget, "Accuracy", ACCURACY_INFO), onmouseleave: hideQTip }, opAcc == null ? "—" : opAcc.toFixed(1)),
-          el("span", { class: "acc-bar" }, el("i", { style: { width: (S.analyzing ? 0 : (opAcc || 0)) + "%", background: "var(--ink-3)", marginLeft: (100 - (S.analyzing ? 100 : (opAcc || 0))) + "%" } })),
-          el("span", { class: "est-rating", onmouseenter: (e) => showInfoTip(e.currentTarget, "Estimated Elo", ELO_INFO), onmouseleave: hideQTip }, S.analyzing ? "≈ ··· elo" : "≈ " + (estimateElo(opEloAcc, opRating, opSide) ?? "—") + " elo")),
+          el("span", { class: "acc-bar" }, el("i", { style: { width: (S.analyzing ? 0 : (opAcc || 0)) + "%", background: "var(--ink-3)", marginLeft: (100 - (S.analyzing ? 100 : (opAcc || 0))) + "%" } }))),
+
       ),
-      qbreak,
+      !S.analyzing&&S.bests.some(b=>b?.playedSearchLimited||b?.stoppedEarly)
+        ?el("p",{class:"set-note",role:"status"},"Time-limited analysis: a difficult move was evaluated at reduced depth. Accuracy and move badges may change with deeper analysis."):null,
+      el("details", {class: "accuracy-breakdown", open: breakdownOpen},
+        el("summary", {}, "Move breakdown"), qbreak),
     ),
   ));
   statsRefs = S.analyzing ? { expanded: S.qbreakExpanded, rows } : null;
@@ -3985,6 +4097,7 @@ function highlightCurrentMove(forceScroll = false) {
 let _movesSig = null;
 let _movesClassSig = null;
 function renderMoves() {
+  if (S.standalone) {renderStandaloneMoves(); return;}
   const rows = [];
   for (let ply = 1; ply <= S.total; ply++) {
     const number = Number(S.positions[ply - 1].fen.split(" ")[5]);
@@ -4039,7 +4152,7 @@ let _coachPositionKey = null;
 
 function alignConceptPanel() {
   const mod = UI.concepts?.closest(".mod"), review = UI.review?.closest(".mod"), engine = UI.engine?.closest(".mod");
-  if (!mod || mod.hidden || !review || !engine || isCustomLayout()) return;
+  if (!mod || mod.hidden || !review || !engine || isCustomLayout() || UI.canvas.classList.contains("workspace-layout")) return;
   if (UI.canvas.classList.contains("desktop-layout")) {
     const top = parseFloat(review.style.top), bottom = parseFloat(engine.style.top) + parseFloat(engine.style.height);
     mod.style.top = top + "px";
@@ -4137,12 +4250,12 @@ function renderEngineCurrent() {
   // position. They only reappear once practice is fully finished/exited.
   if (S.practice && (S.practice.solving || S.practice.rolling || S.practice.demoing)) { renderEnginePractice(); return; }
   if (S.analysisMode && S.variation) {
-    const b = activePos().best;
+    const b = activeBest();
     renderEngine(b ? b.lines : null);
   } else {
     const b = S.bests[S.idx];
     let lines = b ? b.lines : null;
-    // The batch only stored the single best line. If the user wants more, show the richer set we
+    // If the batch stored fewer lines, show the richer set we
     // searched on demand for THIS position (requestPanelLines), then ensure that search is running.
     const panelReady = !!(S._panelCache && S._panelCache.idx === S.idx && S._panelCache.lines);
     if (panelReady && (!lines || S._panelCache.lines.length > lines.length)) lines = S._panelCache.lines;
@@ -4154,8 +4267,7 @@ function renderEngineCurrent() {
   }
 }
 // Live, on-demand search of the position you're viewing on the mainline, to fill the extra engine-
-// panel candidate lines beyond the single line the batch stored. Cheap: it only runs for the
-// position currently shown, is cancelled when you navigate away, and no-ops when 1 line is enough.
+// panel candidate lines beyond those the batch stored, only for the position currently shown.
 async function requestPanelLines() {
   if (S.analyzing || S.analysisMode) return;          // not during the batch, not in variation mode
   const want = S.settings.engineLines;
@@ -4164,7 +4276,7 @@ async function requestPanelLines() {
   const stored = S.bests[i];
   if (!stored || !stored.lines) return;               // position not analysed yet
   if (stored.lines.length >= want) return;            // batch already has enough (old saved games)
-  if (S._panelCache && S._panelCache.idx === i && S._panelCache.lines.length >= want) return; // cached
+  if (S._panelCache && S._panelCache.idx === i && S._panelCache.requested >= want) return;
   const fen = S.positions[i].fen;
   if (terminalScore(fen)) return;
   const token = ++S.panelToken;
@@ -4176,10 +4288,11 @@ async function requestPanelLines() {
     res = await eng.analyse(fen, S.settings.engineDepth, want, searchHistory(S.positions, i));
   } catch { return; }
   if (token !== S.panelToken || S.idx !== i || S.analysisMode || activePos().fen !== fen) return;
-  S._panelCache = { idx: i, fen, lines: res.lines };
+  // There may be fewer legal candidates than requested; don't search them repeatedly.
+  S._panelCache = { idx: i, fen, lines: res.lines, requested: want };
   renderEngineCurrent();
 }
-const ENGINE_NAME = { nnue: "Stockfish 18 NNUE", sf19lite: "Stockfish 19 Lite" };
+const ENGINE_NAME = { sf19: "Stockfish 19", sf19lite: "Stockfish 19 Lite" };
 // Keep all candidate lines and the action visible. Only the bottom edge moves, including
 // when narrowing a custom panel wraps its heading/button or extra lines are selected.
 function fitEnginePanel() {
@@ -4187,7 +4300,8 @@ function fitEnginePanel() {
   const head = UI.engine?.querySelector('.panel-head');
   const body = UI.engine?.querySelector('.engine-body');
   if (!mod || !head || !body) return;
-  const height = Math.max(DEFAULT_LAYOUT.engine.h,
+  if (!isCustomLayout()) { mod.style.minHeight = ""; return; }
+  const height = Math.max(MINH,
     Math.ceil((head.getBoundingClientRect().height + body.scrollHeight + 4) / GRID) * GRID);
   mod.style.minHeight = height + "px";
   if (isCustomLayout() && S.layout.engine) {
@@ -4267,6 +4381,7 @@ function renderEngine(lines, padFromCache = false) {
 
 /* ---------------- Topbar meta ---------------- */
 function metaChips() {
+  if(S.standalone) return [el("span",{class:"meta-chip"},el("b",{},"Live analysis"))];
   const res = S.players[S.meSide].result;
   let outcome = "Result unknown";
   if (res === "1-0") outcome = S.meSide === "w" ? "Victory" : "Loss";
@@ -4637,7 +4752,7 @@ async function resetEngineSettings() {
 }
 const ARROW_SETTING_KEYS = ["bestArrow", "showThreat", "bestArrowColor", "arrowOpacity", "arrowShaft", "arrowHead"];
 const BACKGROUND_SETTING_KEYS = ["bg", "bgFit", "bgTile", "bgCustom", "bgHue", "bgSat", "bgLight"];
-const BADGE_SETTING_KEYS = ["badgeFont", "badgeTooltip"];
+const BADGE_SETTING_KEYS = ["badgeDesign", "badgeFont", "badgeTooltip"];
 const VISUAL_SETTING_KEYS = [
   "theme", "accent", "accentCustom", "density", "evalView", "mlStyle", "badgeStyle", "badgeScale",
   ...BADGE_SETTING_KEYS,
@@ -4854,29 +4969,18 @@ function fxSlider(ev, field, label, min, max, step, fmt) {
 function motorSettings() {
   return el("div", {},
     section("Search",
-      engineSeg("Analysis lines", "classifyLines", [1, 2, 3, 4], null, ENGINE_INFO.classifyLines),
+      engineSeg("Analysis lines", "classifyLines", [2, 3, 4], null, ENGINE_INFO.classifyLines),
       engineSlider("Depth", "engineDepth", 8, 22, 1, { info: ENGINE_INFO.engineDepth }),
       engineSlider("Workers", "engineWorkers", 1, 8, 1, { fmt: (v) => v + (v === 1 ? " (single)" : " parallel"), info: ENGINE_INFO.engineWorkers }),
-      engineSeg("Panel lines", "engineLines", [1, 2, 3, 4], null, ENGINE_INFO.engineLines),
+      engineSeg("Panel lines", "engineLines", [2, 3, 4], null, ENGINE_INFO.engineLines),
       el("div", { class: "set-row hint" },
-        el("span", { class: "set-note" }, "Additional analysis lines provide alternatives for move annotations. Calibrated SF18 numerical scores require 1 analysis line. Panel lines are searched live as you reach each move.")),
-    ),
-    section("Estimated rating",
-      el("div", { class: "set-row" }, setLabel("Rating mode", ELO_INFO),
-        ddField(S.settings.ratingMode || "context", [["context", "Use recorded rating"], ["moves", "Moves only"]], value => setEngineSetting("ratingMode", value))),
-      el("div", { class: "set-row hint" }, el("span", { class: "set-note" },
-        "Use recorded rating: shows how well you played compared with players around the rating saved in this game, using the selected engine's own model. If no rating is saved, we use Moves only instead.")),
-      S.settings.enginePath === "sf19lite" ? el("div", { class: "set-row hint" }, el("span", { class: "set-note" },
-        "Stockfish 19 compares expected-point losses with its own public peers. This rating comparison is separate from displayed accuracy.")) : null,
-      el("div", { class: "set-row hint" }, el("span", { class: "set-note" }, "Moves only: ignores the saved rating and estimates a blitz rating level from your move choices. Needs at least 10 moves with more than one legal choice. These estimates do not change your account rating.")),
-      (S.settings.enginePath === "nnue" && (S.settings.engineDepth !== 16 || S.settings.engineHash !== 16 || S.settings.engineSkill !== 20 || S.settings.classifyLines !== 1))
-        ? el("div", { class: "set-row hint" }, el("span", { class: "set-note" }, "Use depth 16, hash 16 MB, maximum strength and 1 analysis line for calibrated SF18 numerical scores.")) : null,
+        el("span", { class: "set-note" }, "Both engines use the selected analysis lines for move annotations. Panel lines are searched live as you reach each move.")),
     ),
     section("Engine",
       el("div", { class: "set-row" },
         setLabel("Build", ENGINE_INFO.enginePath),
         el("div", { class: "set-seg" },
-          el("button", { class: S.settings.enginePath === "nnue" ? "on" : "", onclick: () => setEngineSetting("enginePath", "nnue") }, "Stockfish 18 NNUE"),
+          el("button", { class: S.settings.enginePath === "sf19" ? "on" : "", onclick: () => setEngineSetting("enginePath", "sf19") }, "Stockfish 19"),
           el("button", { class: S.settings.enginePath === "sf19lite" ? "on" : "", onclick: () => setEngineSetting("enginePath", "sf19lite") }, "Stockfish 19 Lite"),
         ),
       ),
@@ -4929,7 +5033,8 @@ function badgeSettings() {
       el("span", { class: "badge-font-sample", "aria-hidden": "true",
         style: { fontFamily: font.family } }, "9.0 6.4"))));
   return el("div", { class: "badge-settings" },
-    el("p", { class: "set-note" }, "Choose how move scores look across the board, move list and accuracy breakdown."),
+    el("p", { class: "set-note" }, "Choose points or move icons across the board, move list and accuracy breakdown."),
+    seg("Badge style", "badgeDesign", ["points", "chesseditpack"], null, value => value === "points" ? "Points" : "ChessEditPack"),
     el("div", { class: "badge-preview", "aria-label": "Badge preview" },
       gradeBadge("best", 9, "badge-preview-item"), gradeBadge("good", 6.4, "badge-preview-item"),
       gradeBadge("brilliant", 10, "badge-preview-item"), gradeBadge("blunder", 0, "badge-preview-item"),
@@ -4938,8 +5043,9 @@ function badgeSettings() {
       fmt: (v) => Math.round(v * 100) + " %",
       onChange: (v) => document.documentElement.style.setProperty("--badge-scale", v),
     }),
-    el("div", { class: "set-lbl" }, "Number font"), fonts,
-    el("p", { class: "set-note" }, "Free, open-source fonts, bundled for offline use."),
+    ...(S.settings.badgeDesign === "chesseditpack" ? [] : [
+      el("div", { class: "set-lbl" }, "Number font"), fonts,
+      el("p", { class: "set-note" }, "Free, open-source fonts, bundled for offline use.")]),
     el("div", { class: "badge-label-heading" }, el("span", { class: "set-lbl" }, "Hover labels")),
     badgeLabelPicker(),
     el("p", { class: "set-note" }, "Show the category for two seconds after each move."));
@@ -5164,16 +5270,16 @@ const CREDITS = [
     href: "https://github.com/lichess-org/lila/blob/master/LICENSE",
   },
   {
-    title: "Stockfish 19 Lite",
-    by: "Lite single-threaded Stockfish.js 19.0.0 by Nathan Rugg (“nmrugg”), © 2026 Chess.com, LLC; lite network by sscg13; based on the Stockfish team's engine.",
+    title: "Stockfish 19 (default)",
+    by: "Full single-threaded Stockfish.js 19.0.0 by Nathan Rugg (nmrugg), copyright 2026 Chess.com, LLC.",
     lic: "GPLv3",
     href: "https://github.com/nmrugg/stockfish.js/tree/v19.0.0",
   },
   {
-    title: "Stockfish 18 NNUE (default)",
-    by: "NNUE build © Chess.com, LLC — distributed as JS/WASM via Nathan Rugg’s (“nmrugg”) Stockfish.js.",
+    title: "Stockfish 19 Lite",
+    by: "Lite single-threaded Stockfish.js 19.0.0 by Nathan Rugg (“nmrugg”), © 2026 Chess.com, LLC; lite network by sscg13; based on the Stockfish team's engine.",
     lic: "GPLv3",
-    href: "https://github.com/nmrugg/stockfish.js/tree/v18.0.0",
+    href: "https://github.com/nmrugg/stockfish.js/tree/v19.0.0",
   },
   {
     title: "Chess engine — upstream",
@@ -5183,7 +5289,7 @@ const CREDITS = [
   },
   {
     title: "Neural networks (NNUE)",
-    by: "Stockfish team and network contributors; Stockfish 18's lite network by Linmiao Xu (“linrock”).",
+    by: "Stockfish team and network contributors; Stockfish 19 Lite network by sscg13.",
     lic: "GPLv3",
     href: "https://tests.stockfishchess.org/nns",
   },
@@ -5340,17 +5446,9 @@ function calibrationWarning(title, message, remainLabel, recommended = false) {
   return calibrationWarningPending;
 }
 async function setEngineSetting(key, value) {
+  if(["classifyLines","engineLines"].includes(key)) value=clampEngineLines(value);
   if (S.settings[key] === value) return;
-  if (key === "enginePath" && value === "sf19lite") {
-    const proceed = await calibrationWarning("Switch to Stockfish 19 Lite?",
-      "Our accuracy and estimated-rating calibration is built primarily around Stockfish 18 NNUE. Stockfish 19 Lite has less validation behind its review scores, so switching may produce less reliable results. We recommend remaining on Stockfish 18 for the most consistent game reviews.", "Remain on Stockfish 18", true);
-    if (!proceed) { if (S.settings.enginePath !== "nnue") await setEngineSetting("enginePath", "nnue"); return; }
-  }
-  if (key === "engineDepth" && value !== 16 && S.settings.enginePath === "nnue" && S.settings.engineDepth === 16) {
-    const proceed = await calibrationWarning("Change the calibrated depth?",
-      "Our accuracy and estimated-rating calibration is built primarily around Stockfish 18 NNUE at depth 16. Other depths have less validation behind their review scores, so changing the depth may produce less reliable results. We recommend keeping depth 16 for the most consistent game reviews.", "Keep depth 16", true);
-    if (!proceed) return;
-  }
+  if (key === "enginePath" && !Object.hasOwn(ENGINE_BUILDS, value)) return;
   S.settings[key] = value;
   S.engineFallbackBuild = null;
   S.activeEngineBuild = null;
@@ -5365,18 +5463,21 @@ async function setEngineSetting(key, value) {
   if (S.analysisMode && S.variation) {
     requestLiveEval();
   }
-  // Classification always searches a single line now, and the engine panel fills extra candidate
+  // Base analysis keeps at least two lines; the engine panel fills extra candidate
   // lines on demand for the position you're viewing. So the line-count settings (panel "Lines",
   // fast-mode lines/toggle) are purely a display choice — they never require re-analysis; just
   // refresh the panel (which kicks off an on-demand search if more lines are wanted).
   const lineKey = key === "engineLines" || key === "fastLines" || key === "fastAnalysis";
   const displayOnly = lineKey && !S.analyzing;
-  if (!displayOnly) scheduleReanalyze();
+  if (!displayOnly && !S.standalone) scheduleReanalyze();
   renderEngineCurrent();
   if (UI.settings && !UI.settings.hidden) renderSettings();
 }
 function applySettings() {
   const r = document.documentElement;
+  for (const [category, cfg] of Object.entries(MOVE_GRADE_CONFIG)) {
+    r.style.setProperty(`--q-${category}`, S.settings.badgeDesign === "chesseditpack" ? cfg.packColor : cfg.color);
+  }
   // Only the dark theme is supported now — force it (also for old saved "light").
   S.settings.theme = "dark";
   r.setAttribute("data-theme", "dark");
@@ -5668,7 +5769,7 @@ async function createPracticeEngine(build, options) {
   const engine = new Engine(ENGINE_BUILDS[build]);
   try {
     await engine.setOptions(options);
-    if (engine.identity && !new RegExp("^Stockfish " + (build === "sf19lite" ? 19 : 18) + "\\b").test(engine.identity)) throw Error("Practice engine differs");
+    if (engine.identity && !new RegExp("^Stockfish " + (["sf19", "sf19lite"].includes(build) ? 19 : 18) + "\\b").test(engine.identity)) throw Error("Practice engine differs");
     return engine;
   } catch (error) { engine.terminate(); throw error; }
 }
@@ -5795,7 +5896,7 @@ function currentGameId() {
 }
 
 function analysisSettingsKey() {
-  return JSON.stringify(["public-scoring-v4", CALIB?.version, CALIB?.context?.sf19?.candidateVersion, S.settings.ratingMode, S.settings.enginePath, S.settings.engineDepth, S.settings.classifyLines,
+  return JSON.stringify(["public-scoring-v7", CALIB?.version, CALIB?.context?.sf19?.candidateVersion, CALIB?.twoLineRatings?.sf19?.candidateVersion, CALIB?.twoLineRatings?.sf19lite?.candidateVersion, S.settings.enginePath, S.settings.engineDepth, S.settings.classifyLines,
     S.settings.engineHash, S.settings.engineSkill]);
 }
 
@@ -5807,7 +5908,7 @@ function completeAnalysis(saved, count) {
 
 function canRestoreAnalysis(saved) {
   return completeAnalysis(saved, S.total + 1) && saved.pgn === S.pgn
-    && (!saved.engineBuild || Object.hasOwn(ENGINE_BUILDS, saved.engineBuild))
+    && (!saved.engineBuild || (Object.hasOwn(ENGINE_BUILDS, saved.engineBuild) && saved.engineBuild === saved.bests[0]?.calibration?.build))
     && saved.settingsKey === analysisSettingsKey()
     && scoringEvidenceComplete(saved.bests, S.total, CALIB);
 }
@@ -6044,6 +6145,57 @@ function renderLibrary() {
   restore();
 }
 
+/* ---------------- Standalone analysis ---------------- */
+function standalonePgn() {
+  const chess=new Chess(S.positions[0].fen);
+  for(const pos of S.variation.positions.slice(1)) chess.move({from:pos.from,to:pos.to,promotion:pos.promotion || undefined});
+  return chess.pgn() || "*";
+}
+function analysisInputPayload(text) {
+  const raw=text.trim();
+  if(!raw) throw Error("Paste a FEN position or PGN game.");
+  const pgn=raw.split(/\s+/)[0].split("/").length===8 ? new Chess(raw).pgn() || "*" : raw;
+  buildPositions(pgn); // Validate before replacing the current board.
+  return {mode:"analysis",pgn,meta:{flip:S.flipped},analysis:null};
+}
+function renderAnalysisTools() {
+  if(UI.stats.querySelector(".analysis-tools")) return;
+  const input=el("textarea",{id:"analysisInput",rows:3,placeholder:"Paste a FEN position or PGN game", "aria-label":"FEN or PGN"});
+  const status=el("div",{class:"analysis-input-status",role:"status"});
+  const copy=async(kind)=>{
+    try {await navigator.clipboard.writeText(kind==="FEN" ? activePos().fen : standalonePgn());status.textContent=`${kind} copied.`;}
+    catch {status.textContent="Clipboard unavailable. Try again in the active tab.";}
+  };
+  const load=async()=>{
+    try {const payload=analysisInputPayload(input.value);await applyGame(payload);UI.stats.querySelector(".analysis-input-status").textContent="Position loaded.";}
+    catch(error){status.textContent=error.message;}
+  };
+  UI.stats.replaceChildren(el("div",{class:"panel analysis-tools"},
+    el("div",{class:"panel-head"},el("h3",{},"Analysis board")),
+    el("div",{class:"panel-body"},
+      el("div",{class:"analysis-actions"},
+        el("button",{onclick:()=>applyGame({mode:"analysis",pgn:"*",meta:{flip:S.flipped},analysis:null})},"Reset board"),
+        el("button",{onclick:()=>copy("FEN")},"Copy FEN"),el("button",{onclick:()=>copy("PGN")},"Copy PGN")),
+      el("details",{},el("summary",{},"Load position or game"),el("label",{for:"analysisInput"},"FEN or PGN"),input,
+        el("button",{onclick:load},"Load")),status)));
+}
+let _standaloneMovesSig=null;
+function renderStandaloneMoves() {
+  const v=S.variation;
+  const sig=JSON.stringify([v.idx,v.positions.map(p=>[p.fen,p.classif,p.moveGrade]),S.settings.badgeStyle,S.settings.badgeDesign,S.settings.badgeFont,S.settings.categoryNames]);
+  if(sig===_standaloneMovesSig && UI.movesBody.firstChild) return;
+  _standaloneMovesSig=sig;
+  const list=el("div",{class:"movelist ml-compact ml-scroll"});
+  list.append(el("button",{class:"ml-move"+(v.idx===0 ? " current" : ""),onclick:()=>gotoVar(0)},"Start"));
+  v.positions.slice(1).forEach((pos,i)=>{
+    const ply=i+1, before=v.positions[i].fen.split(" ");
+    if(pos.color==="w" || i===0) list.append(el("span",{class:"ml-num"},before[5]+(pos.color==="b" ? "..." : ".")));
+    list.append(el("button",{class:"ml-move"+(ply===v.idx ? " current" : ""),"data-var":ply,onclick:()=>gotoVar(ply)},
+      pos.san,pos.classif ? qBadge(pos.classif,pos.moveGrade) : null));
+  });
+  UI.movesBody.replaceChildren(list);UI.movesCount.textContent="";UI.movesFoot.hidden=true;
+}
+
 /* ---------------- Navigation ---------------- */
 function go(to) {
   _cancelPromotion?.();
@@ -6079,7 +6231,7 @@ function go(to) {
 function navNext() { if (S.practice) return; stopLineWalk(); if (S.analysisMode) variationStep(1); else go(S.idx + 1); }
 function navPrev() { if (S.practice) return; stopLineWalk(); if (S.analysisMode) variationStep(-1); else go(S.idx - 1); }
 // Jump to a mainline position (exits analysis mode if active).
-function gotoMainline(ply) { if (S.practice) return; stopLineWalk(); if (S.analysisMode) exitAnalysis(); go(ply); }
+function gotoMainline(ply) { if(S.standalone){gotoVar(ply);return;} if (S.practice) return; stopLineWalk(); if (S.analysisMode) exitAnalysis(); go(ply); }
 // Jump to a variation position while reviewing a game.
 function gotoVar(idx) {
   if (S.practice) return;
@@ -6089,11 +6241,12 @@ function gotoVar(idx) {
   if (idx < 0 || idx >= v.positions.length) return;
   v.idx = idx; S.selectedSq = null;
   paintBoard(); playSanSound(v.positions[v.idx]?.san); renderEvalBar(); renderPlayers(); renderControls();
-  renderReview(); renderEngineCurrent(); requestLiveEval();
+  renderReview(); renderMoves(); renderEngineCurrent(); requestLiveEval();
 }
 function variationStep(delta) {
   const v = S.variation; if (!v) return;
   const ni = v.idx + delta;
+  if (ni <= 0 && S.standalone) { gotoVar(0); return; }
   if (ni <= 0) { exitAnalysis(v.branchIdx); return; }   // back before the branch → exit mode
   if (ni >= v.positions.length) return;                  // no more variation moves
   v.idx = ni;
@@ -6116,6 +6269,7 @@ function toggleFlip() {
     return;
   }
   S.flipped = !S.flipped; buildBoard(); renderPlayers(); renderEvalBar();
+  if(S.standalone) rememberReviewJob();
 }
 function toggleAuto() {
   if (S.autoTimer) { clearInterval(S.autoTimer); S.autoTimer = null; }
@@ -6128,7 +6282,7 @@ function toggleAuto() {
 document.addEventListener("keydown", (e) => {
   if (learningWorkspace) return;
   if (e.key === "Tab" && !e.target?.closest?.('#settings,[role="dialog"],[role="alertdialog"]')) {
-    e.preventDefault(); return;
+    if (!e.target?.closest?.(".analysis-tools,.analysis-nav")) {e.preventDefault(); return;}
   }
   if (UI.settings?.contains(e.target) || UI.libRail?.contains(e.target)) return;
   if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
@@ -6176,6 +6330,7 @@ function requestProgress(gen) {
   setTimeout(() => flushProgress(gen), Math.max(0, 140 - (Date.now() - _progLast)));
 }
 async function startAnalysis() {
+  if(S.standalone){resetLiveEngine();invalidateVariationEvals();requestLiveEval();return;}
   if (S.practice) exitPractice();
   S._lastEngineLines = null;
   S.analyzedSettings = Object.fromEntries(["enginePath","engineDepth","engineHash","engineSkill","classifyLines"].map(key => [key,S.settings[key]]));
@@ -6204,9 +6359,9 @@ async function startAnalysis() {
   }
   if (gen !== S.batchGen) return;
 
-  // Batch analysis defaults to MultiPV=1. Extra lines provide root alternatives for
+  // Batch analysis defaults to MultiPV=2. Root alternatives support
   // annotations and inspection; the engine panel fills its lines on demand.
-  const multipv = Math.max(1, Math.min(ENGINE_MAX_LINES, S.settings.classifyLines || 1));
+  const multipv = clampEngineLines(S.settings.classifyLines);
   S.analyzedMultipv = multipv; // remember how many lines this run computed (for setEngineSetting)
   const nWorkers = engineWorkerCount(S.settings.engineWorkers, S.total + 1);
   // createEngine() readies each worker AND falls back down the build chain if the chosen build can't
@@ -6255,7 +6410,6 @@ async function startAnalysis() {
         : await analyseCalibratedPosition(eng, {fen: S.positions[i].fen, history: searchHistory(S.positions, i),
           played: i < S.total ? S.positions[i + 1].from + S.positions[i + 1].to + (S.positions[i + 1].promotion || "") : null,
           settings: S.settings, calibration: CALIB,
-          needMovesOnly: S.settings.ratingMode === "moves" || !Number(S.players.w?.rating) || !Number(S.players.b?.rating),
           onProgress: preview => {
           if (gen !== S.batchGen) return;
           S.searchPreviews[i] = preview;
@@ -6274,6 +6428,10 @@ async function startAnalysis() {
   }
   try {
     await Promise.all(engines.map((e) => worker(e)));
+    if(gen===S.batchGen){
+      computeDerived();
+      await verifyGreatCandidates(S,async()=>engines[0],()=>gen===S.batchGen);
+    }
   } catch (e) {
     if (gen !== S.batchGen) return;
     console.error("[Chess Review] engine stopped during batch analysis:", e);
@@ -6320,7 +6478,8 @@ function renderAll() {
    between games; only the panels' data and the board orientation change. */
 async function applyGame(payload) {
   const positions = buildPositions(payload.pgn);
-  if (positions.length < 2) throw new Error("Load a game with moves to review. Standalone positions are not supported.");
+  const standalone = payload.mode === "analysis";
+  if (!standalone && positions.length < 2) throw new Error("Load a game with moves to review. Standalone positions are not supported.");
   ++_librarySelection;
   S.practice?.cancelCheck?.();
   _cancelPromotion?.();
@@ -6346,6 +6505,9 @@ async function applyGame(payload) {
   S._lastEngineLines = null;
   _movesSig = null; _movesClassSig = null;
 
+  S.standalone = standalone;
+  if(standalone) UI.stats.replaceChildren();
+  UI.canvas.classList.toggle("standalone-analysis",standalone);
   applySettings();
 
   S.analyzing = true;
@@ -6371,8 +6533,8 @@ async function applyGame(payload) {
   S.meSide = meSide; S.playerKnown = playerKnown; S.flipped = side === "b"; S.idx = 0;
 
   // Restore saved game analysis or start fresh
-  let saved = payload.analysis;
-  if (saved == null && !("analysis" in payload)) {
+  let saved = standalone ? null : payload.analysis;
+  if (!standalone && saved == null && !("analysis" in payload)) {
     try { const k = "analysis:" + currentGameId(); const s = await browserAPI.storage.local.get(k); saved = s[k] || null; } catch {}
   }
   const restored = canRestoreAnalysis(saved);
@@ -6387,21 +6549,29 @@ async function applyGame(payload) {
     S.completed = S.total;
   }
 
-  document.title = `${players.w.name} vs ${players.b.name} — Chess Review`;
+  if(standalone){
+    S.analyzing=false;S.analysisMode=true;
+    S.variation={branchIdx:0,positions:positions.map(p=>({...p,eval:null,best:null})),
+      idx:Number.isInteger(S.meta.analysisIndex) ? Math.max(0,Math.min(positions.length-1,S.meta.analysisIndex)) : positions.length-1};
+    S.positions=[positions[0]];S.total=0;
+    S.evals=[null];S.bests=[null];S.searchPreviews=[null];
+    S.players.w.name="White";S.players.b.name="Black";
+  }
+  document.title = standalone ? "Analysis — Chess Review" : `${players.w.name} vs ${players.b.name} — Chess Review`;
   computeDerived();
   renderAll();
   if (!S.qbreakExpanded) reflowAccuracy(false);
   renderLibrary();
   requestAnimationFrame(alignPlayers);
   rememberReviewJob();
-  if (!restored) startAnalysis();
+  if(standalone) requestLiveEval();
+  else if (!restored) startAnalysis();
+  else void verifyRestoredGreatMoves();
 }
 
 /* ---------------- Start ---------------- */
-// Desktop auto layout preserves the v7 composition; narrow windows use the responsive grid.
-// Desktop and custom layouts are fitted as a whole under the 60 px top bar to the WINDOW. Not the
-// monitor (screen.*): a monitor-based zoom cuts off the right column as soon as the window isn't
-// maximized, or is dragged to a smaller monitor after opening.
+// Automatic layouts use the viewport directly; saved custom canvases retain zoom fitting.
+// Custom canvases fit beneath their 60 px top bar using window dimensions rather than monitor size.
 //
 // The viewport is measured in device-independent pixels (innerWidth × current zoom), since
 // innerWidth alone shrinks and grows with the zoom we are about to set. We use real Chrome zoom (not
@@ -6413,12 +6583,6 @@ let _defaultZoom = 1;
 let _fittedDip = null;               // viewport size (device-independent px) the zoom was last fitted to
 let _zoomFitQueue = Promise.resolve();
 let _zoomInit = null;
-function desktopLayoutFor(dipW, dipH) {
-  return dipW / _defaultZoom >= 1100 && dipH / _defaultZoom >= 520;
-}
-function desktopZoomFor(dipW, dipH) {
-  return fittedZoomFor(DEFAULT_LAYOUT, dipW, dipH);
-}
 function layoutPageSize(layout) {
   const { maxR, maxB } = layoutExtent(layout);
   const defaults = layoutExtent(DEFAULT_LAYOUT);
@@ -6454,11 +6618,10 @@ async function performTabZoomFit(force) {
   // Same device-pixel size as last time → this resize came from a zoom change (the user's Ctrl+/-,
   // our own setZoom, or another tab sharing the origin zoom), not from the window. Leave it.
   if (!force && _fittedDip && Math.abs(w - _fittedDip.w) < 3 && Math.abs(h - _fittedDip.h) < 3) return;
-  const desktop = !isCustomLayout() && desktopLayoutFor(w, h);
-  UI.canvas.classList.toggle("desktop-layout", desktop);
+  UI.canvas.classList.remove("desktop-layout");
   applyLayout();
   requestAnimationFrame(alignPlayers);
-  const target = isCustomLayout() ? targetZoomFor(w, h) : desktop ? desktopZoomFor(w, h) : _defaultZoom;
+  const target = isCustomLayout() ? targetZoomFor(w, h) : _defaultZoom;
   // Only set it when it's off, so an unchanged window never triggers Chrome's zoom bubble.
   if (Math.abs(z - target) > 0.005) await browserAPI.tabs.setZoom(_zoomTabId, target);
   _fittedDip = { w, h };
@@ -6540,8 +6703,8 @@ async function resetLegacyZoom() {
       if ((store.settings?.engineDepth ?? 12) <= 12) S.settings.engineDepth = Math.max(S.settings.engineDepth, 16);
       S.settings.depthBumped = true;
     }
-    // The 5-line option was removed — clamp any stored value to the new max.
-    if (S.settings.engineLines > ENGINE_MAX_LINES) S.settings.engineLines = ENGINE_MAX_LINES;
+    // Keep older stored selections within the supported 2–4 range.
+    S.settings.engineLines=clampEngineLines(S.settings.engineLines);
     const migration = {};
     for (const key of new Set([...Object.keys(loadedSettings), ...Object.keys(S.settings)])) {
       if (JSON.stringify(loadedSettings[key]) !== JSON.stringify(S.settings[key])) migration[key] = S.settings[key];

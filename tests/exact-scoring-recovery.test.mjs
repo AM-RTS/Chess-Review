@@ -32,7 +32,7 @@ test('unrelated search failures are not masked or retried',async()=>{
   assert.equal(calls,1);
 });
 
-test('actual browser scoring coordinator recovers a bundled SF19 bounded final PV',async t=>{
+test('actual browser scoring coordinator keeps exact two-line and played-move observations',async t=>{
   const previous=globalThis.Worker;
   globalThis.Worker=class {
     commands=[];
@@ -51,8 +51,9 @@ test('actual browser scoring coordinator recovers a bundled SF19 bounded final P
   for(const move of moves)chess.move({from:move.slice(0,2),to:move.slice(2,4),promotion:move[4]});
   const root=await analyseCalibratedPosition(engine,{fen:chess.fen(),history:{initialFen,moves},played:'c1f4',calibration,
     settings:{enginePath:'sf19lite',engineDepth:16,engineHash:32,engineSkill:20,classifyLines:1}});
-  assert.equal(root.bestmove,root.pv.split(' ')[0]);assert.equal(root.exactRecovery,true);
-  assert.ok(engine.worker.commands.includes('go nodes 20000 searchmoves c1f4'));
+  assert.equal(root.bestmove,root.pv.split(' ')[0]);
+  if(root.bestmove!=='c1f4')assert.ok(engine.worker.commands.includes('go nodes 20000 searchmoves c1f4'));
+  assert.ok(engine.worker.commands.includes('setoption name MultiPV value 2'));
   assert.ok(root.lines.every(line=>line.bound==='exact'));
-  assert.equal(root.playedScore,root.score);
+  assert.equal(root.calibration.ratingVersion,undefined);assert.ok(root.playedScore);
 });

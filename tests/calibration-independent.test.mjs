@@ -49,11 +49,11 @@ test('bootstrap resamples whole games and is reproducible', () => {
   };
   assert.deepEqual(gameBootstrap(rows, statistic), gameBootstrap(rows, statistic));
 });
-test('real bundled SF18 starts with WDL and reproduces searches after state reset', async () => {
-  const config = await engineConfig('engine/stockfish-nnue.js', { kind: 'nodes', value: 5000 });
-  const engine = new Engine('engine/stockfish-nnue.js');
+test('real bundled SF19 starts with WDL and reproduces searches after state reset', async () => {
+  const config = await engineConfig('engine/stockfish-19-lite-single.js', { kind: 'nodes', value: 5000 });
+  const engine = new Engine('engine/stockfish-19-lite-single.js');
   try {
-    const identity = await engine.init(config); assert.match(identity.identity, /Stockfish 18 Lite/);
+    const identity = await engine.init(config); assert.match(identity.identity, /Stockfish 19 Lite/);
     const first = await engine.search([], null, config.budget);
     await engine.search(['e2e4'], null, config.budget);
     const again = await engine.search([], null, config.budget);
@@ -61,5 +61,22 @@ test('real bundled SF18 starts with WDL and reproduces searches after state rese
     assert.equal(first.nodes, again.nodes); assert.equal(first.depth, again.depth);
     assert.ok(Number.isFinite(expected(first.score)));
     const restricted = await engine.search([], 'a2a3', config.budget); assert.equal(restricted.bestmove, 'a2a3');
+  } finally { engine.close(); }
+});
+
+
+test('bundled full SF19 starts and returns a legal UCI move with WDL', async () => {
+  const engine = new Engine('engine/stockfish-19-single.js');
+  try {
+    const identity = await engine.init({majorVersion: 19, options: {
+      Hash: 16, MultiPV: 1, 'Skill Level': 20, UCI_ShowWDL: true,
+      UCI_LimitStrength: false, UCI_Chess960: false,
+    }});
+    assert.match(identity.identity, /^Stockfish 19\b/);
+    assert.doesNotMatch(identity.identity, /Lite/i);
+    const result = await engine.search([], null, {kind: 'nodes', value: 1000});
+    assert.match(result.bestmove, /^[a-h][1-8][a-h][1-8][qrbn]?$/);
+    assert.ok(Number.isFinite(result.score.cp));
+    assert.equal(result.score.wdl.length, 3);
   } finally { engine.close(); }
 });

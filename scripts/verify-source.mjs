@@ -65,8 +65,14 @@ export async function verifySource(root) {
   }
   const model = JSON.parse(await readFile(path.join(root, 'data/calibration.json'), 'utf8'));
   if (model.schema !== 'chess-review-public-calibration-v1') throw Error('Unsupported numerical model schema');
-  const permitted = new Set(['schema', 'version', 'source', 'quality', 'context', 'movesOnly', 'classification', 'clsWp']);
+  const permitted = new Set(['schema', 'version', 'source', 'quality', 'context', 'movesOnly', 'classification', 'clsWp', 'twoLineRatings']);
   for (const key of Object.keys(model)) if (!permitted.has(key)) throw Error('Unsupported numerical model field: ' + key);
+  if(model.twoLineRatings&&!['sf19','sf19lite'].every(build=>model.twoLineRatings[build]))throw Error('Both two-line rating models are required');
+  for(const [build,rating] of Object.entries(model.twoLineRatings||{})) {
+    if(!['sf19','sf19lite'].includes(build)||rating.schema!=='two-line-rating-v2'||!/^[a-f0-9]{64}$/.test(rating.candidateVersion||'')
+      ||rating.engineConfig?.build!==build||rating.engineConfig?.lines!==2||!rating.model?.coefficients?.every(Number.isFinite)
+      ||rating.context?.schema!=='fullgame-equivalent-context-v1'||rating.validation?.passed!==true)throw Error('Unsupported two-line rating model: '+build);
+  }
   if (!model.quality?.candidateVersion || !model.context?.model || !model.context?.sf19?.model
       || !model.context.sf19.candidateVersion || !model.movesOnly?.sf18?.model || !model.movesOnly?.sf19?.model) {
     throw Error('Maintained public numerical models are required');

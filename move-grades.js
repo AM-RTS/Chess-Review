@@ -1,16 +1,16 @@
 // Review grades describe a move within its annotation category. They are not
 // position evaluations, win probabilities, game accuracy, or rating-model inputs.
 export const MOVE_GRADE_CONFIG = Object.freeze({
-  brilliant: { color: '#26c2a3', min: 10, max: 10 },
-  great: { color: '#749bb8', min: 9.5, max: 9.9, criticalLossMax: 50 },
-  best: { color: '#81b64c', min: 9, max: 9 },
-  excellent: { color: '#81b64c', min: 7, max: 8.9, lossBand: ['zero', 'good'] },
-  good: { color: '#95b776', min: 5, max: 6.9, lossBand: ['good', 'inacc'] },
-  book: { color: '#a88865', min: null, max: null },
-  inacc: { color: '#f7c531', min: 3, max: 4.9, lossBand: ['inacc', 'mistake'] },
-  mistake: { color: '#f9a85a', min: 2, max: 2.9, lossBand: ['mistake', 'blunder'] },
-  miss: { color: '#f5746a', min: 0, max: 4.9, opportunityDecay: 20, zeroLoss: 99 },
-  blunder: { color: '#ee4a2f', min: 0, max: 1.9, lossBand: ['blunder', 'total'] },
+  brilliant: { color: '#26c2a3', packColor: '#26c2a3', min: 10, max: 10 },
+  great: { color: '#749bb8', packColor: '#749bbf', min: 9.5, max: 9.9, criticalLossMax: 50 },
+  best: { color: '#81b64c', packColor: '#81b64c', min: 9, max: 9 },
+  excellent: { color: '#81b64c', packColor: '#81b64c', min: 7, max: 8.9, lossBand: ['zero', 'good'] },
+  good: { color: '#95b776', packColor: '#96af8b', min: 5, max: 6.9, lossBand: ['good', 'inacc'] },
+  book: { color: '#a88865', packColor: '#a88865', min: null, max: null },
+  inacc: { color: '#f7c531', packColor: '#f7c631', min: 3, max: 4.9, lossBand: ['inacc', 'mistake'] },
+  mistake: { color: '#f9a85a', packColor: '#ffa459', min: 2, max: 2.9, lossBand: ['mistake', 'blunder'] },
+  miss: { color: '#f5746a', packColor: '#ca3431', min: 0, max: 4.9, opportunityDecay: 20, zeroLoss: 99 },
+  blunder: { color: '#ee4a2f', packColor: '#ca3431', min: 0, max: 1.9, lossBand: ['blunder', 'total'] },
 });
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const finite = n => typeof n === 'number' && Number.isFinite(n);
@@ -67,19 +67,26 @@ export function gradeText(score, fixedDecimals = false) {
 }
 
 const escape = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c]);
+const PACK_BADGES = Object.freeze({ brilliant: 'brilliant', great: 'great_find', best: 'best',
+  excellent: 'excellent', good: 'good', book: 'book', inacc: 'inaccuracy',
+  mistake: 'mistake', miss: 'incorrect', blunder: 'blunder' });
 export function gradeLabel(category, score, name, example = false) {
-  if (category === 'book') return name;
+  if (category === 'book' || category === 'forced') return name;
   const cfg = MOVE_GRADE_CONFIG[category];
   if (example && cfg) return `${name}, score ${cfg.min === cfg.max ? cfg.min : `range ${cfg.min} to ${cfg.max}`}`;
   return `${name}, score ${finite(score) ? gradeText(score) : 'pending'}`;
 }
 
-// One vector renderer for every placement. All grades use one decimal and the
-// same type size, including zero, ten and pending scores.
+// One renderer for every placement. Numeric grades use one decimal and the same
+// type size; the optional pack design shows category icons instead.
 export function gradeSvg(category, score, name, example = false, options = {}) {
+  const label = escape(gradeLabel(category, score, name, example));
+  if(category==='forced') return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="${label}"><image href="icons/chesseditpack/forced.png" width="100" height="100"/></svg>`;
   const cfg = MOVE_GRADE_CONFIG[category];
   if (!cfg) return '';
-  const label = escape(gradeLabel(category, score, name, example));
+  if (options.badgeDesign === 'chesseditpack') {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" role="img" aria-label="${label}"><image href="icons/chesseditpack/${PACK_BADGES[category]}.png" width="100" height="100"/></svg>`;
+  }
   const text = gradeText(example ? (cfg.min + cfg.max) / 2 : score, true);
   const size = 40;
   const font = Object.hasOwn(BADGE_FONTS, options.badgeFont) ? BADGE_FONTS[options.badgeFont] : BADGE_FONTS.spacemono;
