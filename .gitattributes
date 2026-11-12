@@ -18,5 +18,7 @@ research/**/*.js text eol=lf
 research/**/*.html text eol=lf
 research/**/*.md text eol=lf
 research/**/*.zst binary
+# Preserve the exact parser bytes captured by the rating calibration run.
+research/experiments/E281-two-line-rating/evidence/collected-engine-uci.js.txt -text
 # Keep research in the repository without counting it as application code on GitHub.
 research/** linguist-documentation

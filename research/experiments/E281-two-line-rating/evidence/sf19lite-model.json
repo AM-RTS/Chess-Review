@@ -1,0 +1,2504 @@
+{
+  "schema": "two-line-rating-v1",
+  "candidateVersion": "a34dbc1278d8a1d14b2497be1c29c4ebad43d38def9c71cf0bb767f5952e82d0",
+  "engineConfig": {
+    "build": "sf19lite",
+    "budget": {
+      "kind": "nodes",
+      "value": 20000
+    },
+    "lines": 2,
+    "Hash": 32,
+    "skill": 20,
+    "cold": true,
+    "exact": true,
+    "history": "startpos + complete played moves"
+  },
+  "engineHashes": {
+    "engine/uci.js": "f0719813618c462e336378c742e5f014931ac40fb2dc9855c76d3a9c4c3d0617",
+    "engine/progress.js": "ba9d5edea8a960ed8f76de41fc622d901fded2ecb96b1e698d42602fca3fa556",
+    "lib/chess.js": "2f346e1ba9ad3addee7a98fe23edcf98129347608de35de3d6c00c7c5e6dc27c",
+    "engine/stockfish-19-lite-single.js": "d3344124ab067fb0b90ee77873bb8e9fbf5fc01bc525fe714b0f942581e889e6",
+    "engine/stockfish-19-lite-single.wasm": "57ac2d72312aba346760e3f173f687a8c211208e97a87268436f7f0e10bb5387"
+  },
+  "model": {
+    "featureNames": [
+      "logRmsLoss",
+      "topRate",
+      "earlyRmsLoss",
+      "contestedRmsLoss",
+      "contestedFraction",
+      "earlyTopRate",
+      "middleTopRate",
+      "decisionsLog",
+      "legalChoicesLog"
+    ],
+    "center": [
+      2.585835034709091,
+      0.3750464856836741,
+      0.10607653573957654,
+      0.14288454335275272,
+      0.5173141950928529,
+      0.36856481481481485,
+      0.3796518509039784,
+      3.4908529079895834,
+      3.322687300522245
+    ],
+    "scale": [
+      0.5679632220140169,
+      0.104840480778314,
+      0.0849157458282292,
+      0.0805691162604442,
+      0.21763842237124872,
+      0.16181518542848125,
+      0.1691231269927203,
+      0.42592092668355963,
+      0.252571843759924
+    ],
+    "lambda": 10,
+    "coefficients": [
+      1607.2061987873617,
+      -41.12437223023095,
+      107.69701762577893,
+      -89.89841746192684,
+      -0.3036181912881655,
+      56.85529215115012,
+      -2.041607885708423,
+      -5.574484509926694,
+      39.93517924490526,
+      27.73157100827145
+    ],
+    "objective": "huber",
+    "delta": 250,
+    "iterations": 9,
+    "converged": true
+  },
+  "context": {
+    "schema": "fullgame-equivalent-context-v1",
+    "bandwidth": 400,
+    "peers": [
+      {
+        "gameId": "QTs5nZEs",
+        "color": "b",
+        "split": "train",
+        "rating": 1161,
+        "decisions": 17,
+        "quality": 76.84117647058824,
+        "weight": 0.5
+      },
+      {
+        "gameId": "QTs5nZEs",
+        "color": "w",
+        "split": "train",
+        "rating": 1050,
+        "decisions": 18,
+        "quality": 77.15277777777777,
+        "weight": 0.5
+      },
+      {
+        "gameId": "XpnLl8RR",
+        "color": "b",
+        "split": "train",
+        "rating": 1485,
+        "decisions": 34,
+        "quality": 81.94411764705882,
+        "weight": 0.5
+      },
+      {
+        "gameId": "pOavpV3H",
+        "color": "b",
+        "split": "train",
+        "rating": 1253,
+        "decisions": 17,
+        "quality": 84.19411764705882,
+        "weight": 0.5
+      },
+      {
+        "gameId": "3EIvU6cj",
+        "color": "w",
+        "split": "train",
+        "rating": 814,
+        "decisions": 33,
+        "quality": 84.54696969696968,
+        "weight": 0.5
+      },
+      {
+        "gameId": "uUHcGTbr",
+        "color": "w",
+        "split": "train",
+        "rating": 857,
+        "decisions": 37,
+        "quality": 84.70675675675676,
+        "weight": 0.5
+      },
+      {
+        "gameId": "XpnLl8RR",
+        "color": "w",
+        "split": "train",
+        "rating": 1498,
+        "decisions": 35,
+        "quality": 85.32857142857142,
+        "weight": 0.5
+      },
+      {
+        "gameId": "3EIvU6cj",
+        "color": "b",
+        "split": "train",
+        "rating": 788,
+        "decisions": 33,
+        "quality": 85.44242424242425,
+        "weight": 0.5
+      },
+      {
+        "gameId": "FPMVrmfw",
+        "color": "w",
+        "split": "train",
+        "rating": 1300,
+        "decisions": 28,
+        "quality": 85.91250000000002,
+        "weight": 0.5
+      },
+      {
+        "gameId": "uUHcGTbr",
+        "color": "b",
+        "split": "train",
+        "rating": 855,
+        "decisions": 37,
+        "quality": 86.48648648648647,
+        "weight": 0.5
+      },
+      {
+        "gameId": "FPMVrmfw",
+        "color": "b",
+        "split": "train",
+        "rating": 1326,
+        "decisions": 28,
+        "quality": 86.5142857142857,
+        "weight": 0.5
+      },
+      {
+        "gameId": "XLktVMG6",
+        "color": "w",
+        "split": "train",
+        "rating": 1805,
+        "decisions": 30,
+        "quality": 86.96666666666667,
+        "weight": 0.5
+      },
+      {
+        "gameId": "uVOVNKkg",
+        "color": "b",
+        "split": "train",
+        "rating": 1940,
+        "decisions": 20,
+        "quality": 87.28999999999999,
+        "weight": 0.5
+      },
+      {
+        "gameId": "XLktVMG6",
+        "color": "b",
+        "split": "train",
+        "rating": 1799,
+        "decisions": 29,
+        "quality": 87.46379310344828,
+        "weight": 0.5
+      },
+      {
+        "gameId": "9M9KOj8C",
+        "color": "b",
+        "split": "train",
+        "rating": 1329,
+        "decisions": 28,
+        "quality": 87.675,
+        "weight": 0.5
+      },
+      {
+        "gameId": "BoH6oyNP",
+        "color": "b",
+        "split": "train",
+        "rating": 1309,
+        "decisions": 22,
+        "quality": 88.13181818181819,
+        "weight": 0.5
+      },
+      {
+        "gameId": "uxPlQTnN",
+        "color": "w",
+        "split": "train",
+        "rating": 1741,
+        "decisions": 12,
+        "quality": 88.1875,
+        "weight": 0.5
+      },
+      {
+        "gameId": "7CAeWTDt",
+        "color": "w",
+        "split": "train",
+        "rating": 1533,
+        "decisions": 25,
+        "quality": 88.36200000000001,
+        "weight": 0.5
+      },
+      {
+        "gameId": "lp3PPw8H",
+        "color": "w",
+        "split": "train",
+        "rating": 1603,
+        "decisions": 30,
+        "quality": 88.75500000000001,
+        "weight": 0.5
+      },
+      {
+        "gameId": "FghqL2aL",
+        "color": "b",
+        "split": "train",
+        "rating": 1340,
+        "decisions": 25,
+        "quality": 88.86200000000001,
+        "weight": 0.5
+      },
+      {
+        "gameId": "pOavpV3H",
+        "color": "w",
+        "split": "train",
+        "rating": 1253,
+        "decisions": 19,
+        "quality": 88.91052631578948,
+        "weight": 0.5
+      },
+      {
+        "gameId": "QTs0QimB",
+        "color": "w",
+        "split": "train",
+        "rating": 1953,
+        "decisions": 57,
+        "quality": 89.02982456140354,
+        "weight": 0.5
+      },
+      {
+        "gameId": "1WZZjqfo",
+        "color": "w",
+        "split": "train",
+        "rating": 1119,
+        "decisions": 15,
+        "quality": 89.48,
+        "weight": 0.5
+      },
+      {
+        "gameId": "EAI7Hmap",
+        "color": "b",
+        "split": "train",
+        "rating": 1608,
+        "decisions": 18,
+        "quality": 89.66111111111111,
+        "weight": 0.5
+      },
+      {
+        "gameId": "E7JqwzIA",
+        "color": "w",
+        "split": "train",
+        "rating": 1196,
+        "decisions": 11,
+        "quality": 89.73181818181818,
+        "weight": 0.5
+      },
+      {
+        "gameId": "vUdxPX1v",
+        "color": "b",
+        "split": "train",
+        "rating": 1517,
+        "decisions": 27,
+        "quality": 89.74444444444445,
+        "weight": 0.5
+      },
+      {
+        "gameId": "JOiiyksB",
+        "color": "w",
+        "split": "train",
+        "rating": 1070,
+        "decisions": 40,
+        "quality": 89.75250000000001,
+        "weight": 0.5
+      },
+      {
+        "gameId": "JnLMtxLW",
+        "color": "w",
+        "split": "train",
+        "rating": 1956,
+        "decisions": 17,
+        "quality": 89.90588235294118,
+        "weight": 0.5
+      },
+      {
+        "gameId": "N1tnnhx1",
+        "color": "b",
+        "split": "train",
+        "rating": 1328,
+        "decisions": 13,
+        "quality": 89.91923076923075,
+        "weight": 0.5
+      },
+      {
+        "gameId": "JOiiyksB",
+        "color": "b",
+        "split": "train",
+        "rating": 1034,
+        "decisions": 42,
+        "quality": 89.96071428571429,
+        "weight": 0.5
+      },
+      {
+        "gameId": "QTs0QimB",
+        "color": "b",
+        "split": "train",
+        "rating": 1998,
+        "decisions": 55,
+        "quality": 89.99272727272728,
+        "weight": 0.5
+      },
+      {
+        "gameId": "NPi402eD",
+        "color": "b",
+        "split": "train",
+        "rating": 1457,
+        "decisions": 16,
+        "quality": 90.00625000000001,
+        "weight": 0.5
+      },
+      {
+        "gameId": "GCi1qGmJ",
+        "color": "w",
+        "split": "train",
+        "rating": 1576,
+        "decisions": 23,
+        "quality": 90.05652173913045,
+        "weight": 0.5
+      },
+      {
+        "gameId": "7CAeWTDt",
+        "color": "b",
+        "split": "train",
+        "rating": 1556,
+        "decisions": 28,
+        "quality": 90.06785714285715,
+        "weight": 0.5
+      },
+      {
+        "gameId": "WHv9mbHV",
+        "color": "b",
+        "split": "train",
+        "rating": 1473,
+        "decisions": 15,
+        "quality": 90.1,
+        "weight": 0.5
+      },
+      {
+        "gameId": "ugZZTHL9",
+        "color": "b",
+        "split": "train",
+        "rating": 1021,
+        "decisions": 17,
+        "quality": 90.12058823529412,
+        "weight": 0.5
+      },
+      {
+        "gameId": "RuXjPfNi",
+        "color": "w",
+        "split": "train",
+        "rating": 1579,
+        "decisions": 24,
+        "quality": 90.21666666666665,
+        "weight": 0.5
+      },
+      {
+        "gameId": "lp3PPw8H",
+        "color": "b",
+        "split": "train",
+        "rating": 1560,
+        "decisions": 30,
+        "quality": 90.27333333333333,
+        "weight": 0.5
+      },
+      {
+        "gameId": "5GbQyAUm",
+        "color": "w",
+        "split": "train",
+        "rating": 1060,
+        "decisions": 56,
+        "quality": 90.27857142857144,
+        "weight": 0.5
+      },
+      {
+        "gameId": "SGTljInt",
+        "color": "b",
+        "split": "train",
+        "rating": 1020,
+        "decisions": 37,
+        "quality": 90.29594594594596,
+        "weight": 0.5
+      },
+      {
+        "gameId": "yeYESfft",
+        "color": "w",
+        "split": "train",
+        "rating": 2061,
+        "decisions": 28,
+        "quality": 90.29642857142858,
+        "weight": 0.5
+      },
+      {
+        "gameId": "CBKZV0F4",
+        "color": "w",
+        "split": "train",
+        "rating": 873,
+        "decisions": 39,
+        "quality": 90.47179487179487,
+        "weight": 0.5
+      },
+      {
+        "gameId": "YO2iYCre",
+        "color": "w",
+        "split": "train",
+        "rating": 886,
+        "decisions": 13,
+        "quality": 90.61153846153846,
+        "weight": 0.5
+      },
+      {
+        "gameId": "YO2iYCre",
+        "color": "b",
+        "split": "train",
+        "rating": 926,
+        "decisions": 13,
+        "quality": 90.67692307692306,
+        "weight": 0.5
+      },
+      {
+        "gameId": "uVOVNKkg",
+        "color": "w",
+        "split": "train",
+        "rating": 1957,
+        "decisions": 21,
+        "quality": 90.88809523809523,
+        "weight": 0.5
+      },
+      {
+        "gameId": "CBKZV0F4",
+        "color": "b",
+        "split": "train",
+        "rating": 821,
+        "decisions": 38,
+        "quality": 90.89342105263158,
+        "weight": 0.5
+      },
+      {
+        "gameId": "BoH6oyNP",
+        "color": "w",
+        "split": "train",
+        "rating": 1285,
+        "decisions": 23,
+        "quality": 91.06086956521737,
+        "weight": 0.5
+      },
+      {
+        "gameId": "N750TeYQ",
+        "color": "w",
+        "split": "train",
+        "rating": 1274,
+        "decisions": 42,
+        "quality": 91.24166666666667,
+        "weight": 0.5
+      },
+      {
+        "gameId": "HutZ6nDp",
+        "color": "w",
+        "split": "train",
+        "rating": 1619,
+        "decisions": 41,
+        "quality": 91.29878048780488,
+        "weight": 0.5
+      },
+      {
+        "gameId": "RuXjPfNi",
+        "color": "b",
+        "split": "train",
+        "rating": 1621,
+        "decisions": 24,
+        "quality": 91.38124999999998,
+        "weight": 0.5
+      },
+      {
+        "gameId": "FghqL2aL",
+        "color": "w",
+        "split": "train",
+        "rating": 1244,
+        "decisions": 28,
+        "quality": 91.39464285714284,
+        "weight": 0.5
+      },
+      {
+        "gameId": "9M9KOj8C",
+        "color": "w",
+        "split": "train",
+        "rating": 1257,
+        "decisions": 29,
+        "quality": 91.52758620689656,
+        "weight": 0.5
+      },
+      {
+        "gameId": "SGTljInt",
+        "color": "w",
+        "split": "train",
+        "rating": 1027,
+        "decisions": 37,
+        "quality": 91.60675675675675,
+        "weight": 0.5
+      },
+      {
+        "gameId": "HutZ6nDp",
+        "color": "b",
+        "split": "train",
+        "rating": 1619,
+        "decisions": 40,
+        "quality": 91.62124999999999,
+        "weight": 0.5
+      },
+      {
+        "gameId": "M30HWiJY",
+        "color": "b",
+        "split": "train",
+        "rating": 1819,
+        "decisions": 11,
+        "quality": 91.6590909090909,
+        "weight": 0.5
+      },
+      {
+        "gameId": "5GbQyAUm",
+        "color": "b",
+        "split": "train",
+        "rating": 967,
+        "decisions": 55,
+        "quality": 91.72636363636363,
+        "weight": 0.5
+      },
+      {
+        "gameId": "0Lw1kEif",
+        "color": "w",
+        "split": "train",
+        "rating": 1982,
+        "decisions": 19,
+        "quality": 91.82894736842104,
+        "weight": 0.5
+      },
+      {
+        "gameId": "N750TeYQ",
+        "color": "b",
+        "split": "train",
+        "rating": 1326,
+        "decisions": 43,
+        "quality": 91.84651162790698,
+        "weight": 0.5
+      },
+      {
+        "gameId": "qqTZekYw",
+        "color": "w",
+        "split": "train",
+        "rating": 1726,
+        "decisions": 26,
+        "quality": 91.875,
+        "weight": 0.5
+      },
+      {
+        "gameId": "7gEqPHn0",
+        "color": "w",
+        "split": "train",
+        "rating": 1549,
+        "decisions": 22,
+        "quality": 91.89545454545454,
+        "weight": 0.5
+      },
+      {
+        "gameId": "KAU3eMrv",
+        "color": "b",
+        "split": "train",
+        "rating": 1162,
+        "decisions": 46,
+        "quality": 91.93369565217391,
+        "weight": 0.5
+      },
+      {
+        "gameId": "vUdxPX1v",
+        "color": "w",
+        "split": "train",
+        "rating": 1484,
+        "decisions": 27,
+        "quality": 92.02407407407406,
+        "weight": 0.5
+      },
+      {
+        "gameId": "u22Gp8Tn",
+        "color": "w",
+        "split": "train",
+        "rating": 1682,
+        "decisions": 47,
+        "quality": 92.18510638297874,
+        "weight": 0.5
+      },
+      {
+        "gameId": "yeYESfft",
+        "color": "b",
+        "split": "train",
+        "rating": 2099,
+        "decisions": 28,
+        "quality": 92.20892857142859,
+        "weight": 0.5
+      },
+      {
+        "gameId": "JjzTGQie",
+        "color": "b",
+        "split": "train",
+        "rating": 1966,
+        "decisions": 32,
+        "quality": 92.2109375,
+        "weight": 0.5
+      },
+      {
+        "gameId": "qCCwDTuV",
+        "color": "w",
+        "split": "train",
+        "rating": 1891,
+        "decisions": 50,
+        "quality": 92.25299999999997,
+        "weight": 0.5
+      },
+      {
+        "gameId": "u22Gp8Tn",
+        "color": "b",
+        "split": "train",
+        "rating": 1736,
+        "decisions": 46,
+        "quality": 92.35760869565219,
+        "weight": 0.5
+      },
+      {
+        "gameId": "JjzTGQie",
+        "color": "w",
+        "split": "train",
+        "rating": 1995,
+        "decisions": 32,
+        "quality": 92.45625,
+        "weight": 0.5
+      },
+      {
+        "gameId": "GCi1qGmJ",
+        "color": "b",
+        "split": "train",
+        "rating": 1530,
+        "decisions": 24,
+        "quality": 92.46041666666666,
+        "weight": 0.5
+      },
+      {
+        "gameId": "45PlQ8As",
+        "color": "b",
+        "split": "train",
+        "rating": 1747,
+        "decisions": 53,
+        "quality": 92.47547169811321,
+        "weight": 0.5
+      },
+      {
+        "gameId": "fWMMVFCI",
+        "color": "b",
+        "split": "train",
+        "rating": 1681,
+        "decisions": 35,
+        "quality": 92.64571428571428,
+        "weight": 0.5
+      },
+      {
+        "gameId": "zhSRSuh7",
+        "color": "w",
+        "split": "train",
+        "rating": 2015,
+        "decisions": 31,
+        "quality": 92.6951612903226,
+        "weight": 0.5
+      },
+      {
+        "gameId": "ugZZTHL9",
+        "color": "w",
+        "split": "train",
+        "rating": 1048,
+        "decisions": 18,
+        "quality": 92.77222222222223,
+        "weight": 0.5
+      },
+      {
+        "gameId": "qRf3po4d",
+        "color": "w",
+        "split": "train",
+        "rating": 1591,
+        "decisions": 30,
+        "quality": 92.86333333333333,
+        "weight": 0.5
+      },
+      {
+        "gameId": "1WZZjqfo",
+        "color": "b",
+        "split": "train",
+        "rating": 1081,
+        "decisions": 14,
+        "quality": 92.86785714285715,
+        "weight": 0.5
+      },
+      {
+        "gameId": "1ziAkAhB",
+        "color": "w",
+        "split": "train",
+        "rating": 1478,
+        "decisions": 54,
+        "quality": 93.06481481481481,
+        "weight": 0.5
+      },
+      {
+        "gameId": "YUY1s8sE",
+        "color": "b",
+        "split": "train",
+        "rating": 2143,
+        "decisions": 25,
+        "quality": 93.11,
+        "weight": 0.5
+      },
+      {
+        "gameId": "EAI7Hmap",
+        "color": "w",
+        "split": "train",
+        "rating": 1552,
+        "decisions": 19,
+        "quality": 93.12631578947371,
+        "weight": 0.5
+      },
+      {
+        "gameId": "xr1GRzuR",
+        "color": "b",
+        "split": "train",
+        "rating": 1708,
+        "decisions": 26,
+        "quality": 93.20576923076925,
+        "weight": 0.5
+      },
+      {
+        "gameId": "WHv9mbHV",
+        "color": "w",
+        "split": "train",
+        "rating": 1370,
+        "decisions": 16,
+        "quality": 93.278125,
+        "weight": 0.5
+      },
+      {
+        "gameId": "dEvcpJc3",
+        "color": "w",
+        "split": "train",
+        "rating": 1881,
+        "decisions": 42,
+        "quality": 93.38690476190477,
+        "weight": 0.5
+      },
+      {
+        "gameId": "KAU3eMrv",
+        "color": "w",
+        "split": "train",
+        "rating": 1122,
+        "decisions": 50,
+        "quality": 93.44,
+        "weight": 0.5
+      },
+      {
+        "gameId": "JnLMtxLW",
+        "color": "b",
+        "split": "train",
+        "rating": 2004,
+        "decisions": 16,
+        "quality": 93.55625,
+        "weight": 0.5
+      },
+      {
+        "gameId": "vUO1pAQZ",
+        "color": "b",
+        "split": "train",
+        "rating": 973,
+        "decisions": 33,
+        "quality": 93.57575757575759,
+        "weight": 0.5
+      },
+      {
+        "gameId": "DHdT78cv",
+        "color": "b",
+        "split": "train",
+        "rating": 1416,
+        "decisions": 16,
+        "quality": 93.5875,
+        "weight": 0.5
+      },
+      {
+        "gameId": "7gEqPHn0",
+        "color": "b",
+        "split": "train",
+        "rating": 1534,
+        "decisions": 22,
+        "quality": 93.6,
+        "weight": 0.5
+      },
+      {
+        "gameId": "x930JDBF",
+        "color": "b",
+        "split": "train",
+        "rating": 1635,
+        "decisions": 27,
+        "quality": 93.61851851851853,
+        "weight": 0.5
+      },
+      {
+        "gameId": "fWMMVFCI",
+        "color": "w",
+        "split": "train",
+        "rating": 1731,
+        "decisions": 35,
+        "quality": 93.63428571428572,
+        "weight": 0.5
+      },
+      {
+        "gameId": "Zsh9Q4fk",
+        "color": "w",
+        "split": "train",
+        "rating": 2055,
+        "decisions": 30,
+        "quality": 93.72666666666667,
+        "weight": 0.5
+      },
+      {
+        "gameId": "o5mumf0d",
+        "color": "b",
+        "split": "train",
+        "rating": 983,
+        "decisions": 28,
+        "quality": 93.75357142857145,
+        "weight": 0.5
+      },
+      {
+        "gameId": "Zsh9Q4fk",
+        "color": "b",
+        "split": "train",
+        "rating": 2038,
+        "decisions": 30,
+        "quality": 93.77166666666666,
+        "weight": 0.5
+      },
+      {
+        "gameId": "beVQFVqn",
+        "color": "b",
+        "split": "train",
+        "rating": 2047,
+        "decisions": 64,
+        "quality": 93.7828125,
+        "weight": 0.5
+      },
+      {
+        "gameId": "KEQRDI3n",
+        "color": "w",
+        "split": "train",
+        "rating": 1895,
+        "decisions": 49,
+        "quality": 93.79081632653062,
+        "weight": 0.5
+      },
+      {
+        "gameId": "S3nEiA2s",
+        "color": "b",
+        "split": "train",
+        "rating": 1921,
+        "decisions": 30,
+        "quality": 93.79166666666667,
+        "weight": 0.5
+      },
+      {
+        "gameId": "1ziAkAhB",
+        "color": "b",
+        "split": "train",
+        "rating": 1508,
+        "decisions": 54,
+        "quality": 93.79907407407407,
+        "weight": 0.5
+      },
+      {
+        "gameId": "GbyFTBjQ",
+        "color": "w",
+        "split": "train",
+        "rating": 1975,
+        "decisions": 27,
+        "quality": 93.87407407407407,
+        "weight": 0.5
+      },
+      {
+        "gameId": "N1tnnhx1",
+        "color": "w",
+        "split": "train",
+        "rating": 1362,
+        "decisions": 14,
+        "quality": 93.90357142857144,
+        "weight": 0.5
+      },
+      {
+        "gameId": "6bYOpJXI",
+        "color": "b",
+        "split": "train",
+        "rating": 1709,
+        "decisions": 40,
+        "quality": 93.94624999999999,
+        "weight": 0.5
+      },
+      {
+        "gameId": "6bYOpJXI",
+        "color": "w",
+        "split": "train",
+        "rating": 1725,
+        "decisions": 40,
+        "quality": 94.07625,
+        "weight": 0.5
+      },
+      {
+        "gameId": "ldXLb8YE",
+        "color": "b",
+        "split": "train",
+        "rating": 1107,
+        "decisions": 58,
+        "quality": 94.07931034482758,
+        "weight": 0.5
+      },
+      {
+        "gameId": "uxPlQTnN",
+        "color": "b",
+        "split": "train",
+        "rating": 1755,
+        "decisions": 12,
+        "quality": 94.1125,
+        "weight": 0.5
+      },
+      {
+        "gameId": "lNlVwE5i",
+        "color": "w",
+        "split": "train",
+        "rating": 1347,
+        "decisions": 24,
+        "quality": 94.12291666666665,
+        "weight": 0.5
+      },
+      {
+        "gameId": "iUvHEaou",
+        "color": "b",
+        "split": "train",
+        "rating": 1743,
+        "decisions": 50,
+        "quality": 94.155,
+        "weight": 0.5
+      },
+      {
+        "gameId": "Auvrmft3",
+        "color": "w",
+        "split": "train",
+        "rating": 2081,
+        "decisions": 37,
+        "quality": 94.29594594594595,
+        "weight": 0.5
+      },
+      {
+        "gameId": "0Lw1kEif",
+        "color": "b",
+        "split": "train",
+        "rating": 2089,
+        "decisions": 19,
+        "quality": 94.51578947368421,
+        "weight": 0.5
+      },
+      {
+        "gameId": "DPqJl06p",
+        "color": "w",
+        "split": "train",
+        "rating": 1214,
+        "decisions": 46,
+        "quality": 94.52934782608696,
+        "weight": 0.5
+      },
+      {
+        "gameId": "M30HWiJY",
+        "color": "w",
+        "split": "train",
+        "rating": 1861,
+        "decisions": 12,
+        "quality": 94.60000000000001,
+        "weight": 0.5
+      },
+      {
+        "gameId": "S3nEiA2s",
+        "color": "w",
+        "split": "train",
+        "rating": 1941,
+        "decisions": 30,
+        "quality": 94.64833333333335,
+        "weight": 0.5
+      },
+      {
+        "gameId": "qCCwDTuV",
+        "color": "b",
+        "split": "train",
+        "rating": 1875,
+        "decisions": 49,
+        "quality": 94.65102040816328,
+        "weight": 0.5
+      },
+      {
+        "gameId": "beVQFVqn",
+        "color": "w",
+        "split": "train",
+        "rating": 2011,
+        "decisions": 64,
+        "quality": 94.69296875000003,
+        "weight": 0.5
+      },
+      {
+        "gameId": "SdpeJT6Y",
+        "color": "w",
+        "split": "train",
+        "rating": 1431,
+        "decisions": 17,
+        "quality": 94.71470588235293,
+        "weight": 0.5
+      },
+      {
+        "gameId": "xr1GRzuR",
+        "color": "w",
+        "split": "train",
+        "rating": 1678,
+        "decisions": 26,
+        "quality": 94.75576923076923,
+        "weight": 0.5
+      },
+      {
+        "gameId": "YJhvueGc",
+        "color": "w",
+        "split": "train",
+        "rating": 1941,
+        "decisions": 11,
+        "quality": 94.7909090909091,
+        "weight": 0.5
+      },
+      {
+        "gameId": "E7JqwzIA",
+        "color": "b",
+        "split": "train",
+        "rating": 1107,
+        "decisions": 12,
+        "quality": 94.875,
+        "weight": 0.5
+      },
+      {
+        "gameId": "YUY1s8sE",
+        "color": "w",
+        "split": "train",
+        "rating": 2143,
+        "decisions": 26,
+        "quality": 94.88846153846154,
+        "weight": 0.5
+      },
+      {
+        "gameId": "KEQRDI3n",
+        "color": "b",
+        "split": "train",
+        "rating": 1888,
+        "decisions": 50,
+        "quality": 94.932,
+        "weight": 0.5
+      },
+      {
+        "gameId": "o5mumf0d",
+        "color": "w",
+        "split": "train",
+        "rating": 986,
+        "decisions": 29,
+        "quality": 94.93793103448276,
+        "weight": 0.5
+      },
+      {
+        "gameId": "on2oyRmM",
+        "color": "b",
+        "split": "train",
+        "rating": 2155,
+        "decisions": 26,
+        "quality": 95.05000000000001,
+        "weight": 0.5
+      },
+      {
+        "gameId": "SRexQsYW",
+        "color": "w",
+        "split": "train",
+        "rating": 1644,
+        "decisions": 30,
+        "quality": 95.17,
+        "weight": 0.5
+      },
+      {
+        "gameId": "hpxuAhOL",
+        "color": "b",
+        "split": "train",
+        "rating": 1079,
+        "decisions": 29,
+        "quality": 95.1793103448276,
+        "weight": 0.5
+      },
+      {
+        "gameId": "ldXLb8YE",
+        "color": "w",
+        "split": "train",
+        "rating": 1108,
+        "decisions": 60,
+        "quality": 95.18833333333332,
+        "weight": 0.5
+      },
+      {
+        "gameId": "EwJJ7Rig",
+        "color": "b",
+        "split": "train",
+        "rating": 1784,
+        "decisions": 62,
+        "quality": 95.24677419354838,
+        "weight": 0.5
+      },
+      {
+        "gameId": "fQmvlH7G",
+        "color": "b",
+        "split": "train",
+        "rating": 1589,
+        "decisions": 34,
+        "quality": 95.27058823529411,
+        "weight": 0.5
+      },
+      {
+        "gameId": "iUvHEaou",
+        "color": "w",
+        "split": "train",
+        "rating": 1744,
+        "decisions": 51,
+        "quality": 95.29901960784314,
+        "weight": 0.5
+      },
+      {
+        "gameId": "3zS4cwJc",
+        "color": "w",
+        "split": "train",
+        "rating": 1370,
+        "decisions": 22,
+        "quality": 95.33863636363635,
+        "weight": 0.5
+      },
+      {
+        "gameId": "k7j2HNII",
+        "color": "b",
+        "split": "train",
+        "rating": 1787,
+        "decisions": 22,
+        "quality": 95.37727272727274,
+        "weight": 0.5
+      },
+      {
+        "gameId": "zhSRSuh7",
+        "color": "b",
+        "split": "train",
+        "rating": 2017,
+        "decisions": 32,
+        "quality": 95.403125,
+        "weight": 0.5
+      },
+      {
+        "gameId": "E3RMHRy8",
+        "color": "w",
+        "split": "train",
+        "rating": 1573,
+        "decisions": 44,
+        "quality": 95.42159090909091,
+        "weight": 0.5
+      },
+      {
+        "gameId": "eRoLznWP",
+        "color": "w",
+        "split": "train",
+        "rating": 1462,
+        "decisions": 50,
+        "quality": 95.462,
+        "weight": 0.5
+      },
+      {
+        "gameId": "62h2RibH",
+        "color": "b",
+        "split": "train",
+        "rating": 2031,
+        "decisions": 45,
+        "quality": 95.48444444444445,
+        "weight": 0.5
+      },
+      {
+        "gameId": "60yRprfU",
+        "color": "w",
+        "split": "train",
+        "rating": 1533,
+        "decisions": 41,
+        "quality": 95.50487804878048,
+        "weight": 0.5
+      },
+      {
+        "gameId": "GbyFTBjQ",
+        "color": "b",
+        "split": "train",
+        "rating": 1922,
+        "decisions": 27,
+        "quality": 95.69999999999999,
+        "weight": 0.5
+      },
+      {
+        "gameId": "GhRla6HY",
+        "color": "w",
+        "split": "train",
+        "rating": 654,
+        "decisions": 25,
+        "quality": 95.744,
+        "weight": 0.5
+      },
+      {
+        "gameId": "58ZQYli9",
+        "color": "b",
+        "split": "train",
+        "rating": 2223,
+        "decisions": 58,
+        "quality": 95.74568965517241,
+        "weight": 0.5
+      },
+      {
+        "gameId": "x930JDBF",
+        "color": "w",
+        "split": "train",
+        "rating": 1640,
+        "decisions": 29,
+        "quality": 95.75172413793102,
+        "weight": 0.5
+      },
+      {
+        "gameId": "E3RMHRy8",
+        "color": "b",
+        "split": "train",
+        "rating": 1543,
+        "decisions": 44,
+        "quality": 95.83636363636364,
+        "weight": 0.5
+      },
+      {
+        "gameId": "EwJJ7Rig",
+        "color": "w",
+        "split": "train",
+        "rating": 1783,
+        "decisions": 65,
+        "quality": 95.8576923076923,
+        "weight": 0.5
+      },
+      {
+        "gameId": "WzdNO5RN",
+        "color": "b",
+        "split": "train",
+        "rating": 1012,
+        "decisions": 26,
+        "quality": 95.8596153846154,
+        "weight": 0.5
+      },
+      {
+        "gameId": "dEvcpJc3",
+        "color": "b",
+        "split": "train",
+        "rating": 1865,
+        "decisions": 42,
+        "quality": 95.88095238095238,
+        "weight": 0.5
+      },
+      {
+        "gameId": "qRf3po4d",
+        "color": "b",
+        "split": "train",
+        "rating": 1581,
+        "decisions": 30,
+        "quality": 95.88333333333334,
+        "weight": 0.5
+      },
+      {
+        "gameId": "Auvrmft3",
+        "color": "b",
+        "split": "train",
+        "rating": 2050,
+        "decisions": 37,
+        "quality": 95.8945945945946,
+        "weight": 0.5
+      },
+      {
+        "gameId": "7DebaPXI",
+        "color": "b",
+        "split": "train",
+        "rating": 1719,
+        "decisions": 17,
+        "quality": 95.8970588235294,
+        "weight": 0.5
+      },
+      {
+        "gameId": "xqwqjN0b",
+        "color": "b",
+        "split": "train",
+        "rating": 1297,
+        "decisions": 78,
+        "quality": 95.91474358974358,
+        "weight": 0.5
+      },
+      {
+        "gameId": "eRoLznWP",
+        "color": "b",
+        "split": "train",
+        "rating": 1438,
+        "decisions": 50,
+        "quality": 95.958,
+        "weight": 0.5
+      },
+      {
+        "gameId": "DPqJl06p",
+        "color": "b",
+        "split": "train",
+        "rating": 1291,
+        "decisions": 44,
+        "quality": 95.98977272727274,
+        "weight": 0.5
+      },
+      {
+        "gameId": "58ZQYli9",
+        "color": "w",
+        "split": "train",
+        "rating": 2182,
+        "decisions": 59,
+        "quality": 96.02627118644067,
+        "weight": 0.5
+      },
+      {
+        "gameId": "XcODD1AH",
+        "color": "b",
+        "split": "train",
+        "rating": 1744,
+        "decisions": 31,
+        "quality": 96.03548387096775,
+        "weight": 0.5
+      },
+      {
+        "gameId": "XQLQJP8x",
+        "color": "b",
+        "split": "train",
+        "rating": 1331,
+        "decisions": 43,
+        "quality": 96.11511627906977,
+        "weight": 0.5
+      },
+      {
+        "gameId": "kScG4Vlz",
+        "color": "w",
+        "split": "train",
+        "rating": 1548,
+        "decisions": 18,
+        "quality": 96.14444444444443,
+        "weight": 0.5
+      },
+      {
+        "gameId": "62h2RibH",
+        "color": "w",
+        "split": "train",
+        "rating": 1848,
+        "decisions": 45,
+        "quality": 96.16,
+        "weight": 0.5
+      },
+      {
+        "gameId": "3zS4cwJc",
+        "color": "b",
+        "split": "train",
+        "rating": 1373,
+        "decisions": 22,
+        "quality": 96.16136363636365,
+        "weight": 0.5
+      },
+      {
+        "gameId": "MBkvUkQR",
+        "color": "w",
+        "split": "train",
+        "rating": 1867,
+        "decisions": 31,
+        "quality": 96.17903225806452,
+        "weight": 0.5
+      },
+      {
+        "gameId": "NPi402eD",
+        "color": "w",
+        "split": "train",
+        "rating": 1516,
+        "decisions": 16,
+        "quality": 96.196875,
+        "weight": 0.5
+      },
+      {
+        "gameId": "0FVlbMhf",
+        "color": "b",
+        "split": "train",
+        "rating": 1734,
+        "decisions": 30,
+        "quality": 96.21833333333333,
+        "weight": 0.5
+      },
+      {
+        "gameId": "QWILiB51",
+        "color": "w",
+        "split": "train",
+        "rating": 1736,
+        "decisions": 51,
+        "quality": 96.22058823529413,
+        "weight": 0.5
+      },
+      {
+        "gameId": "2BMc5PWc",
+        "color": "b",
+        "split": "train",
+        "rating": 1500,
+        "decisions": 50,
+        "quality": 96.221,
+        "weight": 0.5
+      },
+      {
+        "gameId": "UhAyJbXr",
+        "color": "w",
+        "split": "train",
+        "rating": 1482,
+        "decisions": 38,
+        "quality": 96.22763157894737,
+        "weight": 0.5
+      },
+      {
+        "gameId": "k7j2HNII",
+        "color": "w",
+        "split": "train",
+        "rating": 1757,
+        "decisions": 23,
+        "quality": 96.24565217391304,
+        "weight": 0.5
+      },
+      {
+        "gameId": "vUO1pAQZ",
+        "color": "w",
+        "split": "train",
+        "rating": 1089,
+        "decisions": 33,
+        "quality": 96.2469696969697,
+        "weight": 0.5
+      },
+      {
+        "gameId": "45PlQ8As",
+        "color": "w",
+        "split": "train",
+        "rating": 1755,
+        "decisions": 53,
+        "quality": 96.29056603773586,
+        "weight": 0.5
+      },
+      {
+        "gameId": "hpxuAhOL",
+        "color": "w",
+        "split": "train",
+        "rating": 1079,
+        "decisions": 30,
+        "quality": 96.32000000000001,
+        "weight": 0.5
+      },
+      {
+        "gameId": "DuM6qEYq",
+        "color": "w",
+        "split": "train",
+        "rating": 1845,
+        "decisions": 20,
+        "quality": 96.32499999999999,
+        "weight": 0.5
+      },
+      {
+        "gameId": "ggn5Mc1S",
+        "color": "b",
+        "split": "train",
+        "rating": 1558,
+        "decisions": 28,
+        "quality": 96.37321428571428,
+        "weight": 0.5
+      },
+      {
+        "gameId": "60yRprfU",
+        "color": "b",
+        "split": "train",
+        "rating": 1607,
+        "decisions": 40,
+        "quality": 96.42000000000003,
+        "weight": 0.5
+      },
+      {
+        "gameId": "JgmnCgel",
+        "color": "b",
+        "split": "train",
+        "rating": 1875,
+        "decisions": 25,
+        "quality": 96.55,
+        "weight": 0.5
+      },
+      {
+        "gameId": "QWILiB51",
+        "color": "b",
+        "split": "train",
+        "rating": 1753,
+        "decisions": 53,
+        "quality": 96.55283018867925,
+        "weight": 0.5
+      },
+      {
+        "gameId": "um0ITPwT",
+        "color": "b",
+        "split": "train",
+        "rating": 1932,
+        "decisions": 37,
+        "quality": 96.5662162162162,
+        "weight": 0.5
+      },
+      {
+        "gameId": "DDwOUjGu",
+        "color": "b",
+        "split": "train",
+        "rating": 1844,
+        "decisions": 53,
+        "quality": 96.57452830188679,
+        "weight": 0.5
+      },
+      {
+        "gameId": "rX970cDn",
+        "color": "w",
+        "split": "train",
+        "rating": 1336,
+        "decisions": 48,
+        "quality": 96.590625,
+        "weight": 0.5
+      },
+      {
+        "gameId": "lNlVwE5i",
+        "color": "b",
+        "split": "train",
+        "rating": 1396,
+        "decisions": 25,
+        "quality": 96.65,
+        "weight": 0.5
+      },
+      {
+        "gameId": "hpSCcdsV",
+        "color": "w",
+        "split": "train",
+        "rating": 1659,
+        "decisions": 39,
+        "quality": 96.73589743589744,
+        "weight": 0.5
+      },
+      {
+        "gameId": "xqwqjN0b",
+        "color": "w",
+        "split": "train",
+        "rating": 1369,
+        "decisions": 80,
+        "quality": 96.7825,
+        "weight": 0.5
+      },
+      {
+        "gameId": "rcX06tYT",
+        "color": "b",
+        "split": "train",
+        "rating": 2122,
+        "decisions": 54,
+        "quality": 96.79074074074076,
+        "weight": 0.5
+      },
+      {
+        "gameId": "SRexQsYW",
+        "color": "b",
+        "split": "train",
+        "rating": 1627,
+        "decisions": 30,
+        "quality": 96.79833333333333,
+        "weight": 0.5
+      },
+      {
+        "gameId": "2BMc5PWc",
+        "color": "w",
+        "split": "train",
+        "rating": 1648,
+        "decisions": 53,
+        "quality": 96.82735849056604,
+        "weight": 0.5
+      },
+      {
+        "gameId": "DPKsCh3m",
+        "color": "w",
+        "split": "train",
+        "rating": 2141,
+        "decisions": 41,
+        "quality": 96.90487804878049,
+        "weight": 0.5
+      },
+      {
+        "gameId": "on2oyRmM",
+        "color": "w",
+        "split": "train",
+        "rating": 2073,
+        "decisions": 27,
+        "quality": 96.93148148148147,
+        "weight": 0.5
+      },
+      {
+        "gameId": "PwrFKAPQ",
+        "color": "w",
+        "split": "train",
+        "rating": 1266,
+        "decisions": 22,
+        "quality": 96.94318181818181,
+        "weight": 0.5
+      },
+      {
+        "gameId": "fQmvlH7G",
+        "color": "w",
+        "split": "train",
+        "rating": 1573,
+        "decisions": 35,
+        "quality": 96.94571428571429,
+        "weight": 0.5
+      },
+      {
+        "gameId": "6AWVNamN",
+        "color": "w",
+        "split": "train",
+        "rating": 1223,
+        "decisions": 46,
+        "quality": 96.9858695652174,
+        "weight": 0.5
+      },
+      {
+        "gameId": "Z0R0HjhJ",
+        "color": "b",
+        "split": "train",
+        "rating": 1890,
+        "decisions": 18,
+        "quality": 97.03333333333333,
+        "weight": 0.5
+      },
+      {
+        "gameId": "0essERiq",
+        "color": "b",
+        "split": "train",
+        "rating": 1228,
+        "decisions": 43,
+        "quality": 97.0720930232558,
+        "weight": 0.5
+      },
+      {
+        "gameId": "FYPZmaJo",
+        "color": "b",
+        "split": "train",
+        "rating": 2001,
+        "decisions": 63,
+        "quality": 97.08809523809524,
+        "weight": 0.5
+      },
+      {
+        "gameId": "DHdT78cv",
+        "color": "w",
+        "split": "train",
+        "rating": 1418,
+        "decisions": 16,
+        "quality": 97.115625,
+        "weight": 0.5
+      },
+      {
+        "gameId": "OltFPwJq",
+        "color": "w",
+        "split": "train",
+        "rating": 1919,
+        "decisions": 35,
+        "quality": 97.1242857142857,
+        "weight": 0.5
+      },
+      {
+        "gameId": "hFgCloIy",
+        "color": "b",
+        "split": "train",
+        "rating": 2119,
+        "decisions": 37,
+        "quality": 97.24054054054055,
+        "weight": 0.5
+      },
+      {
+        "gameId": "0FVlbMhf",
+        "color": "w",
+        "split": "train",
+        "rating": 1759,
+        "decisions": 32,
+        "quality": 97.26093750000001,
+        "weight": 0.5
+      },
+      {
+        "gameId": "l8B9nIpe",
+        "color": "w",
+        "split": "train",
+        "rating": 2166,
+        "decisions": 49,
+        "quality": 97.26632653061223,
+        "weight": 0.5
+      },
+      {
+        "gameId": "5PeQNJOt",
+        "color": "w",
+        "split": "train",
+        "rating": 811,
+        "decisions": 36,
+        "quality": 97.28888888888889,
+        "weight": 0.5
+      },
+      {
+        "gameId": "kLXD3Bt0",
+        "color": "b",
+        "split": "train",
+        "rating": 1850,
+        "decisions": 25,
+        "quality": 97.322,
+        "weight": 0.5
+      },
+      {
+        "gameId": "5nS83SxW",
+        "color": "w",
+        "split": "train",
+        "rating": 922,
+        "decisions": 39,
+        "quality": 97.43076923076923,
+        "weight": 0.5
+      },
+      {
+        "gameId": "LjtJTmSs",
+        "color": "b",
+        "split": "train",
+        "rating": 1796,
+        "decisions": 31,
+        "quality": 97.4532258064516,
+        "weight": 0.5
+      },
+      {
+        "gameId": "hpSCcdsV",
+        "color": "b",
+        "split": "train",
+        "rating": 1729,
+        "decisions": 39,
+        "quality": 97.4628205128205,
+        "weight": 0.5
+      },
+      {
+        "gameId": "6AWVNamN",
+        "color": "b",
+        "split": "train",
+        "rating": 1331,
+        "decisions": 46,
+        "quality": 97.55217391304348,
+        "weight": 0.5
+      },
+      {
+        "gameId": "qqTZekYw",
+        "color": "b",
+        "split": "train",
+        "rating": 1769,
+        "decisions": 26,
+        "quality": 97.61153846153844,
+        "weight": 0.5
+      },
+      {
+        "gameId": "0essERiq",
+        "color": "w",
+        "split": "train",
+        "rating": 1312,
+        "decisions": 44,
+        "quality": 97.64886363636361,
+        "weight": 0.5
+      },
+      {
+        "gameId": "SdpeJT6Y",
+        "color": "b",
+        "split": "train",
+        "rating": 1444,
+        "decisions": 17,
+        "quality": 97.66470588235295,
+        "weight": 0.5
+      },
+      {
+        "gameId": "DDwOUjGu",
+        "color": "w",
+        "split": "train",
+        "rating": 1868,
+        "decisions": 54,
+        "quality": 97.68425925925925,
+        "weight": 0.5
+      },
+      {
+        "gameId": "XcODD1AH",
+        "color": "w",
+        "split": "train",
+        "rating": 1829,
+        "decisions": 32,
+        "quality": 97.6875,
+        "weight": 0.5
+      },
+      {
+        "gameId": "um0ITPwT",
+        "color": "w",
+        "split": "train",
+        "rating": 2066,
+        "decisions": 38,
+        "quality": 97.69078947368419,
+        "weight": 0.5
+      },
+      {
+        "gameId": "UhAyJbXr",
+        "color": "b",
+        "split": "train",
+        "rating": 1478,
+        "decisions": 42,
+        "quality": 97.7404761904762,
+        "weight": 0.5
+      },
+      {
+        "gameId": "XQLQJP8x",
+        "color": "w",
+        "split": "train",
+        "rating": 1308,
+        "decisions": 45,
+        "quality": 97.7611111111111,
+        "weight": 0.5
+      },
+      {
+        "gameId": "SvsMS0JB",
+        "color": "b",
+        "split": "train",
+        "rating": 2244,
+        "decisions": 31,
+        "quality": 97.8016129032258,
+        "weight": 0.5
+      },
+      {
+        "gameId": "l8B9nIpe",
+        "color": "b",
+        "split": "train",
+        "rating": 2280,
+        "decisions": 50,
+        "quality": 97.86,
+        "weight": 0.5
+      },
+      {
+        "gameId": "FYPZmaJo",
+        "color": "w",
+        "split": "train",
+        "rating": 1993,
+        "decisions": 65,
+        "quality": 98.09692307692308,
+        "weight": 0.5
+      },
+      {
+        "gameId": "ggn5Mc1S",
+        "color": "w",
+        "split": "train",
+        "rating": 1631,
+        "decisions": 28,
+        "quality": 98.14999999999999,
+        "weight": 0.5
+      },
+      {
+        "gameId": "rX970cDn",
+        "color": "b",
+        "split": "train",
+        "rating": 1336,
+        "decisions": 48,
+        "quality": 98.15833333333335,
+        "weight": 0.5
+      },
+      {
+        "gameId": "JgmnCgel",
+        "color": "w",
+        "split": "train",
+        "rating": 1874,
+        "decisions": 26,
+        "quality": 98.17500000000001,
+        "weight": 0.5
+      },
+      {
+        "gameId": "PKKpBzHb",
+        "color": "w",
+        "split": "train",
+        "rating": 1586,
+        "decisions": 68,
+        "quality": 98.17867647058823,
+        "weight": 0.5
+      },
+      {
+        "gameId": "aKpFfMSI",
+        "color": "w",
+        "split": "train",
+        "rating": 1344,
+        "decisions": 42,
+        "quality": 98.1952380952381,
+        "weight": 0.5
+      },
+      {
+        "gameId": "MBkvUkQR",
+        "color": "b",
+        "split": "train",
+        "rating": 1802,
+        "decisions": 31,
+        "quality": 98.26612903225806,
+        "weight": 0.5
+      },
+      {
+        "gameId": "PgrZXDbV",
+        "color": "w",
+        "split": "train",
+        "rating": 1748,
+        "decisions": 61,
+        "quality": 98.28688524590163,
+        "weight": 0.5
+      },
+      {
+        "gameId": "PgrZXDbV",
+        "color": "b",
+        "split": "train",
+        "rating": 1745,
+        "decisions": 60,
+        "quality": 98.31333333333332,
+        "weight": 0.5
+      },
+      {
+        "gameId": "sSgWxcPn",
+        "color": "b",
+        "split": "train",
+        "rating": 1658,
+        "decisions": 71,
+        "quality": 98.31830985915494,
+        "weight": 0.5
+      },
+      {
+        "gameId": "PKKpBzHb",
+        "color": "b",
+        "split": "train",
+        "rating": 1538,
+        "decisions": 69,
+        "quality": 98.3659420289855,
+        "weight": 0.5
+      },
+      {
+        "gameId": "UhcmRYuN",
+        "color": "w",
+        "split": "train",
+        "rating": 1576,
+        "decisions": 45,
+        "quality": 98.44222222222221,
+        "weight": 0.5
+      },
+      {
+        "gameId": "7DebaPXI",
+        "color": "w",
+        "split": "train",
+        "rating": 1761,
+        "decisions": 17,
+        "quality": 98.47058823529412,
+        "weight": 0.5
+      },
+      {
+        "gameId": "uc1GsCCf",
+        "color": "b",
+        "split": "train",
+        "rating": 1056,
+        "decisions": 41,
+        "quality": 98.51097560975609,
+        "weight": 0.5
+      },
+      {
+        "gameId": "hFgCloIy",
+        "color": "w",
+        "split": "train",
+        "rating": 2182,
+        "decisions": 38,
+        "quality": 98.55394736842106,
+        "weight": 0.5
+      },
+      {
+        "gameId": "OltFPwJq",
+        "color": "b",
+        "split": "train",
+        "rating": 1912,
+        "decisions": 35,
+        "quality": 98.60714285714286,
+        "weight": 0.5
+      },
+      {
+        "gameId": "5PeQNJOt",
+        "color": "b",
+        "split": "train",
+        "rating": 729,
+        "decisions": 37,
+        "quality": 98.63783783783784,
+        "weight": 0.5
+      },
+      {
+        "gameId": "GhRla6HY",
+        "color": "b",
+        "split": "train",
+        "rating": 686,
+        "decisions": 25,
+        "quality": 98.704,
+        "weight": 0.5
+      },
+      {
+        "gameId": "WzdNO5RN",
+        "color": "w",
+        "split": "train",
+        "rating": 986,
+        "decisions": 27,
+        "quality": 98.74074074074075,
+        "weight": 0.5
+      },
+      {
+        "gameId": "AIZzPMgo",
+        "color": "b",
+        "split": "train",
+        "rating": 2105,
+        "decisions": 44,
+        "quality": 98.74318181818181,
+        "weight": 0.5
+      },
+      {
+        "gameId": "UhcmRYuN",
+        "color": "b",
+        "split": "train",
+        "rating": 1572,
+        "decisions": 43,
+        "quality": 98.82790697674419,
+        "weight": 0.5
+      },
+      {
+        "gameId": "AIZzPMgo",
+        "color": "w",
+        "split": "train",
+        "rating": 2015,
+        "decisions": 46,
+        "quality": 98.8663043478261,
+        "weight": 0.5
+      },
+      {
+        "gameId": "DuM6qEYq",
+        "color": "b",
+        "split": "train",
+        "rating": 2092,
+        "decisions": 20,
+        "quality": 98.86999999999999,
+        "weight": 0.5
+      },
+      {
+        "gameId": "kScG4Vlz",
+        "color": "b",
+        "split": "train",
+        "rating": 1619,
+        "decisions": 18,
+        "quality": 98.97777777777777,
+        "weight": 0.5
+      },
+      {
+        "gameId": "LjtJTmSs",
+        "color": "w",
+        "split": "train",
+        "rating": 1868,
+        "decisions": 33,
+        "quality": 98.99848484848485,
+        "weight": 0.5
+      },
+      {
+        "gameId": "sSgWxcPn",
+        "color": "w",
+        "split": "train",
+        "rating": 1646,
+        "decisions": 73,
+        "quality": 99.00547945205479,
+        "weight": 0.5
+      },
+      {
+        "gameId": "DPKsCh3m",
+        "color": "b",
+        "split": "train",
+        "rating": 2291,
+        "decisions": 41,
+        "quality": 99.0170731707317,
+        "weight": 0.5
+      },
+      {
+        "gameId": "5nS83SxW",
+        "color": "b",
+        "split": "train",
+        "rating": 982,
+        "decisions": 40,
+        "quality": 99.0175,
+        "weight": 0.5
+      },
+      {
+        "gameId": "kLXD3Bt0",
+        "color": "w",
+        "split": "train",
+        "rating": 1901,
+        "decisions": 28,
+        "quality": 99.17678571428571,
+        "weight": 0.5
+      },
+      {
+        "gameId": "YJhvueGc",
+        "color": "b",
+        "split": "train",
+        "rating": 1959,
+        "decisions": 11,
+        "quality": 99.37727272727274,
+        "weight": 0.5
+      },
+      {
+        "gameId": "rcX06tYT",
+        "color": "w",
+        "split": "train",
+        "rating": 2193,
+        "decisions": 56,
+        "quality": 99.44375000000001,
+        "weight": 0.5
+      },
+      {
+        "gameId": "Z0R0HjhJ",
+        "color": "w",
+        "split": "train",
+        "rating": 1863,
+        "decisions": 19,
+        "quality": 99.53684210526316,
+        "weight": 0.5
+      },
+      {
+        "gameId": "PwrFKAPQ",
+        "color": "b",
+        "split": "train",
+        "rating": 1278,
+        "decisions": 22,
+        "quality": 99.54318181818181,
+        "weight": 0.5
+      },
+      {
+        "gameId": "SvsMS0JB",
+        "color": "w",
+        "split": "train",
+        "rating": 2275,
+        "decisions": 32,
+        "quality": 99.6890625,
+        "weight": 0.5
+      },
+      {
+        "gameId": "aKpFfMSI",
+        "color": "b",
+        "split": "train",
+        "rating": 1338,
+        "decisions": 42,
+        "quality": 99.69166666666668,
+        "weight": 0.5
+      },
+      {
+        "gameId": "uc1GsCCf",
+        "color": "w",
+        "split": "train",
+        "rating": 1080,
+        "decisions": 42,
+        "quality": 99.8797619047619,
+        "weight": 0.5
+      }
+    ],
+    "games": 120,
+    "sides": 240,
+    "trainingCandidates": [
+      {
+        "bandwidth": 400,
+        "crps": 2.0535325518798775,
+        "folds": [
+          {
+            "fold": 0,
+            "crps": 2.0359679727824465,
+            "games": 19
+          },
+          {
+            "fold": 1,
+            "crps": 1.771731900906264,
+            "games": 23
+          },
+          {
+            "fold": 2,
+            "crps": 2.396493099526543,
+            "games": 19
+          },
+          {
+            "fold": 3,
+            "crps": 2.195402015739624,
+            "games": 31
+          },
+          {
+            "fold": 4,
+            "crps": 1.907137487247933,
+            "games": 28
+          }
+        ]
+      },
+      {
+        "bandwidth": 800,
+        "crps": 2.070536256746672,
+        "folds": [
+          {
+            "fold": 0,
+            "crps": 2.063475774393445,
+            "games": 19
+          },
+          {
+            "fold": 1,
+            "crps": 1.7380318998780198,
+            "games": 23
+          },
+          {
+            "fold": 2,
+            "crps": 2.4572602079119448,
+            "games": 19
+          },
+          {
+            "fold": 3,
+            "crps": 2.236869142966156,
+            "games": 31
+          },
+          {
+            "fold": 4,
+            "crps": 1.9018817863090351,
+            "games": 28
+          }
+        ]
+      },
+      {
+        "bandwidth": 200,
+        "crps": 2.0885678825732708,
+        "folds": [
+          {
+            "fold": 0,
+            "crps": 2.0412367000586187,
+            "games": 19
+          },
+          {
+            "fold": 1,
+            "crps": 1.8352026473501684,
+            "games": 23
+          },
+          {
+            "fold": 2,
+            "crps": 2.381183774194452,
+            "games": 19
+          },
+          {
+            "fold": 3,
+            "crps": 2.201718907924457,
+            "games": 31
+          },
+          {
+            "fold": 4,
+            "crps": 2.0049717808311462,
+            "games": 28
+          }
+        ]
+      }
+    ],
+    "definition": {
+      "schema": "fullgame-equivalent-context-v1",
+      "meaning": "Equivalent full-game quality performance: recorded rating plus log odds of the observed quality exceeding comparable public full-game player-sides, in 400/ln(10) rating units.",
+      "reference": "Public complete training games with at least ten nonforced decisions; Gaussian recorded-rating kernels. Game length does not change the reference quality distribution.",
+      "selection": "Rating bandwidth [200,400,800] selected by five game-disjoint training-fold CRPS; each game has unit total weight.",
+      "interpretation": "An extrapolation of observed quality to a full-game standard, distinct from length-matched game performance and moves-only ability estimation.",
+      "shortGames": "With 1..9 nonforced decisions the point is explicitly marked as a short excerpt extrapolation. Zero decisions or fewer than twenty effective peer sides retain recorded rating.",
+      "limitations": "Not an official rating update, validated ability interval, or evidence that a short game established the displayed strength. Pool/time-control transfer is unvalidated."
+    }
+  },
+  "validation": {
+    "candidate": {
+      "n": 100,
+      "mae": 257.1701345644651,
+      "rmse": 327.40016108189553,
+      "medianAbsoluteError": 203.3958198722289,
+      "bias": -5.207251769786455,
+      "correlation": 0.5387711455185072,
+      "predictedRange": [
+        1050.911573459974,
+        1945.8607818344517
+      ]
+    },
+    "constant": {
+      "n": 100,
+      "mae": 302.46,
+      "rmse": 386.057651135164,
+      "medianAbsoluteError": 277.5,
+      "bias": -6.66,
+      "correlation": null,
+      "predictedRange": [
+        1613.5,
+        1613.5
+      ]
+    },
+    "oldLiteAppliedToNewInputs": {
+      "n": 100,
+      "mae": 242.02264363729796,
+      "rmse": 308.5027931585384,
+      "medianAbsoluteError": 204.1646965706152,
+      "bias": -6.4458285864859475,
+      "correlation": 0.619545566582093,
+      "predictedRange": [
+        614.0645032477778,
+        2207.927524262426
+      ]
+    },
+    "maeDifference95": [
+      -83.8851053955242,
+      -5.9292741814212215
+    ],
+    "bands": [
+      {
+        "range": [
+          0,
+          1200
+        ],
+        "candidate": {
+          "n": 13,
+          "mae": 439.89118988620555,
+          "rmse": 472.5482764027356,
+          "medianAbsoluteError": 434.31682357903765,
+          "bias": 439.8911898862056,
+          "correlation": 0.6137889850869197,
+          "predictedRange": [
+            1050.911573459974,
+            1786.9032187878186
+          ]
+        },
+        "constant": {
+          "n": 13,
+          "mae": 595.1923076923077,
+          "rmse": 624.2577900687652,
+          "medianAbsoluteError": 566.5,
+          "bias": 595.1923076923077,
+          "correlation": null,
+          "predictedRange": [
+            1613.5,
+            1613.5
+          ]
+        }
+      },
+      {
+        "range": [
+          1200,
+          1800
+        ],
+        "candidate": {
+          "n": 59,
+          "mae": 156.4740579256189,
+          "rmse": 210.12701253321637,
+          "medianAbsoluteError": 99.26960754529,
+          "bias": 75.57981571844628,
+          "correlation": 0.21899656238871607,
+          "predictedRange": [
+            1211.1108573200524,
+            1945.8607818344517
+          ]
+        },
+        "constant": {
+          "n": 59,
+          "mae": 147.09322033898306,
+          "rmse": 187.26735849934457,
+          "medianAbsoluteError": 124.5,
+          "bias": 91.97457627118644,
+          "correlation": null,
+          "predictedRange": [
+            1613.5,
+            1613.5
+          ]
+        }
+      },
+      {
+        "range": [
+          1800,
+          null
+        ],
+        "candidate": {
+          "n": 28,
+          "mae": 384.5163775112259,
+          "rmse": 431.406084357039,
+          "medianAbsoluteError": 402.46847838668486,
+          "bias": -382.0899918888445,
+          "correlation": 0.1453590757383726,
+          "predictedRange": [
+            1468.8092521696442,
+            1919.969398713338
+          ]
+        },
+        "constant": {
+          "n": 28,
+          "mae": 493.92857142857144,
+          "rmse": 526.7455674774519,
+          "medianAbsoluteError": 477,
+          "bias": -493.92857142857144,
+          "correlation": null,
+          "predictedRange": [
+            1613.5,
+            1613.5
+          ]
+        }
+      }
+    ],
+    "passed": true,
+    "coverage": {
+      "training": 240,
+      "validation": 100,
+      "totalTraining": 240,
+      "totalValidation": 100
+    },
+    "context": {
+      "games": 50,
+      "sides": 100,
+      "crps": 1.9618411437917518,
+      "adjustmentCoverage": 1,
+      "percentileCoverage": {
+        "0.1": 0.1,
+        "0.25": 0.31,
+        "0.5": 0.69,
+        "0.75": 0.89,
+        "0.9": 0.97
+      },
+      "interpretation": "Conditional full-game quality distribution; this assessment does not validate the short-excerpt extrapolation or true rating."
+    }
+  },
+  "limitations": "Recorded Lichess blitz rating prediction, not established ability or Chess.com Elo. Player-disjoint fitting/development splits; validation previously exposed to other studies. No fresh confirmation."
+}

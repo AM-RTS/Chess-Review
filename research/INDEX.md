@@ -13,17 +13,25 @@ records. Update a row and the active experiment's resume state when work stops.
 
 | ID | Question / record | State | Outcome / evidence | Next action |
 | --- | --- | --- | --- | --- |
+| P010 | [Two-line rating reuse](promotions/P010-two-line-rating-reuse.md) | implemented locally | Separate SF19/Lite before/after models; no extra rating worker/pass;576tests and both Chrome checks pass. Development MAE263/255; no improvement over old-formula transfer | Keep rough-rating and cross-pool limits explicit; no fresh confirmation |
 | P009 | [Coherent Brilliant evidence](promotions/P009-brilliant-evidence-coherence.md) | implemented locally |495/495 tests;252 fixture rows/54 final results/924 progress snapshots preserved; four real-Chrome case/build checks and exact public replay pass | No model/threshold changes or automatic research; unchanged baseline lint errors recorded |
 | P008 | [Current, complete scoring evidence](promotions/P008-scoring-evidence-integrity.md) | implemented locally | Missing decisions cannot inflate full-game accuracy; stale ratings and malformed caches refused; 162 scoring/category/engine/cache checks and exact public replay pass; new predictive models not validated | Fresh opportunity-aware rating study and independent category reviews; browser/full-worktree limits recorded |
 | P007 | [Focused coach lessons and smaller default profile](promotions/P007-focused-coach-lessons.md) | implemented locally | One supported lesson with a thinking prompt; diagnostics collapsed, route/tempo proofs optional, short exchange and mate checks retained; 385 production tests, 42 packaged layout cases and real-engine Firefox smoke pass; research acceptance unchanged | Gather user feedback on lesson relevance; preserve original source scopes |
 | B000 | [Starting extension baseline](BASELINE.md) | Reproduced | Offline replay passes; no fresh confirmation | Use frozen recipe as comparator |
 ## Numerical studies
 
+2026-11-12: [E281 two-line rating recalibration](experiments/E281-two-line-rating/RESULT.md)
+is completed, explicitly authorized implementation work. Both adjacent models,
+refits, production replays and Chrome checks pass. No predictive improvement is
+claimed over the old formula on new inputs. Existing numerical queues
+and reserved test targets are not resumed.
+
 Register numerical follow-up studies here so coach status and test selection keep
 them separate from the coach lineage, even when their E-number is higher.
 
 | ID | Question / record | State | Outcome / evidence | Next action |
 | --- | --- | --- | --- | --- |
+| E281 | [Two-line rating recalibration](experiments/E281-two-line-rating/RESULT.md) | complete, development only |120train/50held-out development games per engine; exact refits and340-side two-mode production replay; main results and failed restricted-search route retained | P010 implemented; no claimed predictive improvement or scientific confirmation |
 | E271 | [Opportunity-aware rating feasibility](experiments/E271-opportunity-feasibility/RESULT.md) | complete | 0/600 games have enough complete vectors; 1,168,379 missing queries; historical ~18.8h estimate; exact/independent census checks pass | Defer fitting/collection; pilot cost/information first |
 | E272 | [Accuracy aggregation stress](experiments/E272-accuracy-aggregation-stress/RESULT.md) | complete | OW passes synthetic gates; Tail20 fails padding/replication; exact repeat/portable replay pass; no real-game validity | Keep OW for research, reject exact Tail20; category uncertainty next |
 | F018 | [Aggregation and rating evidence](findings/F018-aggregation-and-evidence.md) | recorded | Mechanical gains and evidence gaps kept separate; no predictive improvement/promotion | First reflection checkpoint saved in numerical review |

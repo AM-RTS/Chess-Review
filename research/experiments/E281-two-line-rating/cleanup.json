@@ -1,0 +1,41 @@
+{
+  "removed": [
+    "scratch/adjacent-rating-accuracy-tests.log",
+    "scratch/adjacent-rating-browser-lite.log",
+    "scratch/adjacent-rating-current-tests.log",
+    "scratch/adjacent-rating-focused.log",
+    "scratch/adjacent-rating-lite-replay.log",
+    "scratch/adjacent-rating-settings-tests.log",
+    "scratch/two-line-rating-all-tests.log",
+    "scratch/two-line-rating-browser-lite-retry.log",
+    "scratch/two-line-rating-browser-lite.log",
+    "scratch/two-line-rating-calibration-recovery.log",
+    "scratch/two-line-rating-current-tests.log",
+    "scratch/two-line-rating-focused-final.log",
+    "scratch/two-line-rating-full-collection.log",
+    "scratch/two-line-rating-full-pilot-retry.log",
+    "scratch/two-line-rating-full-pilot.log",
+    "scratch/two-line-rating-full-resume.log",
+    "scratch/two-line-rating-lite-fit-retry.log",
+    "scratch/two-line-rating-lite-fit.log",
+    "scratch/two-line-rating-lite-full.log",
+    "scratch/two-line-rating-lite-pilot-retry.log",
+    "scratch/two-line-rating-lite-pilot.log",
+    "scratch/two-line-rating-lite-replay.log",
+    "scratch/two-line-rating-mechanics.log",
+    "scratch/two-line-rating-migration-tests.log",
+    "scratch/two-line-rating-promoted-focused.log",
+    "scratch/two-line-rating-recovery-fixed.log",
+    "scratch/two-line-rating-shared-search-tests.log",
+    "scratch/two-line-rating-ui-focused.log",
+    "research/runs/E281"
+  ],
+  "freedBytes": 11064605,
+  "retained": "Registered observations, models, partial source inputs, exact parser snapshot, failure diagnostic, compressed run records, final verification logs and browser reports.",
+  "temporaryBrowserProfiles": "Removed by harness finally blocks.",
+  "removedObsoleteCode": [
+    "research/experiments/E281-two-line-rating/code/collect.mjs",
+    "research/experiments/E281-two-line-rating/code/register-partial.mjs"
+  ],
+  "codeRecoveryCommit": "19e9a256"
+}

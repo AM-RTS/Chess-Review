@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "build": "sf19lite",
+  "observationsHash": "bd2973c26622ae6f7d5746266e4a5c8cc6e40106e00b87aa55e100b4331eac35",
+  "modelHash": "c51ff13558298643178a22ce862089667608cf145dd083de7c59a787a8a5168f",
+  "candidateVersion": "a34dbc1278d8a1d14b2497be1c29c4ebad43d38def9c71cf0bb767f5952e82d0",
+  "meaning": "Separate-process exact refit and validation replay; not new scientific confirmation."
+}

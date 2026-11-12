@@ -1826,6 +1826,26 @@
       "sha256": "61b4a89088f2936d49d08fe7ac3a09818912e941684939754187ca455bc94fa4",
       "bytes": 1133394,
       "uncompressedSha256": "986ac0d38a675748effef8ecdde3ba64ab100611c301e572a8222d9c3967e3ef"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-adjacent-model.json": {
+      "kind": "summary",
+      "parents": [
+        "research/experiments/E281-two-line-rating/evidence/sf19-adjacent-observations.json.gz"
+      ],
+      "sha256": "12a2480bf6e2b0c08da4f59e2b5ac276c904c4661d13bb8f7c1aa5ab4af43ac2",
+      "bytes": 58342,
+      "uncompressedSha256": "12a2480bf6e2b0c08da4f59e2b5ac276c904c4661d13bb8f7c1aa5ab4af43ac2"
+    },
+    "research/experiments/E281-two-line-rating/evidence/run-records.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-adjacent-observations.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19lite-adjacent-observations.json.gz"
+      ],
+      "sha256": "96d6321f41fda6c02a11df59b86e55d25c756777024559c8d4a9d66880a360b9",
+      "bytes": 47347,
+      "uncompressedSha256": "5e567482dcaf6a6dc2019f68265163b2bde0e7d92bef365bb628912276583522"
     }
   },
   "withdrawnArtifacts": {

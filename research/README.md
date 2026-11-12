@@ -17,6 +17,11 @@ the separately authorized annotation-evidence implementation. The historical
 numerical decisions remain in [NUMERICAL-REVIEW.md](NUMERICAL-REVIEW.md).
 No replacement accuracy or rating model is confirmed.
 
+2026-11-12 exception: the user explicitly requested
+[E281](experiments/E281-two-line-rating/plan.md), reusing two-line review results
+for separate SF19/Lite rating models. This does not resume unrelated numerical
+studies or authorize confirmation claims from reused development games.
+
 ## Start here
 
 1. Read [INDEX.md](INDEX.md) for current state, prior findings and the next task.

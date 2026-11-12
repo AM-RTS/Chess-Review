@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "build": "sf19lite",
+  "observationsHash": "f1ac591179ebe624b0d8ea75eab640f868b6834713511360411d2677952f706d",
+  "modelHash": "f70d930da8c4397157a664de5411ecb98f3e1e7ab28d84c27944c03f418edff1",
+  "candidateVersion": "ed1341e5b1835213ba828a20d38690d691628c26f446c4798f95bda5f002dcf6",
+  "runtimeSides": 340,
+  "runtimeModes": 2,
+  "meaning": "Separate-process exact refit, validation and production-rating replay; not new scientific confirmation."
+}
