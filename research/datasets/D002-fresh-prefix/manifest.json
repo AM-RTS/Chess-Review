@@ -1381,6 +1381,413 @@
       "sha256": "bd2973c26622ae6f7d5746266e4a5c8cc6e40106e00b87aa55e100b4331eac35",
       "bytes": 938240,
       "uncompressedSha256": "0a3641bdbc160075a5fd08181d43ab2180759677aa38863db81ec921571355c8"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19lite-model.json": {
+      "kind": "summary",
+      "parents": [
+        "research/experiments/E281-two-line-rating/evidence/sf19lite-observations.json.gz"
+      ],
+      "sha256": "1e3b31c13d1f073525017f0b887f83aff237b726ae9cc86dd59b8458ba88b730",
+      "bytes": 57992,
+      "uncompressedSha256": "1e3b31c13d1f073525017f0b887f83aff237b726ae9cc86dd59b8458ba88b730"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-0.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "c5685d3cf2d437d3e68c6e776cd81edad4e411d9ef9868aa24fd32c7baa7b68d",
+      "bytes": 9911,
+      "uncompressedSha256": "731f8d58e15d1caf587adc488a042af5000776e81d64caf16e21602011a8c3ed"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-1.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "0a6b86c55387f41e40624b84312cf81e108c9f0ae92098d4359a94fae058957e",
+      "bytes": 6018,
+      "uncompressedSha256": "e123b90b0beb3b6ea7cb4d1669d84a7de262e87ac1c249a13dfc424db03e4596"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-10.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "35ed7d558d13d855a6563b440bcf48539adba69b3ae0426140246c2aeb642938",
+      "bytes": 5704,
+      "uncompressedSha256": "30b02a6ecbe50fff36865f31ac0ac3207f2b3870540b8dc8defd347e2fb6b4cd"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-11.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "a8f619f7febc2ef8fa202454631547bf1375a87e0ea70d311608afb88de331b6",
+      "bytes": 9578,
+      "uncompressedSha256": "0f489d2b1df4523c1c0697712fa03f1c5db5b8854cec0991c60fc451c99f1a76"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-12.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "939f6dc49dd94bc84650146a890165d1d8d5ec9588cf00045e2c1017b903bf87",
+      "bytes": 7833,
+      "uncompressedSha256": "6e6c2a136f039f96e95b12934867d71f65250da4987ad6a0ad2acfffc359077e"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-13.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "ffd2385bff4e8f4e2a593aa05ce27c1cc361a8aff809e174153412056486ad20",
+      "bytes": 7951,
+      "uncompressedSha256": "0975416dc21ceaa6bb1e7709073680c70dfa310d44b8312ed2f310c828b77e26"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-14.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "c70cccb673d85c31f5bb48d112df66dcb4ed2b8c79285d25177c4bb7bd84865f",
+      "bytes": 4036,
+      "uncompressedSha256": "14c763a89e8fbe21378fd6272d75271717596c7af7a9718d5d7c23c499050bb0"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-15.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "e5cb0a4dc2786fb347c8da9c6ffe18f8fd5190cdd4181cbd11940a8cbebdf994",
+      "bytes": 5152,
+      "uncompressedSha256": "b096bc7237d2dad74616332702ddd8e544838433b6c6e3126295a7132762845f"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-16.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "856ed077171bd2bf03511431401b0ced93fc646c06946292fd6f4ebcaec0745f",
+      "bytes": 6656,
+      "uncompressedSha256": "3e152bb0aff2c22ab02fc09eb803353aaab48cce35723ec49ed9f808a2a0ff15"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-17.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "eabc43d2c9c761b9155569b86c0738c7ece00ce01dcb4b0bdc850ae927d6c4f4",
+      "bytes": 2985,
+      "uncompressedSha256": "0d61641a7051c9fe1280af0775c7d9882724d5c6c8a83f22ede5be2811af0ad7"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-18.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "eb603245e8247903f3228c06bf93d00aa0ef544fc4b7b3885158597902516f03",
+      "bytes": 6965,
+      "uncompressedSha256": "c9e2e784c660e9cd4c9e0cee18003dffa5b56eb6527c7b6ed05d75ef779f577b"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-19.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "883f7d9c096bce0a943f523e8ac2065b71d167724f47925fde8ea26f4dd9f992",
+      "bytes": 10314,
+      "uncompressedSha256": "d9ab9644e68ac0238a63cd5471eedc13c61bf815adef328169287e8b25348670"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-2.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "286d01cb81632469c34e59e6b3d55e4dc53c4399a25ef7e14be55610cd4538b8",
+      "bytes": 6731,
+      "uncompressedSha256": "fb71896e11e0d7b5f8b84ac3b40794ce571083d4cdcf5e4775fe1f86660c3ac9"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-20.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "cef4864857a312cdf49a9c9aa41b525fcbcefd644216b43568d8cbfee06d44ec",
+      "bytes": 10030,
+      "uncompressedSha256": "1ed226cc7eefa3bc40f5b8e456f58a53b685013ff4f4f20830cd5713f6176af5"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-21.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "0a3b04011c39ad3ca81a9ca43d122e755eed7edc2ce3b81d9d43b1c097fb525c",
+      "bytes": 5907,
+      "uncompressedSha256": "efb5e8eea753cbd3ea9afd5475f583c24f3a2eb157f1fad323dd91b5e1c4285a"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-22.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "ba7078ec6d294306c101f59845f8890cc4faba170cbdc49c774eaecab4cfed1b",
+      "bytes": 7458,
+      "uncompressedSha256": "cf2200ffc54579cdb6cc1f72304a88f5186894bd145f7ba200726941572d7a21"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-23.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "886524e9cb5458ff9dbd1d904b71013f2f9e412b22d291706e48a185b9a156cb",
+      "bytes": 7049,
+      "uncompressedSha256": "520d10abfb8b0a9281ce64f99c728fd074bb0f923ad36eb412eeb8096b3c91c7"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-24.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "6686b2cb027185f551add15547e75576d3c21ad80ae094bf1c69ff24a3dde81e",
+      "bytes": 4126,
+      "uncompressedSha256": "aca32638e1b2e55df56b6ab0c383b78f4c5e6984b8bf192a0778c0945671a24c"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-25.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "712f3324317cc6044afc6bda255f52ce3834e40d4266b3e23f3dbdfcb64ee573",
+      "bytes": 4618,
+      "uncompressedSha256": "6edfde43d4b93cf5265e0cf6d9550b81384b53d10f34b32ee81e31102cbebb6a"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-26.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "24e0dbb6e563786aea05295a9b2c433aec4044155b604908042bb70a529a7ce0",
+      "bytes": 5075,
+      "uncompressedSha256": "8b99ecc966733f52b11e9d1460d753c4b4747e3fb0751b69476897fac6c95d5d"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-27.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "4e142b12d1b6d3800cdd0c2e4c078aa26cf4ce921a25fd97b584c1cd3f732f09",
+      "bytes": 8080,
+      "uncompressedSha256": "751bb06f7bc955914fcd9777889fc95c5e4131a259d235d6aa5a750b14940aac"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-28.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "dad67fe9868375663d55e5164184c48477f20d719ee1eeafd86b2ab84c333f9b",
+      "bytes": 5562,
+      "uncompressedSha256": "d1ac1edbc5cf63beda5b14dba1d3c92fb43b24218eb09bef20f1690499d7e90f"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-29.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "800514f178e260e851711af981d07d639187ea15f88aa47a17bf7e0a7484522b",
+      "bytes": 9240,
+      "uncompressedSha256": "dad54157bb4b7cefbf80f2ab02945531f30bccbffb0e639ebc139c18626bc018"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-3.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "0076cb5648e52e5eb0501cd43ee4d80bc0f8161898b7f9a2f9fd4150779a683a",
+      "bytes": 10745,
+      "uncompressedSha256": "83fa810186d4f68d513cd1d945409e90eec6147815e3fea09c8fbc3108097c1d"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-30.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "6cebbfa1e5ef150b8d49553567c61407e970d99bbbeb77fe3f70ac89793b9eb1",
+      "bytes": 3424,
+      "uncompressedSha256": "586cb2155376d28afbdd243f58d47924bf6254b8b639692666454313c1805077"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-31.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "29206145464c98d097cb5b5b12f057f5a734143d6529b81c77c3f3845097e46c",
+      "bytes": 4463,
+      "uncompressedSha256": "a89a1cfc1d6666d0cc5353649715cc2738bb33159dbbc08fcc59cfcd96d208bd"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-32.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "351ac9d99de858a75717fb4659c7c20ee625d2e780adc9c666d747234ceaf2fa",
+      "bytes": 3637,
+      "uncompressedSha256": "2cb7dff1589adf5a040ef1e68a60098177b82110d9918bc8f26221d7666e0739"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-33.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "7d5154d1f857e0a71eb98aaecafe7b522e7bcfc178e161d8c28edfe7bdc6eccb",
+      "bytes": 9353,
+      "uncompressedSha256": "706f508dfc611d146d1272e81be892e8679420dcd4a49584b055bbdeda710425"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-34.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "3c68559bab6caa6ff03525ab34bea1c62e413f83e381888eb1e8ceabe3f0ac96",
+      "bytes": 6270,
+      "uncompressedSha256": "7651b0c8d4c0ee199c2993ff0570e21126e5225c2795185325cc456ca034c4ae"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-35.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "19b7960be3366be00f5f72041385999e92904e0fd6e98665fb4f736e5c8c7ae6",
+      "bytes": 8754,
+      "uncompressedSha256": "73d7159c3524bc7a8ae8de3f3d42af18a39ff677987470a8a005b00b4037655b"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-36.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "0d0dc871c0baae97581014040a42ddda2c93c3cdd3c3a27b62da54574d89e6b8",
+      "bytes": 6830,
+      "uncompressedSha256": "b4da139c864cff86d7147c6ce1759c66cdfbb7453d00a0d46c5825d35d9d3669"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-38.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "3f79eca7c772fe67ddf691ecaf6a531262864ba431411d1eab42176f6b3f32be",
+      "bytes": 8776,
+      "uncompressedSha256": "ba33300211ef25e3667c2048136734d859c4c4d4e5d5a14b1331717e1d2d674e"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-4.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "607884a83fd43cd408d88ec58df92a9ff975518da88308c96fa912317333ca72",
+      "bytes": 6025,
+      "uncompressedSha256": "3bad0fd0deafaf2cc69b99c44296cdce351003a9d79895cf06d790fa67aabf37"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-42.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "70c993368c0f48584d3b237a8d4efcc0c8b310683570963128951d1db403d3c6",
+      "bytes": 4151,
+      "uncompressedSha256": "b2159af1d80b6e542676799384231336f1fb5c50f5aa982727dc566abf8261ec"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-5.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "38580dc25db0bbf56d68dd0895bfb2e17368621025a09bb7c3acd5425fa0d546",
+      "bytes": 6912,
+      "uncompressedSha256": "b20867164f9aa98cee72480e486f36e51ecc8cb3dcd8d794f92eb14f65831690"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-6.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "844439b3382beb37ccd2e20d6ab26fa1b709f5296758e30fa0c6dfd66fda63a1",
+      "bytes": 8457,
+      "uncompressedSha256": "efc2cb6a747f33cabce213721b6456bafe13f600db46ae57f61ffd00137d83b8"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-7.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "f12b277a3de7d7dba51bd4a0566aa9f6c7967298339a903c0a077616ee73a30c",
+      "bytes": 7406,
+      "uncompressedSha256": "fe7c7bf58cddbfef2e5100b833fe488ec30a3c77f097e53e460cd18c5f406a02"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-8.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "56e2022c51dcc6350714dfc594300b054940ffbded3faa96af8f649e79520cda",
+      "bytes": 6861,
+      "uncompressedSha256": "4b61b8d365ad1957157601e85c9a6fd2491acb00d3f3f91e5deb7aeaa5f54fb4"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-9.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz"
+      ],
+      "sha256": "f7af7845e81fac3e864f456a0d57509c7f2dfff267e07682635fd636df672904",
+      "bytes": 8796,
+      "uncompressedSha256": "ad42d743278969a916a637303ab06625f59523d2f7c040590a763cf36cd8eb55"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19-partial/resume.json": {
+      "kind": "summary",
+      "parents": [
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-0.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-1.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-10.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-11.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-12.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-13.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-14.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-15.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-16.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-17.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-18.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-19.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-2.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-20.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-21.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-22.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-23.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-24.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-25.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-26.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-27.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-28.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-29.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-3.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-30.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-31.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-32.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-33.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-34.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-35.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-36.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-38.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-4.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-42.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-5.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-6.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-7.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-8.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19-partial/game-9.json.gz"
+      ],
+      "sha256": "49e39ca0094116dace15f2ec98f7cc51b79e39963c6a9baf3e7efaa5608e4956",
+      "bytes": 35364,
+      "uncompressedSha256": "49e39ca0094116dace15f2ec98f7cc51b79e39963c6a9baf3e7efaa5608e4956"
     }
   },
   "withdrawnArtifacts": {

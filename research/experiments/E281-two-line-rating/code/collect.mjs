@@ -7,11 +7,11 @@ import {engineExpectedPoints} from '../../../../lib/public-scoring.js';
 import {connect} from './node-engine.mjs';
 
 const [build='sf19lite',mode='pilot']=process.argv.slice(2);
-if(!['sf19','sf19lite'].includes(build)||!['pilot','full'].includes(mode))throw Error('Usage: collect.mjs sf19|sf19lite pilot|full');
+if(!['sf19','sf19lite'].includes(build)||!['pilot','full','resume'].includes(mode))throw Error('Usage: collect.mjs sf19|sf19lite pilot|full|resume');
 const prefix='research/experiments/E281-two-line-rating/evidence',out=`research/runs/E281/${build}-${mode}`;
 await mkdir(out,{recursive:true});await mkdir(prefix,{recursive:true});
 const target=`${prefix}/${build}-observations.json.gz`;
-if(mode==='full'){try{await access(target);throw Error('Refusing to overwrite completed evidence');}catch(e){if(e.code!=='ENOENT')throw e;}}
+if(mode!=='pilot'){try{await access(target);throw Error('Refusing to overwrite completed evidence');}catch(e){if(e.code!=='ENOENT')throw e;}}
 const data=await openResearchData(['D001','D002'],{purpose:'collect'});
 const source=await data.readJson('research/datasets/D002-fresh-prefix/games.json.gz');
 const selected=['train','validation'].flatMap(role=>source.filter(g=>g.split===role)
@@ -22,21 +22,31 @@ const config={build,budget,lines:2,Hash:build==='sf19'?16:32,skill:20,cold:true,
 const files=['research/experiments/E281-two-line-rating/code/collect.mjs','research/experiments/E281-two-line-rating/code/node-engine.mjs','engine/uci.js','engine/progress.js','lib/chess.js',`engine/stockfish-19-${build==='sf19'?'':'lite-'}single.js`,`engine/stockfish-19-${build==='sf19'?'':'lite-'}single.wasm`];
 const hashes=Object.fromEntries(await Promise.all(files.map(async f=>[f,sha256(await readFile(f))])));
 const started=performance.now(),engines=[],results=[];let cursor=0,searches=0,completed=0;
-const header={schema:'E281-observations-v1',sourceRevision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),config,hashes,dataEligibility:data.receipt,selectionHash:sha256(JSON.stringify(games.map(g=>g.id))),games:games.length};
+let previous=null;
+if(mode==='resume'){
+ previous=await data.readJson('research/experiments/E281-two-line-rating/evidence/sf19-partial/resume.json');
+ if(JSON.stringify(previous.header.config)!==JSON.stringify(config)||previous.header.selectionHash!==sha256(JSON.stringify(games.map(g=>g.id))))throw Error('Resume protocol differs');
+ for(const file of previous.files){const result=await data.readJson(file),i=games.findIndex(g=>g.id===result.gameId);if(i<0||results[i])throw Error('Invalid partial cohort');results[i]=result;completed++;}
+}
+const header={schema:'E281-observations-v1',sourceRevision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),config,hashes,dataEligibility:data.receipt,selectionHash:sha256(JSON.stringify(games.map(g=>g.id))),games:games.length,...(previous?{resumedGames:completed,priorSourceHashes:previous.header.hashes}: {})};
 await writeFile(`${out}/header.json`,JSON.stringify(header,null,2));
 async function progress(state,error){await writeFile(`${out}/progress.json`,JSON.stringify({state,build,completed,total:games.length,searches,elapsedSeconds:(performance.now()-started)/1000,...(error?{error}: {})},null,2));}
 async function worker(){
  const e=await connect(build);engines.push(e);
  async function search(fen,history,lines,searchMove){
    searches++;try{return await e.analyse(fen,16,lines,history,null,{budget,cold:true,requireExact:true,...(searchMove?{searchMove}: {})});}
-   catch(error){if(searchMove||!error.scoringMove)throw error;return search(fen,history,1,error.scoringMove);}
+   catch(error){
+     if(!searchMove&&error.scoringMove)return search(fen,history,1,error.scoringMove);
+     await writeFile(`${out}/failed-search-${e.worker.child.pid}.json`,JSON.stringify({case:e.case,fen,history,lines,searchMove,error:error.message,recent:e.worker.recent,stderr:e.worker.stderr},null,2));throw error;
+   }
  }
  for(;;){
-   const j=cursor++;if(j>=games.length)return;
-   if(performance.now()-started>90*60*1000)throw Error('Collection time budget exceeded');
+   let j;do{j=cursor++;}while(j<games.length&&results[j]);if(j>=games.length)return;
+   if(performance.now()-started+(previous?.priorElapsedMs||0)>90*60*1000)throw Error('Collection time budget exceeded');
    const g=games[j],board=new Chess(),observations=[],sides={w:[],b:[]};
    for(let i=0;i<g.moves.length;i++){
      const fen=board.fen(),color=board.turn(),legal=board.moves().length,history={initialFen,moves:g.moves.slice(0,i)},played=g.moves[i];
+     e.case={gameId:g.id,index:j,ply:i+1};
      const root=await search(fen,history,2),actual=root.bestmove===played?root:await search(fen,history,1,played);
      if(!root.score||!actual.score)throw Error('Incomplete scoring evidence');
      const bestExpected=engineExpectedPoints(root.score),playedExpected=engineExpectedPoints(actual.score),top=root.bestmove===played;
@@ -50,8 +60,8 @@ async function worker(){
  }
 }
 try{
- await Promise.all(Array.from({length:mode==='pilot'?2:8},worker));
+ await Promise.all(Array.from({length:mode==='pilot'?2:6},worker));
  const result={...header,complete:true,elapsedMs:performance.now()-started,searches,results};
- await writeFile(mode==='full'?target:`${out}/observations.json.gz`,gzipSync(JSON.stringify(result)));
+ await writeFile(mode!=='pilot'?target:`${out}/observations.json.gz`,gzipSync(JSON.stringify(result)));
  await progress('complete');console.log(JSON.stringify({complete:true,build,mode,seconds:result.elapsedMs/1000,plies:results.reduce((s,g)=>s+g.observations.length,0)}));
 }catch(error){await progress('failed',error.message);throw error;}finally{engines.forEach(e=>e.terminate());}

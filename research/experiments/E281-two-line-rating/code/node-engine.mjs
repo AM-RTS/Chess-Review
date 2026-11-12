@@ -10,7 +10,8 @@ export async function connect(build) {
   globalThis.Worker=class {
     constructor(){
       this.child=spawn(process.execPath,['tools/calibration/engine-host.cjs',path.resolve(file)],{windowsHide:true,stdio:['pipe','pipe','pipe']});
-      createInterface({input:this.child.stdout}).on('line',data=>this.onmessage?.({data}));
+      this.recent=[];
+      createInterface({input:this.child.stdout}).on('line',data=>{this.recent.push(data);if(this.recent.length>16)this.recent.shift();this.onmessage?.({data});});
       this.child.stderr.on('data',data=>{this.stderr=(this.stderr||'').slice(-1000)+data;});
       this.child.stdin.on('error',e=>{if(!this.closed)this.onerror?.({message:e.message});});
       this.child.on('error',e=>this.onerror?.({message:e.message}));
