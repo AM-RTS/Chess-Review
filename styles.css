@@ -856,33 +856,27 @@ button { font-family: inherit; cursor: pointer; }
 
 /* eval bar */
 .evalbar {
-  width: 26px; border-radius: 8px; overflow: hidden; position: relative;
-  background: #2b2b2b; flex: none;
-  border: 1px solid var(--line);
-  /* clip-path (not just overflow:hidden) so the rounded corners also clip the .white-fill while it's
-     a composited layer during its height transition — otherwise its square edge bleeds a thin sliver
-     past the corner, which becomes a visible leftover line once the bar is rotated 180° (flipped). */
-  clip-path: inset(0 round 8px);
+  width: 26px; border-radius: 2px; overflow: hidden; position: relative;
+  background: #403d39; flex: none;
+  clip-path: inset(0 round 2px);
 }
 .evalbar .white-fill {
-  position: absolute; left: 0; right: 0; bottom: 0; background: #f4f2ea;
-  transition: height .4s cubic-bezier(.4,0,.2,1);
+  --fill-direction: 1;
+  position: absolute; inset: 0; height: 100%; background: #fff;
+  transform: translateY(calc((100% - var(--white-share, 50%)) * var(--fill-direction)));
+  transition: transform 1s ease-in;
 }
 .evalbar .score {
   position: absolute; left: 0; right: 0; text-align: center;
-  font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: -.3px;
+  font-family: var(--font-ui); font-size: 10px; font-weight: 700; letter-spacing: -.2px;
 }
-.evalbar .score.top { top: 4px; color: #cfcdc4; }
-.evalbar .score.bot { bottom: 4px; color: #2a2a2a; }
-
-/* When viewing from Black's perspective the bar follows the board, with White's share at the TOP.
-   We do this WITHOUT rotating the bar — a rotate(180deg) on a container whose child has an animating
-   height triggers a Chrome paint-invalidation bug that leaves a thin sliver of stale white paint along
-   one edge. Instead we anchor the white fill to the top and swap the two score labels' positions; the
-   label colours already suit their destinations (light text → dark area, dark text → white area). */
-.evalbar.flipped .white-fill { top: 0; bottom: auto; }
-.evalbar.flipped .score.top { top: auto; bottom: 4px; }
-.evalbar.flipped .score.bot { bottom: auto; top: 4px; }
+.evalbar .score.top { top: 5px; color: #fff; }
+.evalbar .score.bot { bottom: 5px; color: #403d39; }
+/* Change direction without rotating text or the clipped container. */
+.evalbar.flipped .white-fill { --fill-direction: -1; }
+.evalbar.flipped .score.top { top: auto; bottom: 5px; }
+.evalbar.flipped .score.bot { bottom: auto; top: 5px; }
+@media (prefers-reduced-motion: reduce) { .evalbar .white-fill { transition: none; } }
 
 /* ---- eval-bar look variants (Settings → Visual → Layout → "Bar") ---- */
 /* classic = the base rules above. gradient: a soft glossy sheen on each half. */
@@ -929,6 +923,7 @@ button { font-family: inherit; cursor: pointer; }
 .sq { position: relative; display: grid; place-items: center; container-type: size; }
 /* the square with the sliding piece is raised above the others during the animation */
 .sq.anim-top { z-index: 6; }
+.move-feedback-square { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 .capture-ghost { position: absolute; inset: 3cqmin; width: 94cqmin; height: 94cqmin; z-index: 0; pointer-events: none; }
 .sq.anim-top .piece, .sq.anim-top .piece-svg, .sq.anim-top .piece-img { will-change: transform; }
 .sq.light { background: var(--sq-light); }

@@ -292,7 +292,7 @@ const DEFAULT_SETTINGS = {
   evalView: "both", mlStyle: "rows", badgeStyle: "icon", badgeScale: 1,
   badgeDesign: "chesseditpack", badgeFont: "spacemono", badgeTooltip: "off",
   // Eval-graph look (see renderGraph), eval-BAR look (see renderEvalBar) and the Insight-panel text size (px).
-  graphStyle: "area", barStyle: "gradient", insightFont: 18,
+  graphStyle: "area", barStyle: "classic", insightFont: 18,
   // Board coordinate labels (the a–h / 1–8 ticks in the squares' corners): on/off + size in px.
   showCoords: true, coordSize: 12,
   // App background: "color" (a tone picked with the HSL sliders), a bundled preset (slate / olive
@@ -2125,16 +2125,19 @@ function paintBoard(transition = null) {
   if (learningWorkspace?.embedded) return;
   const pos = activePos();
   const boardEl = UI.boardWrap.querySelector(".board");
-  if (boardEl?.dataset.fen !== pos.fen) {
-    for (const node of UI.boardWrap.querySelectorAll(".piece, .piece-svg, .piece-img, .sq-badge, .capture-ghost")) {
+  const samePosition = boardEl?.dataset.fen === pos.fen;
+  if (!samePosition) {
+    for (const node of UI.boardWrap.querySelectorAll(".piece, .piece-svg, .piece-img, .sq-badge, .capture-ghost, .move-feedback-square")) {
       pieceAnimations.delete(node);
       node.getAnimations?.().forEach(animation => animation.cancel());
-      if (node.classList.contains("capture-ghost")) node.remove();
+      if (node.matches(".capture-ghost, .move-feedback-square")) node.remove();
     }
     UI.boardWrap.querySelectorAll(".anim-top").forEach(square => square.classList.remove("anim-top"));
     if (boardEl) boardEl.dataset.fen = pos.fen;
   }
-  const moving = transition?.move && S.settings.moveAnim && !reducedBoardMotion();
+  const motion = S.settings.moveAnim && !reducedBoardMotion();
+  const moving = transition?.move && motion;
+  let newFeedback = null;
   let captureSquare = transition?.move.to, capturedPiece = null;
   if (moving && transition.move.captured && !transition.reverse) {
     if (!sqByName[captureSquare]?.querySelector(".piece, .piece-svg, .piece-img")) {
@@ -2200,8 +2203,11 @@ function paintBoard(transition = null) {
         const badge = makeBoardBadge(cls, badgeScore);
         badge.dataset.category = cls; badge.dataset.move = pos.fen;
         sq.append(badge);
+        if (samePosition && motion) newFeedback = badge;
       }
     }
+    const flash = sq.querySelector(".move-feedback-square");
+    if (flash && cls && name === pos.to) flash.style.background = `var(--q-${cls})`;
   }
   if (moving) {
     const {move, reverse = false, slide = true, duration = animDuration()} = transition;
@@ -2224,13 +2230,9 @@ function paintBoard(transition = null) {
       const square = occ[move.to] ? move.to : move.to[0] + move.from[1];
       sqByName[square]?.querySelector(".piece, .piece-svg, .piece-img")?.animate?.([{opacity: 0}, {opacity: 1}], {duration, easing: "ease-in-out"});
     }
-    if (!reverse) sqByName[move.to]?.querySelector(".sq-badge")?.animate?.([
-      {opacity: 0, transform: "translate(-102%, 132%) scale(.35)", offset: 0},
-      {opacity: 1, transform: "translate(-102%, 132%) scale(1.4)", offset: 3 / 13},
-      {opacity: 1, transform: "translate(-102%, 132%) scale(1.4)", offset: 10 / 13},
-      {opacity: 1, transform: "none", offset: 1},
-    ], {duration: 1300, easing: "ease-in-out"});
-  }
+    if (!reverse) animateBoardFeedback(sqByName[move.to]?.querySelector(".sq-badge"));
+  } else if (newFeedback) animateBoardFeedback(newFeedback);
+
   syncBoardBadgeLabel();
   renderBestArrow();
   renderUserArrows();
@@ -3009,6 +3011,27 @@ function exitAnalysis(mainIdx) {
 
 /* ---------------- Move animation ----------------
    Native board slides use the reference's 180ms default and ease-in-out curve. */
+function animateBoardFeedback(badge) {
+  if (!badge?.animate) return;
+  for (const old of badge.parentElement.querySelectorAll(".move-feedback-square")) {
+    old.getAnimations?.().forEach(animation => animation.cancel());
+    old.remove();
+  }
+  badge.animate([
+    {opacity: 0, transform: "translate(-102%, 132%) scale(.4)", offset: 0, easing: "cubic-bezier(0,0,.2,1)"},
+    {opacity: 1, transform: "translate(-102%, 132%) scale(1.82)", offset: 3 / 13},
+    {opacity: 1, transform: "translate(-102%, 132%) scale(1.82)", offset: 10 / 13, easing: "ease-in-out"},
+    {opacity: 1, transform: "none", offset: 1},
+  ], {duration: 1300, easing: "linear"});
+  const flash = el("span", {class: "move-feedback-square", "aria-hidden": "true",
+    style: {background: `var(--q-${badge.dataset.category})`}});
+  badge.parentElement.append(flash);
+  const animation = flash.animate([
+    {opacity: 0, offset: 0}, {opacity: .8, offset: 3 / 13},
+    {opacity: .8, offset: 10 / 13}, {opacity: 0, offset: 1},
+  ], {duration: 1300, easing: "linear"});
+  animation.finished.catch(() => {}).then(() => flash.remove());
+}
 function reducedBoardMotion() { return !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches; }
 function animDuration() { return 460 - S.settings.animSpeed * 40; }
 const pieceAnimations = new WeakMap();
@@ -3050,29 +3073,30 @@ function renderEvalBar() {
   // Reuse the existing element, so the CSS transition on .white-fill animates
   // smoothly between moves (instead of jumping). Create it (once) at a neutral 50%.
   if (!bar) {
-    bar = el("div", { class: "evalbar" },
-      el("div", { class: "white-fill", style: { height: "50%" } }),
+    bar = el("div", { class: "evalbar", role: "meter", "aria-label": "Position evaluation", "aria-valuemin": "-600", "aria-valuemax": "600" },
+      el("div", { class: "white-fill" }),
       el("div", { class: "score top" }),
       el("div", { class: "score bot" }),
     );
     UI.evalbar.append(bar);
   }
   // Reapply the look variant on every render (so switching it in settings updates live).
-  // The bar always follows the board orientation: when the player is viewing from Black's side
-  // (S.flipped), the whole bar is turned upside-down so Black's share sits at the bottom — just
-  // like the player's own pieces. (CSS rotates the bar 180° and counter-rotates the score labels.)
+  // Swap the fill direction and score positions when viewing from Black's side.
   bar.className = "evalbar eb-" + (S.settings.barStyle || "classic") + (S.flipped ? " flipped" : "");
   // While this position's eval is still being computed (analysis mode: the live engine hasn't
   // returned yet → e is null), DON'T snap the bar to 50% and back. Keep the previous fill until
   // the real eval arrives, so making a move doesn't make the bar flicker through the middle.
-  if (e == null) { bar.title = "Eval …"; return; }
+  if (e == null) { bar.title = "Eval …"; bar.setAttribute("aria-busy", "true"); return; }
   const cp = scoreToCp(e);
   // On forced mate the bar should be completely full (100% / 0%) — no opposite sliver.
   // Otherwise the swing is limited to 4–96%, so a big advantage doesn't look like mate.
   const clamp = Math.max(-600, Math.min(600, cp));
   const whiteShare = e.mate != null ? (e.mate > 0 ? 100 : 0) : 50 + (clamp / 600) * 46;
   bar.title = "Eval " + evalText(e);
-  bar.querySelector(".white-fill").style.height = whiteShare + "%";
+  bar.style.setProperty("--white-share", whiteShare + "%");
+  bar.setAttribute("aria-valuenow", String(clamp));
+  bar.setAttribute("aria-valuetext", evalText(e) + " (White perspective)");
+  bar.removeAttribute("aria-busy");
   bar.querySelector(".score.top").textContent = cp < 0 ? evalBarText(e) : "";
   bar.querySelector(".score.bot").textContent = cp >= 0 ? evalBarText(e) : "";
 }

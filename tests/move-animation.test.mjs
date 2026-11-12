@@ -79,3 +79,22 @@ test('promotion reaches the correct piece and board flipping reverses slide geom
  for(const [name,square]of Object.entries(a.run('sqByName')))square.getBoundingClientRect=()=>({left:(7-(name.charCodeAt(0)-97))*100,top:(Number(name[1])-1)*100});
  a.call('go',1);assert.equal(slides(a).at(-1).frames[0].transform,'translate(0px, -100px)');
 });
+
+for(const category of ['great','brilliant'])test(category+' feedback uses its category color and reference phase timing',async t=>{
+ const a=board(t,'1. e4 e5');a.state.classif[1]=category;a.call('go',1);
+ const badge=a.animations.find(n=>n.node.classList.contains('sq-badge'));
+ assert.equal(badge.options.easing,'linear');assert.equal(badge.frames[1].offset,3/13);assert.equal(badge.frames[2].offset,10/13);
+ const flash=a.dom.window.document.querySelector('.move-feedback-square');assert.ok(flash);assert.equal(flash.style.background,'var(--q-'+category+')');
+ const effect=a.animations.find(n=>n.node===flash);assert.equal(effect.options.duration,1300);assert.equal(effect.frames[1].opacity,.8);
+ a.call('paintBoard');assert.equal(a.dom.window.document.querySelectorAll('.move-feedback-square').length,1);
+ effect.finish();await settle();assert.equal(flash.isConnected,false);
+});
+
+test('late live feedback animates once and category upgrades keep one matching flash',t=>{
+ const a=board(t,'1. e4 e5');const v=branch(a,0,1);a.call('paintBoard');
+ v.positions[1].classif='great';a.call('paintBoard');
+ assert.equal(a.animations.filter(n=>n.node.classList.contains('sq-badge')).length,1);
+ a.call('paintBoard');assert.equal(a.animations.filter(n=>n.node.classList.contains('sq-badge')).length,1);
+ v.positions[1].classif='brilliant';a.call('paintBoard');
+ const flashes=a.dom.window.document.querySelectorAll('.move-feedback-square');assert.equal(flashes.length,1);assert.equal(flashes[0].style.background,'var(--q-brilliant)');
+});
