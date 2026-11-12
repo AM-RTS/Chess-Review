@@ -42,6 +42,12 @@ async function main(){
  const build=process.argv[2];if(!['sf19','sf19lite'].includes(build))throw Error('Expected build');
  const data=await openResearchData(['D001','D002'],{purpose:'train'});
  const evidence=await data.readJson(`research/experiments/E281-two-line-rating/evidence/${build}-observations.json.gz`);
+ const source=await data.readJson('research/datasets/D002-fresh-prefix/games.json.gz'),games=new Map(source.map(g=>[g.id,g]));
+ for(const result of evidence.results){
+   const game=games.get(result.gameId);
+   if(!game||game.split!==result.split||JSON.stringify(result.observations.map(p=>p.played))!==JSON.stringify(game.moves))throw Error('Observation history differs from admitted source');
+   for(const row of result.rows)if(game.players.find(p=>p.color===row.color)?.rating!==row.ratingTarget||row.gameId!==game.id||row.split!==game.split)throw Error('Rating target origin differs');
+ }
  const old=JSON.parse(await readFile('data/calibration.json','utf8')).movesOnly.sf19.model;
  const fitted=fitEvidence(evidence,old),out=`research/experiments/E281-two-line-rating/evidence/${build}-model.json`;
  await writeFile(out,JSON.stringify(fitted,null,2)+'\n');console.log(JSON.stringify({build,...fitted.validation}));

@@ -1374,7 +1374,7 @@
       "uncompressedSha256": "9e483dc0497d2c14e082a96b453150562f2717a694e195d2ace20f6e043c0de7"
     },
     "research/experiments/E281-two-line-rating/evidence/sf19lite-observations.json.gz": {
-      "kind": "rating-evidence",
+      "kind": "summary",
       "parents": [
         "research/datasets/D002-fresh-prefix/games.json.gz"
       ],
