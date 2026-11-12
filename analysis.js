@@ -86,7 +86,7 @@ const BOARD_THEMES = {
   ink:     ["#b9bdc6", "#474c57"],
   dusk:    ["#eadfbd", "#526b8c"],   // warm ivory and evening blue
   coral:   ["#f7dfca", "#c8835a"],   // warm terracotta
-  green:   ["#e9edcc", "#6f9c54"],
+  green:   ["#eeeed2", "#769656"],
   plum:    ["#e8dfca", "#6d5c79"],   // parchment and smoky aubergine
 };
 // Display names are separate from persisted keys so existing board preferences keep working.
@@ -298,15 +298,15 @@ const DEFAULT_SETTINGS = {
   // App background: "color" (a tone picked with the HSL sliders), a bundled preset (slate / olive
   // = "Dark", a fixed near-black tone), or "custom" (uploaded). bgFit is "cover" (stretched) or "tile" (repeated
   // at bgTile size). bgCustom holds the uploaded data URL. bgHue/Sat/Light define the "color" tone.
-  // Default = a near-black neutral colour tone (HSL 0/0/10).
+  // Default = the neutral charcoal review background.
   bg: "color", bgFit: "tile", bgTile: "large", bgCustom: null,
-  bgHue: 0, bgSat: 0, bgLight: 10,
+  bgHue: 36, bgSat: 6, bgLight: 18,
   // Commentary coach (data/coaches/<id>.json) — drives the animated avatar that's shown.
   // coachPlain toggles only the reply VOICE: false = the coach's special phrasing,
   // true = neutral "plain" commentary (the coach still appears and reacts on the board).
   coach: "old_soviet", coachPlain: true,
-  // Start with Honeywood (persisted as "maple") and bundled Cburnett pieces.
-  boardTheme: "maple", pieceStyle: "image", sound: true,
+  // Fresh installs use the green board; saved board preferences remain unchanged.
+  boardTheme: "green", pieceStyle: "image", sound: true,
   // Master volume (0–100) applied to every sound the extension plays.
   soundVolume: 50,
   // Custom board colours (used when boardTheme === "custom" — the colour-picker chip, shown first).
@@ -1559,17 +1559,22 @@ function buildUI() {
     el("div", {class: "workspace-board"},
       makeMod("evalbar", evalbarMount),
       makeMod("board", playerTop, boardWrap, playerBot)),
-    el("section", {class: "analysis-column", "aria-label": "Moves and analysis"},
-      makeMod("accuracy", statsMount),
-      makeMod("moves", movesPanel),
-      makeMod("controls", controls),
-      makeMod("engine", engineMount),
-      makeMod("graph", graphDetails)),
-    el("section", {class: "insights-column", "aria-label": "Insights"},
-      makeMod("review", reviewMount),
-      makeMod("coach", coachMount),
-      makeMod("concepts", conceptsMount),
-      makeMod("learn", learnMount)),
+    el("aside", {class: "workspace-sidebar", "aria-label": "Game review"},
+      el("div", {class: "sidebar-switch", role: "group", "aria-label": "Sidebar view"},
+        ...[["review", "Game Review"], ["insights", "Insights"]].map(([view, label]) =>
+          el("button", {type: "button", "data-sidebar-view": view, "aria-controls": "sidebar-" + view,
+            "aria-pressed": view === "review" ? "true" : "false", onclick: () => selectSidebarView(view)}, label))),
+      el("section", {class: "analysis-column", id: "sidebar-review", "aria-label": "Moves and analysis"},
+        makeMod("review", reviewMount),
+        makeMod("coach", coachMount),
+        makeMod("accuracy", statsMount),
+        makeMod("moves", movesPanel),
+        makeMod("controls", controls),
+        makeMod("engine", engineMount),
+        makeMod("graph", graphDetails)),
+      el("section", {class: "insights-column", id: "sidebar-insights", "aria-label": "Insights"},
+        makeMod("concepts", conceptsMount),
+        makeMod("learn", learnMount))),
   );
 
   const settings = el("div", { class: "settings-pop", id: "settings", hidden: true });
@@ -1710,11 +1715,24 @@ function saveLayout() {
 // "auto" = the responsive layout in styles.css, which fits any window. "custom" = the free canvas the
 // user arranged in Reorganize mode, placed from S.layout and zoomed to fit the window.
 const isCustomLayout = () => S.layoutMode === "custom";
+function selectSidebarView(view = UI.canvas.dataset.sidebarView || "review") {
+  UI.canvas.dataset.sidebarView = view;
+  const custom = isCustomLayout();
+  for (const button of UI.canvas.querySelectorAll("[data-sidebar-view]")) {
+    button.setAttribute("aria-pressed", String(button.dataset.sidebarView === view));
+  }
+  for (const [name, selector] of [["review", ".analysis-column"], ["insights", ".insights-column"]]) {
+    const panel = UI.canvas.querySelector(selector);
+    panel.classList.toggle("sidebar-inactive", name !== view);
+    panel.inert = !custom && name !== view;
+  }
+}
 function applyLayoutMode() {
   const custom = isCustomLayout();
   UI.canvas.classList.toggle("auto", !custom);
   UI.canvas.classList.toggle("canvas", custom);
   if (custom) UI.canvas.classList.remove("desktop-layout");
+  selectSidebarView();
   applyLayout(); growCanvas();
 }
 function syncConceptPanelVisibility() {

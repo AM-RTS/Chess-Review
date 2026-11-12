@@ -27,13 +27,13 @@ function layout(t, initialZoom = 1, defaultZoom = 1) {
 }
 
 
-test('automatic workspace keeps readable browser zoom and three feature groups', async t => {
+test('automatic workspace keeps readable browser zoom and a grouped sidebar', async t => {
   const a = layout(t, .65); a.viewport(1536, 720); await a.call('initTabZoom');
   assert.equal(a.zoom(), 1); assert.equal(a.desktop(), false);
   const doc=a.dom.window.document;
   assert.equal(doc.querySelectorAll('.workspace-board > .mod').length,2);
-  assert.deepEqual([...doc.querySelector('.analysis-column').children].map(n=>n.dataset.mod),['accuracy','moves','controls','engine','graph']);
-  assert.deepEqual([...doc.querySelector('.insights-column').children].map(n=>n.dataset.mod),['review','coach','concepts','learn']);
+  assert.deepEqual([...doc.querySelector('.analysis-column').children].map(n=>n.dataset.mod),['review','coach','accuracy','moves','controls','engine','graph']);
+  assert.deepEqual([...doc.querySelector('.insights-column').children].map(n=>n.dataset.mod),['concepts','learn']);
   for(const mod of doc.querySelectorAll('.mod'))assert.equal(mod.style.left,'');
   a.viewport(1920,1080);await a.call('fitTabZoom');
   a.viewport(390,844);await a.call('fitTabZoom');
@@ -71,7 +71,7 @@ test('hiding Concepts preserves commentary and learning in the insights group',t
   const a=layout(t),doc=a.dom.window.document;
   a.state.settings.showConcepts=false;a.call('applyLayout');
   assert.equal(doc.querySelector('[data-mod="concepts"]').hidden,true);
-  assert.ok(doc.querySelector('.insights-column #reviewMount'));
+  assert.ok(doc.querySelector('.analysis-column #reviewMount'));
   assert.ok(doc.querySelector('.insights-column .learn-entry-button'));
   a.state.settings.showConcepts=true;a.call('applyLayout');
   assert.equal(doc.querySelector('[data-mod="concepts"]').hidden,false);
@@ -121,4 +121,22 @@ test('custom engine panels retain their minimum resize height',t=>{
   const grip=mod.querySelector('.mod-resize.s');
   for(const [type,y] of [['pointerdown',300],['pointermove',0],['pointerup',0]])grip.dispatchEvent(new a.dom.window.MouseEvent(type,{clientY:y,bubbles:true}));
   assert.equal(a.state.layout.engine.h,296);
+});
+
+
+test('sidebar switching preserves modules and custom layouts restore both views', t => {
+  const a = layout(t), doc = a.dom.window.document;
+  const review = doc.querySelector('.analysis-column'), insights = doc.querySelector('.insights-column');
+  const moves = doc.querySelector('#movesBody');
+  assert.equal(review.inert, false); assert.equal(insights.inert, true);
+  doc.querySelector('button[data-sidebar-view="insights"]').click();
+  assert.equal(review.inert, true); assert.equal(insights.inert, false);
+  assert.equal(doc.querySelector('button[data-sidebar-view="insights"]').getAttribute('aria-pressed'), 'true');
+  a.state.layoutMode = 'custom'; a.call('applyLayoutMode');
+  assert.equal(review.inert, false); assert.equal(insights.inert, false);
+  a.state.layoutMode = 'auto'; a.call('applyLayoutMode');
+  assert.equal(review.inert, true); assert.equal(insights.inert, false);
+  doc.querySelector('button[data-sidebar-view="review"]').click();
+  assert.equal(review.inert, false); assert.equal(insights.inert, true);
+  assert.equal(doc.querySelector('#movesBody'), moves);
 });

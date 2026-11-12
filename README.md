@@ -4,10 +4,13 @@ Free, open-source game review for your online chess games, powered by Stockfish 
 locally in your browser. One click turns any **Chess.com** or **Lichess** game into a full
 review — accuracy scores, move-by-move classifications, an evaluation graph. No account, no server, no manual PGN copying.
 
-The automatic review layout gives the board the largest area and groups moves,
-accuracy, and Engine beside it. Commentary and Concepts share an insights column.
-**Move breakdown** and **Evaluation graph** expand when needed; narrow windows
-stack the groups. **Reorganize** still supports saved custom panel arrangements.
+The automatic review layout gives the board the largest area beside one compact
+sidebar. **Game Review** groups commentary, accuracy, moves, navigation, Engine,
+and the expandable evaluation graph. **Insights** contains Concepts and learning.
+The charcoal surfaces, green board default, striped move list, and clear navigation
+follow the saved Chess.com review reference. Saved board and background choices
+remain available. Narrow windows stack the sidebar below the board; **Reorganize**
+still supports custom panel arrangements.
 
 **Analysis** in the review header or **Open analysis board** in the extension popup
 opens an independent starting board. Play either side, undo/redo or branch from an

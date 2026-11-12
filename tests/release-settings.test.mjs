@@ -60,7 +60,7 @@ for (const previousVersion of ['0.1.0', '0.2.0', '0.2.1']) {
     const a = app(t);
     a.context.__storedSettings = store.settings;
     a.run('S.settings = { ...DEFAULT_SETTINGS, ...__storedSettings };');
-    assert.equal(a.state.settings.boardTheme, 'maple');
+    assert.equal(a.state.settings.boardTheme, 'green');
     assert.equal(a.state.settings.pieceStyle, 'image');
     assert.equal(a.state.settings.enginePath, 'sf19');
     assert.equal(a.state.settings.coach, 'old_soviet');
@@ -151,7 +151,7 @@ test('review startup waits for an in-progress update before loading preferences'
   assert.equal(reads, 0, 'Startup must not read stale settings during the reset');
   proceed.resolve(); await Promise.all([update, startup]);
   assert.equal(reads, 1);
-  assert.equal(a.state.settings.boardTheme, 'maple');
+  assert.equal(a.state.settings.boardTheme, 'green');
   assert.equal(a.state.username, 'saved-user');
   assert.equal(a.state.library[0].fav, true);
   assert.equal(store.settingsResetFor030, true);
