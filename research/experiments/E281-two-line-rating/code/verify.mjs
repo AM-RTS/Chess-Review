@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {writeFile,readFile} from 'node:fs/promises';
+import {openResearchData,sha256} from '../../../data-policy.mjs';
+import {fitEvidence} from './fit.mjs';
+const build=process.argv[2],suffix=process.argv[3]==='adjacent'?'-adjacent':'';if(!['sf19','sf19lite'].includes(build))throw Error('Expected build');
+const data=await openResearchData(['D001','D002'],{purpose:'validate'}),base='research/experiments/E281-two-line-rating/evidence/';
+const inputs=await data.readJson(base+build+suffix+'-observations.json.gz'),model=await data.readJson(base+build+suffix+'-model.json');
+const old=JSON.parse(await readFile('data/calibration.json','utf8')).movesOnly.sf19.model;
+const replay=fitEvidence(inputs,old);assert.deepEqual(replay,model);
+const report={passed:true,build,observationsHash:data.receipt.inputHashes[base+build+suffix+'-observations.json.gz'],modelHash:sha256(JSON.stringify(model)),candidateVersion:model.candidateVersion,meaning:'Separate-process exact refit and validation replay; not new scientific confirmation.'};
+await writeFile(base+build+suffix+'-replay.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));

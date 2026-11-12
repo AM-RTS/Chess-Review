@@ -35,21 +35,21 @@ export function fitEvidence(evidence,oldModel){
  const passed=candidate.mae<=.95*constantMetrics.mae&&interval[1]<0&&bands.every(b=>!b.candidate||b.candidate.n<10||b.candidate.mae<=b.constant.mae+100);
  const validationReport={candidate,constant:constantMetrics,oldLiteAppliedToNewInputs:oldMetrics,maeDifference95:interval,bands,passed,coverage:{training:train.length,validation:validation.length,totalTraining:all.filter(r=>r.split==='train').length,totalValidation:all.filter(r=>r.split==='validation').length},context:contextValidation};
  const candidateVersion=sha256(JSON.stringify({config:evidence.config,hashes:evidence.hashes,model,context}));
- return {schema:'two-line-rating-v1',candidateVersion,engineConfig:evidence.config,engineHashes:evidence.hashes,model,context,validation:validationReport,
+ return {schema:evidence.config.ratingFeatureProtocol==='adjacent-v1'?'two-line-rating-v2':'two-line-rating-v1',candidateVersion,engineConfig:evidence.config,engineHashes:evidence.hashes,model,context,validation:validationReport,
   limitations:'Recorded Lichess blitz rating prediction, not established ability or Chess.com Elo. Player-disjoint fitting/development splits; validation previously exposed to other studies. No fresh confirmation.'};
 }
 async function main(){
- const build=process.argv[2];if(!['sf19','sf19lite'].includes(build))throw Error('Expected build');
+ const build=process.argv[2],suffix=process.argv[3]==='adjacent'?'-adjacent':'';if(!['sf19','sf19lite'].includes(build))throw Error('Expected build');
  const data=await openResearchData(['D001','D002'],{purpose:'train'});
- const evidence=await data.readJson(`research/experiments/E281-two-line-rating/evidence/${build}-observations.json.gz`);
+ const evidence=await data.readJson(`research/experiments/E281-two-line-rating/evidence/${build}${suffix}-observations.json.gz`);
  const source=await data.readJson('research/datasets/D002-fresh-prefix/games.json.gz'),games=new Map(source.map(g=>[g.id,g]));
  for(const result of evidence.results){
    const game=games.get(result.gameId);
-   if(!game||game.split!==result.split||JSON.stringify(result.observations.map(p=>p.played))!==JSON.stringify(game.moves))throw Error('Observation history differs from admitted source');
+   if(!game||game.split!==result.split||JSON.stringify(result.moves||result.observations.map(p=>p.played))!==JSON.stringify(game.moves))throw Error('Observation history differs from admitted source');
    for(const row of result.rows)if(game.players.find(p=>p.color===row.color)?.rating!==row.ratingTarget||row.gameId!==game.id||row.split!==game.split)throw Error('Rating target origin differs');
  }
  const old=JSON.parse(await readFile('data/calibration.json','utf8')).movesOnly.sf19.model;
- const fitted=fitEvidence(evidence,old),out=`research/experiments/E281-two-line-rating/evidence/${build}-model.json`;
+ const fitted=fitEvidence(evidence,old),out=`research/experiments/E281-two-line-rating/evidence/${build}${suffix}-model.json`;
  await writeFile(out,JSON.stringify(fitted,null,2)+'\n');console.log(JSON.stringify({build,...fitted.validation}));
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)await main();
