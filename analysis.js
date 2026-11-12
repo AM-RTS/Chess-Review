@@ -183,6 +183,8 @@ function activeMoveGrade() {
 function updateGradeBadge(node, cls, score, example = false) {
   const key = badgeRenderKey(cls, score, example);
   if (node.dataset.renderKey === key) return;
+  const sameArtwork = S.settings.badgeDesign === "chesseditpack"
+    && node.dataset.renderKey === badgeRenderKey(cls, node.dataset.score === "" ? null : Number(node.dataset.score), example);
   const next = ["book","forced"].includes(cls) ? cls : gradeText(score, true);
   node.dataset.grade = next;
   node.dataset.score = Number.isFinite(score) ? score : "";
@@ -190,7 +192,7 @@ function updateGradeBadge(node, cls, score, example = false) {
   const label = gradeLabel(cls, score, categoryName(cls), example);
   node.setAttribute("aria-label", label);
   if (node.hasAttribute("title")) node.title = label;
-  node.replaceChildren(gradeBadge(cls, score, "", {}, example).firstElementChild);
+  if (!sameArtwork) node.replaceChildren(gradeBadge(cls, score, "", {}, example).firstElementChild);
 }
 function refreshBadgeAppearance() {
   if (badgeLabelStyle() === "off") hideBoardBadgeTip();
@@ -3017,6 +3019,10 @@ function animateBoardFeedback(badge) {
     old.getAnimations?.().forEach(animation => animation.cancel());
     old.remove();
   }
+  const piece = badge.parentElement.querySelector(".piece, .piece-svg, .piece-img");
+  for (const animation of piece?.getAnimations?.() || []) {
+    if (animation.effect?.getKeyframes().some(frame => frame.opacity != null)) animation.cancel();
+  }
   if (!["great", "brilliant"].includes(badge.dataset.category)) return;
   const square = badge.parentElement.getBoundingClientRect(), corner = badge.getBoundingClientRect();
   if (!square.width || !corner.width) return;
@@ -3030,6 +3036,18 @@ function animateBoardFeedback(badge) {
     {opacity: 1, transform: `${origin} scale(${scale})`, offset: 10 / 13, easing: "ease-in-out"},
     {opacity: 1, transform: "none", offset: 1},
   ], {duration: 1300, easing: "linear"});
+  const artwork = badge.querySelector("svg image");
+  if (S.settings.badgeDesign === "chesseditpack" && artwork?.animate) {
+    const glyph = artwork.cloneNode(false);
+    glyph.classList.add("move-feedback-glyph");
+    glyph.setAttribute("href", _url(`icons/chesseditpack/${badge.dataset.category === "great" ? "great_find" : "brilliant"}-glyph.svg`));
+    artwork.parentElement.append(glyph);
+    artwork.animate([{opacity: 0, offset: 0}, {opacity: 0, offset: 10 / 13}, {opacity: 1, offset: 1}], {duration: 1300});
+    const fade = glyph.animate([{opacity: 1, offset: 0}, {opacity: 1, offset: 10 / 13}, {opacity: 0, offset: 1}], {duration: 1300});
+    fade.finished.catch(() => {}).then(() => glyph.remove());
+    piece?.animate?.([{opacity: 1, offset: 0}, {opacity: .2, offset: 3 / 13},
+      {opacity: .2, offset: 10 / 13}, {opacity: 1, offset: 1}], {duration: 1300});
+  }
   const flash = el("span", {class: "move-feedback-square", "aria-hidden": "true",
     style: {background: `var(--q-${badge.dataset.category})`}});
   badge.parentElement.append(flash);

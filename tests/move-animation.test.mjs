@@ -7,11 +7,11 @@ function board(t,pgn) {
  a.state.settings.moveAnim=true;
  a.replace('navFastScrub',()=>false);a.replace('requestLiveEval',()=>{});
  const animations=[];
- a.dom.window.HTMLElement.prototype.animate=function(frames,options){
-  let finish;const animation={node:this,frames,options,cancelled:false,finished:new Promise(r=>finish=r),cancel(){this.cancelled=true;finish();},finish};
+ a.dom.window.Element.prototype.animate=function(frames,options){
+  let finish;const animation={node:this,frames,options,effect:{getKeyframes:()=>frames},cancelled:false,finished:new Promise(r=>finish=r),cancel(){this.cancelled=true;finish();},finish};
   animations.push(animation);return animation;
  };
- a.dom.window.HTMLElement.prototype.getAnimations=function(){return animations.filter(a=>a.node===this&&!a.cancelled);};
+ a.dom.window.Element.prototype.getAnimations=function(){return animations.filter(a=>a.node===this&&!a.cancelled);};
  for(const [name,square]of Object.entries(a.run('sqByName')))square.getBoundingClientRect=()=>({left:(name.charCodeAt(0)-97)*100,top:(8-Number(name[1]))*100,width:100,height:100});
  const nativeRect=a.dom.window.HTMLElement.prototype.getBoundingClientRect;
  a.dom.window.HTMLElement.prototype.getBoundingClientRect=function(){
@@ -129,4 +129,27 @@ test('downgrading special feedback removes the animated flash without starting a
  const a=board(t,'1. e4 e5');a.state.classif[1]='great';a.call('go',1);assert.ok(a.dom.window.document.querySelector('.move-feedback-square'));
  a.state.classif[1]='best';a.call('paintBoard');assert.equal(a.dom.window.document.querySelector('.move-feedback-square'),null);
  assert.equal(a.animations.filter(n=>n.node.classList.contains('sq-badge')).length,1);
+});
+
+
+for(const category of ['great','brilliant'])test(category+' shows the white glyph before revealing its corner circle',async t=>{
+ const a=board(t,'1. e4 e5');a.state.classif[1]=category;a.call('go',1);
+ const glyph=a.dom.window.document.querySelector('.move-feedback-glyph');assert.ok(glyph);
+ assert.match(glyph.getAttribute('href'),new RegExp((category==='great'?'great_find':'brilliant')+'-glyph.svg$'));
+ const artwork=glyph.previousElementSibling, reveal=a.animations.find(n=>n.node===artwork);
+ assert.equal(reveal.frames[0].opacity,0);assert.equal(reveal.frames[1].offset,10/13);assert.equal(reveal.frames[2].opacity,1);
+ const piece=a.run('sqByName').e4.querySelector('.piece-img');
+ assert.ok(a.animations.some(n=>n.node===piece&&n.frames[1].opacity===.2));
+ a.state.classif[1]='best';a.call('paintBoard');
+ assert.equal(a.dom.window.document.querySelector('.move-feedback-glyph'),null);
+ assert.ok(a.animations.filter(n=>n.node===piece&&n.frames[1].opacity===.2).every(n=>n.cancelled));
+});
+
+
+test('score-only pack updates preserve the glyph and its running animation',t=>{
+ const a=board(t,'1. e4 e5');a.state.classif[1]='great';a.state.moveGrades[1]=9.5;a.call('go',1);
+ const glyph=a.dom.window.document.querySelector('.move-feedback-glyph'),artwork=glyph.previousElementSibling;
+ a.state.moveGrades[1]=9.8;a.call('paintBoard');
+ assert.equal(a.dom.window.document.querySelector('.move-feedback-glyph'),glyph);
+ assert.equal(glyph.previousElementSibling,artwork);assert.match(glyph.parentElement.parentElement.getAttribute('aria-label'),/9.8/);
 });

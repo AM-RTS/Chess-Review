@@ -14,7 +14,8 @@ still supports custom panel arrangements.
 
 Board motion follows the saved reference: 180ms ease-in-out slides at the default
 speed, captured-piece fades, simultaneous king/rook castling, and Great/Brilliant feedback badges
-that grow, hold, then settle into their own square’s corner over a matching category-colored
+that show a white glyph over the dimmed piece, then settle into their own square’s
+corner as the colored circular badge appears, over a matching category-colored
 square flash. Other categories keep static badges. The solid evaluation bar uses flat white/charcoal colors and a
 one-second ease-in fill transition, following board orientation. Single-step review and variation navigation
 share the same animation path. Drag releases avoid replaying the slide; reduced
