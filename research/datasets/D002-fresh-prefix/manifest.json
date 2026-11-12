@@ -1788,6 +1788,16 @@
       "sha256": "49e39ca0094116dace15f2ec98f7cc51b79e39963c6a9baf3e7efaa5608e4956",
       "bytes": 35364,
       "uncompressedSha256": "49e39ca0094116dace15f2ec98f7cc51b79e39963c6a9baf3e7efaa5608e4956"
+    },
+    "research/experiments/E281-two-line-rating/evidence/sf19lite-adjacent-observations.json.gz": {
+      "kind": "summary",
+      "parents": [
+        "research/datasets/D002-fresh-prefix/games.json.gz",
+        "research/experiments/E281-two-line-rating/evidence/sf19lite-observations.json.gz"
+      ],
+      "sha256": "f1ac591179ebe624b0d8ea75eab640f868b6834713511360411d2677952f706d",
+      "bytes": 859574,
+      "uncompressedSha256": "9c8f5e2eb34d3f921166a2f183b2317194c058f9e41f0ee65dd0935633b6406a"
     }
   },
   "withdrawnArtifacts": {
