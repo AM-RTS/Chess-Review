@@ -31,3 +31,10 @@ failed run. Partial outputs are admitted by hash before reuse, with identical
 selection/configuration checks. The exact collected parser snapshot was recovered
 and hash-verified; runtime changes since collection only removed rating-worker
 lifecycle code, leaving numerical parsing/search behavior intact.
+
+Six-worker resume also timed out, with39complete games retained and569additional
+searches/465.440seconds. The diagnostic identifies a restricted played move at
+index37/ply41, depth14/5.36million nodes/86.4seconds before the silence timeout.
+This is a hard search, not evidence of random crashes or proof of memory pressure.
+User approved adjacent-position rating evidence instead. Registered amendment
+retains the original candidate/failures and splits. No further strict collection.

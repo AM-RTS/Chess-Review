@@ -35,3 +35,31 @@ relative game performance, not validation against the player's own rating.
 One independent replay of fitting/metrics must match. Add protocol-tag/cache
 tests and real-engine/browser checks, then production regression/source/lint.
 Only adopt a build passing its gate. Never relabel old evidence as two-line.
+
+## 2026-11-12 prospective amendment: adjacent-position rating evidence
+
+The user explicitly selected before/after evaluations after the full-engine
+restricted search failed twice. The second diagnostic reached5.36million nodes,
+depth14 in86seconds, then hit120seconds without a new output line. Six workers
+did not fix it; the earlier memory-pressure hypothesis is not established.
+Do not repeat that collector unchanged or loosen its watchdog/search budget.
+
+New candidate uses the two-line root before a move and the already-computed
+two-line root after it. Invert the latter's side-to-move expected score, clamp
+negative loss to zero, and keep best/forced moves at zero loss. Terminal child
+mate means played expected score1; terminal draw means0.5. Keep the nine features,
+Huber recipe,120/50game selection, split ownership and primary gates unchanged.
+Retain the first Lite fit as an abandoned strict-evidence candidate, not a result
+for the new feature protocol. The already-exposed validation remains development
+evidence only. Context peers are refitted using the new loss definition.
+
+Reuse hash-admitted root observations from the completed Lite corpus and39full
+games. Search only missing roots, including each final position, and deduplicate
+identical full-history queries. No restricted played-move searches. Keep six
+workers for full SF19, and persist each newly completed root to a run journal.
+Use a separate observations/model filename and version; do not overwrite frozen
+strict-evidence inputs. Full-engine budget remains90minutes total, including the
+failed runs (847.791+465.440seconds); Lite has a fresh15minute collection cap.
+This changes rating evidence only. Production played-move accuracy/badge paths
+remain unchanged. User also authorized approximate ratings at nondefault search
+settings with an explicit mismatch note, rather than disabling those estimates.
