@@ -929,6 +929,7 @@ button { font-family: inherit; cursor: pointer; }
 .sq { position: relative; display: grid; place-items: center; container-type: size; }
 /* the square with the sliding piece is raised above the others during the animation */
 .sq.anim-top { z-index: 6; }
+.capture-ghost { position: absolute; inset: 3cqmin; width: 94cqmin; height: 94cqmin; z-index: 0; pointer-events: none; }
 .sq.anim-top .piece, .sq.anim-top .piece-svg, .sq.anim-top .piece-img { will-change: transform; }
 .sq.light { background: var(--sq-light); }
 .sq.dark  { background: var(--sq-dark); }

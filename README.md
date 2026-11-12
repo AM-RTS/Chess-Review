@@ -12,6 +12,12 @@ follow the saved Chess.com review reference. Saved board and background choices
 remain available. Narrow windows stack the sidebar below the board; **Reorganize**
 still supports custom panel arrangements.
 
+Board motion follows the saved reference: 180ms ease-in-out slides at the default
+speed, captured-piece fades, simultaneous king/rook castling, and feedback badges
+that grow then settle into the corner. Single-step review and variation navigation
+share the same animation path. Drag releases avoid replaying the slide; reduced
+motion and the existing animation toggle remain supported.
+
 **Analysis** in the review header or **Open analysis board** in the extension popup
 opens an independent starting board. Play either side, undo/redo or branch from an
 earlier move, and see live Stockfish evaluation, candidate lines, and category badges.

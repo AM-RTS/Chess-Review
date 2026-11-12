@@ -323,7 +323,7 @@ const DEFAULT_SETTINGS = {
   bestArrow: true, bestArrowColor: "#85ae4a", arrowOpacity: 0.65, arrowShaft: 0.2, arrowHead: 0.4,
   // "Show the threat": a yellow arrow with the opponent's best move as if it were their turn.
   showThreat: false,
-  // Move animation (sliding piece on single-step navigation). 1 = slow, 10 = fast.
+  // Move animation: 1 = slow, 10 = fast; default 7 matches the 180ms reference slide.
   moveAnim: true, animSpeed: 7,
   learningTransition: "morph",
   // Loading animation while the analysis runs (selectable style).
@@ -2121,10 +2121,27 @@ function buildBoard() {
   clearBoardArt(board);
   paintBoard();
 }
-function paintBoard() {
+function paintBoard(transition = null) {
   if (learningWorkspace?.embedded) return;
   const pos = activePos();
   const boardEl = UI.boardWrap.querySelector(".board");
+  if (boardEl?.dataset.fen !== pos.fen) {
+    for (const node of UI.boardWrap.querySelectorAll(".piece, .piece-svg, .piece-img, .sq-badge, .capture-ghost")) {
+      pieceAnimations.delete(node);
+      node.getAnimations?.().forEach(animation => animation.cancel());
+      if (node.classList.contains("capture-ghost")) node.remove();
+    }
+    UI.boardWrap.querySelectorAll(".anim-top").forEach(square => square.classList.remove("anim-top"));
+    if (boardEl) boardEl.dataset.fen = pos.fen;
+  }
+  const moving = transition?.move && S.settings.moveAnim && !reducedBoardMotion();
+  let captureSquare = transition?.move.to, capturedPiece = null;
+  if (moving && transition.move.captured && !transition.reverse) {
+    if (!sqByName[captureSquare]?.querySelector(".piece, .piece-svg, .piece-img")) {
+      captureSquare = transition.move.to[0] + transition.move.from[1]; // en passant
+    }
+    capturedPiece = sqByName[captureSquare]?.querySelector(".piece, .piece-svg, .piece-img")?.cloneNode(true);
+  }
   if (boardEl) boardEl.classList.toggle("analysis", S.analysisMode);
   const rows = pos.fen.split(" ")[0].split("/");
   const occ = {};
@@ -2185,6 +2202,34 @@ function paintBoard() {
         sq.append(badge);
       }
     }
+  }
+  if (moving) {
+    const {move, reverse = false, slide = true, duration = animDuration()} = transition;
+    if (slide) {
+      animateMove(reverse ? move.to : move.from, reverse ? move.from : move.to, duration);
+      if (/^[O0]-[O0]/.test(move.san || "")) {
+        const rookFrom = (move.to[0] === "g" ? "h" : "a") + move.to[1];
+        const rookTo = (move.to[0] === "g" ? "f" : "d") + move.to[1];
+        animateMove(reverse ? rookTo : rookFrom, reverse ? rookFrom : rookTo, duration);
+      }
+    }
+    if (capturedPiece) {
+      capturedPiece.setAttribute("class", "capture-ghost");
+      capturedPiece.removeAttribute("style");
+      sqByName[captureSquare].append(capturedPiece);
+      const fade = capturedPiece.animate?.([{opacity: 1}, {opacity: 0}], {duration, easing: "ease-in-out"});
+      if (fade) fade.finished.catch(() => {}).then(() => capturedPiece.remove());
+      else capturedPiece.remove();
+    } else if (reverse && move.captured) {
+      const square = occ[move.to] ? move.to : move.to[0] + move.from[1];
+      sqByName[square]?.querySelector(".piece, .piece-svg, .piece-img")?.animate?.([{opacity: 0}, {opacity: 1}], {duration, easing: "ease-in-out"});
+    }
+    if (!reverse) sqByName[move.to]?.querySelector(".sq-badge")?.animate?.([
+      {opacity: 0, transform: "translate(-102%, 132%) scale(.35)", offset: 0},
+      {opacity: 1, transform: "translate(-102%, 132%) scale(1.4)", offset: 3 / 13},
+      {opacity: 1, transform: "translate(-102%, 132%) scale(1.4)", offset: 10 / 13},
+      {opacity: 1, transform: "none", offset: 1},
+    ], {duration: 1300, easing: "ease-in-out"});
   }
   syncBoardBadgeLabel();
   renderBestArrow();
@@ -2720,10 +2765,7 @@ function applyUserMove(from, to, animate = true, promotion = null) {
   }
   S.selectedSq = null;
   playSanSound(mv.san);
-  paintBoard();
-  // On drag the piece is already where you released it — so no slide animation
-  // (otherwise it "jumps" back to the start square and slides forward again).
-  if (animate && S.settings.moveAnim) animateMove(from, to);
+  paintBoard({move: mv, slide: animate});
   renderEvalBar(); renderPlayers(); renderControls(); renderReview(); renderEngineCurrent();
   requestLiveEval();
 }
@@ -2765,7 +2807,7 @@ function playLine(pv) {
   // often differs from the line's next move (the PV tail is unreliable), which is confusing.
   S.lineWalking = true;
   playSanSound(v.positions[v.idx].san);
-  paintBoard();
+  paintBoard({move: v.positions[v.idx]});
   renderEvalBar(); renderPlayers(); renderControls(); renderReview(); renderEngineCurrent();
   requestLiveEval();
   startLineWalk();   // auto-step through the rest of the line (~2 s per move)
@@ -2851,7 +2893,7 @@ async function playBestMoves() {
     v.positions.push({ fen: c.fen(), san: mv.san, from: mv.from, to: mv.to, color: mv.color, promotion: mv.promotion || "", captured: mv.captured || "", eval: null, best: null });
     v.idx = v.positions.length - 1;
     playSanSound(mv.san);
-    paintBoard(); renderEvalBar(); renderPlayers(); renderControls(); renderReview(); renderEngineCurrent();
+    paintBoard({move: mv}); renderEvalBar(); renderPlayers(); renderControls(); renderReview(); renderEngineCurrent();
     // Classify the move that was just played
     await requestLiveEval();
   }
@@ -2966,34 +3008,27 @@ function exitAnalysis(mainIdx) {
 }
 
 /* ---------------- Move animation ----------------
-   Minimalist slide: the piece is already on the destination square (paintBoard has
-   drawn the final position) — we offset it back to the start square and let it
-   slide into place via a transform transition. animSpeed 1..10 → duration 400..40 ms. */
-function animDuration() { return 440 - S.settings.animSpeed * 40; }
-function animateMove(fromName, toName, ms) {
+   Native board slides use the reference's 180ms default and ease-in-out curve. */
+function reducedBoardMotion() { return !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches; }
+function animDuration() { return 460 - S.settings.animSpeed * 40; }
+const pieceAnimations = new WeakMap();
+function animateMove(fromName, toName, ms = animDuration()) {
+  if (reducedBoardMotion()) return;
   const fromSq = sqByName[fromName], toSq = sqByName[toName];
-  if (!fromSq || !toSq) return;
-  const piece = toSq.querySelector(".piece, .piece-svg, .piece-img");
-  if (!piece) return;
+  const piece = toSq?.querySelector(".piece, .piece-svg, .piece-img");
+  if (!fromSq || !piece?.animate) return;
   const fr = fromSq.getBoundingClientRect(), tr = toSq.getBoundingClientRect();
   const dx = fr.left - tr.left, dy = fr.top - tr.top;
   if (!dx && !dy) return;
-  const dur = ms || animDuration();
+  pieceAnimations.get(piece)?.cancel();
+  const animation = piece.animate([{transform: `translate(${dx}px, ${dy}px)`}, {transform: "translate(0, 0)"}], {duration: ms, easing: "ease-in-out"});
+  pieceAnimations.set(piece, animation);
   toSq.classList.add("anim-top");
-  piece.style.transition = "none";
-  piece.style.transform = `translate(${dx}px, ${dy}px)`;
-  void piece.offsetWidth;                       // force reflow before enabling the transition
-  requestAnimationFrame(() => {
-    piece.style.transition = `transform ${dur}ms cubic-bezier(.22,.61,.36,1)`;
-    piece.style.transform = "translate(0, 0)";
-  });
-  const cleanup = () => {
-    piece.style.transition = ""; piece.style.transform = "";
+  animation.finished.catch(() => {}).then(() => {
+    if (pieceAnimations.get(piece) !== animation) return;
+    pieceAnimations.delete(piece);
     toSq.classList.remove("anim-top");
-    piece.removeEventListener("transitionend", cleanup);
-  };
-  piece.addEventListener("transitionend", cleanup);
-  setTimeout(cleanup, dur + 80);                // fallback if transitionend doesn't fire
+  });
 }
 
 /* ---------------- Eval bar ---------------- */
@@ -4891,7 +4926,7 @@ function visualSettings() {
     ),
     section("Move animation",
       toggleRow("Animation", "moveAnim"),
-      slider("Speed", "animSpeed", 1, 10, 1, { fmt: (v) => (440 - v * 40) + " ms" }),
+      slider("Speed", "animSpeed", 1, 10, 1, { fmt: (v) => (460 - v * 40) + " ms" }),
     ),
     section("Learning experience",
       el("div", {class:"learn-style-options", role:"group", "aria-label":"Learning presentation"}, ...LearningWorkspace.presentations.map(({id,label,description})=>
@@ -5692,8 +5727,7 @@ function practiceDemo(solvePos) {
   p.demoT.push(setTimeout(() => {
     if (!S.practice) return;
     S.idx = spot;                          // show the position after the wrong move (badge + tint)
-    paintBoard(); renderEvalBar(); renderMoves(); renderGraph(); renderControls(); renderReview();
-    animateMove(mv.from, mv.to, 620);      // slow slide (category shows as the board badge + the coach text)
+    paintBoard({move: mv, duration: 620}); renderEvalBar(); renderMoves(); renderGraph(); renderControls(); renderReview();      // slow slide (category shows as the board badge + the coach text)
     p.demoT.push(setTimeout(() => {
       if (!S.practice) return;
       flashSquares([mv.from, mv.to], "bad");   // signal it was a mistake
@@ -6229,13 +6263,9 @@ function go(to) {
   // stepping back onto a quiet move play the capture sound of whatever move had created that
   // position (e.g. back off g5 onto fxe5 buzzed a capture though only a pawn slid back).
   if (S.idx !== prev) { S.userArrows = []; S.userMarks = []; S.selectedSq = null; playMoveSound(S.idx > prev ? S.idx : prev); }
-  paintBoard();
-  // Smooth animation on single-step navigation (forward OR backward) — but snap instead of sliding
-  // when the user is scrubbing fast, so the board keeps up with the keys instead of lagging behind.
-  if (S.settings.moveAnim && Math.abs(S.idx - prev) === 1 && !navFastScrub()) {
-    if (S.idx === prev + 1) { const m = S.positions[S.idx]; if (m.from && m.to) animateMove(m.from, m.to); }
-    else { const m = S.positions[prev]; if (m.from && m.to) animateMove(m.to, m.from); }
-  }
+  const transition = Math.abs(S.idx - prev) === 1 && !navFastScrub()
+    ? {move: S.positions[Math.max(S.idx, prev)], reverse: S.idx < prev} : null;
+  paintBoard(transition);
   renderEvalBar();
   renderPlayers();
   renderControls();
@@ -6257,8 +6287,9 @@ function gotoVar(idx) {
   if (!S.variation) return;
   const v = S.variation;
   if (idx < 0 || idx >= v.positions.length) return;
+  const previous = v.idx;
   v.idx = idx; S.selectedSq = null;
-  paintBoard(); playSanSound(v.positions[v.idx]?.san); renderEvalBar(); renderPlayers(); renderControls();
+  paintBoard(Math.abs(idx - previous) === 1 && !navFastScrub() ? {move: v.positions[Math.max(idx, previous)], reverse: idx < previous} : null); playSanSound(v.positions[v.idx]?.san); renderEvalBar(); renderPlayers(); renderControls();
   renderReview(); renderMoves(); renderEngineCurrent(); requestLiveEval();
 }
 function variationStep(delta) {
@@ -6269,15 +6300,8 @@ function variationStep(delta) {
   if (ni >= v.positions.length) return;                  // no more variation moves
   v.idx = ni;
   S.selectedSq = null;
-  paintBoard();
-  // Same rule as the mainline: forward = the move just played (idx); back = the move being undone
-  // (idx+1) — so stepping back doesn't buzz the landed move's (possibly capture) sound.
+  paintBoard(!navFastScrub() ? {move: v.positions[Math.max(ni, ni - delta)], reverse: delta < 0} : null);
   playSanSound((delta > 0 ? v.positions[v.idx] : v.positions[v.idx + 1])?.san);
-  if (S.settings.moveAnim && !navFastScrub()) {
-    const cur = v.positions[v.idx];
-    if (delta > 0 && cur.from && cur.to) animateMove(cur.from, cur.to);
-    else if (delta < 0) { const m = v.positions[v.idx + 1]; if (m && m.from && m.to) animateMove(m.to, m.from); }
-  }
   renderEvalBar(); renderPlayers(); renderControls(); renderReview(); renderEngineCurrent();
   requestLiveEval();
 }
