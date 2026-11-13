@@ -90,3 +90,21 @@ test('an equal evaluation is not evidence of a draw', t => {
   S.bests[1].lines = [{multipv: 1, pv: 'e7e5', score: {cp: 0}}];
   assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
 });
+
+test('top-line repetition and perpetual check lead to a draw in both views', t => {
+  const a = app(t), S = loadGame(a, '1. Nf3');
+  S.idx = 1;
+  const cycle = 'g8f6 f3g1 f6g8 g1f3';
+  S.bests[1].lines = [{multipv: 1, pv: cycle}];
+  assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
+  S.bests[1].lines[0].pv = `${cycle} ${cycle} b8c6`;
+  assert.equal(a.call('selectedMoveExplanation'), 'Leads to a draw.');
+  branch(a, 0, 1);
+  assert.equal(a.call('selectedMoveExplanation'), 'Leads to a draw.');
+  S.variation.positions[1].fen = '7k/5Q2/8/8/8/8/8/K7 w - - 0 1';
+  const checks = 'f7f8 h8h7 f8f7 h7h8';
+  S.variation.positions[1].best.lines[0].pv = `${checks} ${checks}`;
+  assert.equal(a.call('selectedMoveExplanation'), 'Leads to a draw.');
+  S.variation.positions[1].best.lines = [{multipv: 1, pv: 'f7f8'}, {multipv: 2, pv: `${checks} ${checks}`}];
+  assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
+});

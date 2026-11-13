@@ -3807,11 +3807,11 @@ function selectedMoveExplanation() {
         const move = board.move({from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci.slice(4) || undefined});
         if (!move) return "I have no idea why.";
         material += gain(move);
+        if (board.isThreefoldRepetition()) return "Leads to a draw.";
       }
       if (board.isCheckmate()) return `${board.turn() === "w" ? "Black" : "White"} checkmates.`;
       if (board.isStalemate()) return "Leads to stalemate.";
       if (board.isInsufficientMaterial()) return "Leads to a draw by insufficient material.";
-      if (board.isThreefoldRepetition()) return "Reaches threefold repetition; a draw can be claimed.";
       if (board.isDraw()) return "Reaches the fifty-move rule; a draw can be claimed.";
       if (material) return `${material > 0 ? "White" : "Black"} gains ${Math.abs(material)} ${Math.abs(material) === 1 ? "point" : "points"} of material.`;
     } catch {}
