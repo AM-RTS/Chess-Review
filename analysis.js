@@ -642,7 +642,7 @@ function triggerFx(ev) {
 // Fast-scrub feel (holding ←/→): nav events fire quicker than a click can ring out. Throttle the cue
 // to a tidy cadence; Web Audio is naturally polyphonic so overlapping plays don't garble.
 const NAV_SOUND_GAP = 55;   // ms — min spacing between consecutive nav click sounds
-let _lastNavSound = 0, _lastNavStep = 0;
+let _lastNavSound = 0, _lastNavStep = null;
 function playEvent(ev) {
   if (!S.settings.sound) return;
   const now = performance.now();
@@ -650,12 +650,12 @@ function playEvent(ev) {
   _lastNavSound = now;
   triggerFx(ev);
 }
-// True when this step lands quicker than a slide would take, so the caller should snap, not animate.
-function navFastScrub() {
+// Fit slides to the current navigation cadence in either direction.
+function navAnimationDuration() {
   const now = performance.now();
-  const fast = now - _lastNavStep < animDuration() + 30;
+  const elapsed = _lastNavStep == null ? animDuration() : now - _lastNavStep;
   _lastNavStep = now;
-  return fast;
+  return Math.min(animDuration(), Math.max(30, elapsed));
 }
 // Pick the event for a SAN string. Priority: capture > check/mate > castle > plain move.
 function sanSound(san) {
@@ -2075,13 +2075,17 @@ function paintBoard(transition = null) {
   const pos = activePos();
   const boardEl = UI.boardWrap.querySelector(".board");
   const samePosition = boardEl?.dataset.fen === pos.fen;
+  const interrupted = new Map();
+  if (!samePosition && transition?.move) for (const [name, square] of Object.entries(sqByName)) {
+    const piece = square.querySelector(".piece, .piece-svg, .piece-img");
+    if (piece && pieceAnimations.has(piece)) interrupted.set(name, piece.getBoundingClientRect());
+  }
   if (!samePosition) {
     for (const node of UI.boardWrap.querySelectorAll(".piece, .piece-svg, .piece-img, .sq-badge, .capture-ghost, .move-feedback-square, .mate-marker, .mate-highlight")) {
-      pieceAnimations.delete(node);
-      node.getAnimations?.().forEach(animation => animation.cancel());
+      const slide = pieceAnimations.get(node);
+      node.getAnimations?.().forEach(animation => { if (animation !== slide) animation.cancel(); });
       if (node.matches(".capture-ghost, .move-feedback-square, .mate-marker, .mate-highlight")) node.remove();
     }
-    UI.boardWrap.querySelectorAll(".anim-top").forEach(square => square.classList.remove("anim-top"));
     if (boardEl) boardEl.dataset.fen = pos.fen;
   }
   const motion = S.settings.moveAnim && !reducedBoardMotion();
@@ -2137,7 +2141,12 @@ function paintBoard(transition = null) {
     let keepPiece = null;
     for (const piece of sq.querySelectorAll(".piece, .piece-svg, .piece-img")) {
       if (!keepPiece && code && piece.dataset.piece === code && piece.dataset.set === set) keepPiece = piece;
-      else piece.remove();
+      else {
+        pieceAnimations.delete(piece);
+        piece.getAnimations?.().forEach(animation => animation.cancel());
+        piece.remove();
+        sq.classList.remove("anim-top");
+      }
     }
     if (oldBadge && !keepBadge) oldBadge.remove();
     const isHl = hl.has(name);
@@ -2161,17 +2170,24 @@ function paintBoard(transition = null) {
   if (moving) {
     const {move, reverse = false, slide = true, duration = animDuration()} = transition;
     if (slide) {
-      animateMove(reverse ? move.to : move.from, reverse ? move.from : move.to, duration);
+      const from = reverse ? move.to : move.from;
+      animateMove(from, reverse ? move.from : move.to, duration, interrupted.get(from));
       if (/^[O0]-[O0]/.test(move.san || "")) {
         const rookFrom = (move.to[0] === "g" ? "h" : "a") + move.to[1];
         const rookTo = (move.to[0] === "g" ? "f" : "d") + move.to[1];
-        animateMove(reverse ? rookTo : rookFrom, reverse ? rookFrom : rookTo, duration);
+        const from = reverse ? rookTo : rookFrom;
+        animateMove(from, reverse ? rookFrom : rookTo, duration, interrupted.get(from));
       }
     }
     if (capturedPiece) {
       capturedPiece.setAttribute("class", "capture-ghost");
       capturedPiece.removeAttribute("style");
       sqByName[captureSquare].append(capturedPiece);
+      const origin = interrupted.get(captureSquare);
+      if (origin) {
+        const rect = capturedPiece.getBoundingClientRect();
+        capturedPiece.style.transform = `translate(${origin.left - rect.left}px, ${origin.top - rect.top}px)`;
+      }
       const fade = capturedPiece.animate?.([{opacity: 1}, {opacity: 0}], {duration, easing: "ease-in-out"});
       if (fade) fade.finished.catch(() => {}).then(() => capturedPiece.remove());
       else capturedPiece.remove();
@@ -3078,12 +3094,12 @@ function paintGameEnd(pos, animate) {
 function reducedBoardMotion() { return !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches; }
 function animDuration() { return 460 - S.settings.animSpeed * 40; }
 const pieceAnimations = new WeakMap();
-function animateMove(fromName, toName, ms = animDuration()) {
+function animateMove(fromName, toName, ms = animDuration(), origin = null) {
   if (reducedBoardMotion()) return;
   const fromSq = sqByName[fromName], toSq = sqByName[toName];
   const piece = toSq?.querySelector(".piece, .piece-svg, .piece-img");
   if (!fromSq || !piece?.animate) return;
-  const fr = fromSq.getBoundingClientRect(), tr = toSq.getBoundingClientRect();
+  const fr = origin || fromSq.getBoundingClientRect(), tr = origin ? piece.getBoundingClientRect() : toSq.getBoundingClientRect();
   const dx = fr.left - tr.left, dy = fr.top - tr.top;
   if (!dx && !dy) return;
   pieceAnimations.get(piece)?.cancel();
@@ -6464,8 +6480,8 @@ function go(to) {
   // stepping back onto a quiet move play the capture sound of whatever move had created that
   // position (e.g. back off g5 onto fxe5 buzzed a capture though only a pawn slid back).
   if (S.idx !== prev) { S.userArrows = []; S.userMarks = []; S.selectedSq = null; playMoveSound(S.idx > prev ? S.idx : prev); }
-  const transition = Math.abs(S.idx - prev) === 1 && (S.idx < prev || !navFastScrub())
-    ? {move: S.positions[Math.max(S.idx, prev)], reverse: S.idx < prev} : null;
+  const transition = Math.abs(S.idx - prev) === 1
+    ? {move: S.positions[Math.max(S.idx, prev)], reverse: S.idx < prev, duration: navAnimationDuration()} : null;
   paintBoard(transition);
   renderEvalBar();
   renderPlayers();
@@ -6491,7 +6507,7 @@ function gotoVar(idx) {
   const previous = v.idx;
   if (idx === previous) return;
   v.idx = idx; S.selectedSq = null;
-  paintBoard(Math.abs(idx - previous) === 1 && (idx < previous || !navFastScrub()) ? {move: v.positions[Math.max(idx, previous)], reverse: idx < previous} : null); playSanSound(v.positions[Math.max(idx, previous)]?.san); renderEvalBar(); renderPlayers(); renderControls();
+  paintBoard(Math.abs(idx - previous) === 1 ? {move: v.positions[Math.max(idx, previous)], reverse: idx < previous, duration: navAnimationDuration()} : null); playSanSound(v.positions[Math.max(idx, previous)]?.san); renderEvalBar(); renderPlayers(); renderControls();
   renderReview(); renderMoves(); renderEngineCurrent(); requestLiveEval();
 }
 function variationStep(delta) {
@@ -6502,7 +6518,7 @@ function variationStep(delta) {
   if (ni >= v.positions.length) return;                  // no more variation moves
   v.idx = ni;
   S.selectedSq = null;
-  paintBoard(delta < 0 || !navFastScrub() ? {move: v.positions[Math.max(ni, ni - delta)], reverse: delta < 0} : null);
+  paintBoard({move: v.positions[Math.max(ni, ni - delta)], reverse: delta < 0, duration: navAnimationDuration()});
   playSanSound((delta > 0 ? v.positions[v.idx] : v.positions[v.idx + 1])?.san);
   renderEvalBar(); renderPlayers(); renderControls(); renderReview(); renderEngineCurrent();
   requestLiveEval();

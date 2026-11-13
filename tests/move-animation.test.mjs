@@ -5,7 +5,7 @@ import {app,loadGame,branch,settle} from './helpers/app.mjs';
 function board(t,pgn) {
  const a=app(t);loadGame(a,pgn);a.call('computeDerived');a.call('buildUI');a.call('renderAll');
  a.state.settings.moveAnim=true;
- a.replace('navFastScrub',()=>false);a.replace('requestLiveEval',()=>{});
+ a.replace('navAnimationDuration',()=>180);a.replace('requestLiveEval',()=>{});
  const animations=[];
  a.dom.window.Element.prototype.animate=function(frames,options){
   let finish;const animation={node:this,frames,options,effect:{getKeyframes:()=>frames},cancelled:false,finished:new Promise(r=>finish=r),cancel(){this.cancelled=true;finish();},finish};
@@ -15,6 +15,7 @@ function board(t,pgn) {
  for(const [name,square]of Object.entries(a.run('sqByName')))square.getBoundingClientRect=()=>({left:(name.charCodeAt(0)-97)*100,top:(8-Number(name[1]))*100,width:100,height:100});
  const nativeRect=a.dom.window.HTMLElement.prototype.getBoundingClientRect;
  a.dom.window.HTMLElement.prototype.getBoundingClientRect=function(){
+  if(this.matches('.piece, .piece-svg, .piece-img'))return this.parentElement.getBoundingClientRect();
   if(!this.classList.contains('sq-badge'))return nativeRect.call(this);
   const r=this.parentElement.getBoundingClientRect(),size=42*(a.state.settings.badgeScale??1);
   return {left:r.left+(this.parentElement.classList.contains('right-col')?79:93)-size/2,
@@ -72,13 +73,13 @@ test('checkmate retains static symbols with motion disabled',t=>{
 
 test('backward navigation replays special feedback and is not suppressed by fast scrubbing',t=>{
  const a=board(t,'1. e4 e5');a.state.classif[1]='brilliant';a.call('go',2);
- a.replace('navFastScrub',()=>true);a.call('go',1);
+ a.replace('navAnimationDuration',()=>30);a.call('go',1);
  assert.equal(slides(a).at(-1).node.dataset.piece,'bP');
  assert.ok(a.animations.some(n=>n.node.classList.contains('sq-badge')));
 });
 
 test('backing out of the first review variation animates before returning to the game',t=>{
- const a=board(t,'1. e4 e5');branch(a,0,1);a.call('paintBoard');a.replace('navFastScrub',()=>true);
+ const a=board(t,'1. e4 e5');branch(a,0,1);a.call('paintBoard');a.replace('navAnimationDuration',()=>30);
  a.call('navPrev');assert.equal(a.state.analysisMode,false);
  assert.equal(slides(a).at(-1).node.dataset.piece,'wP');
 });
@@ -122,6 +123,46 @@ test('forward and reverse navigation use reference timing and easing',t=>{
  assert.equal(slides(a)[0].frames[0].transform,'translate(0px, 200px)');
  a.call('go',0);assert.equal(slides(a).at(-1).frames[0].transform,'translate(0px, -200px)');
  assert.equal(slides(a)[0].cancelled,true);
+});
+
+test('held navigation animates both directions at the repeat cadence', t => {
+ const a=board(t,'1. e4 e5 2. Nf3');a.replace('navAnimationDuration',()=>35);
+ for(const ply of [1,2,3,2,1,0])a.call('go',ply);
+ assert.equal(slides(a).length,6);
+ assert.ok(slides(a).every(animation=>animation.options.duration===35));
+});
+
+test('another piece can move without cancelling an unfinished slide', t => {
+ const a=board(t,'1. e4 e5');a.call('go',1);
+ const first=slides(a)[0];a.call('go',2);
+ assert.equal(first.cancelled,false);
+ assert.ok(first.node.isConnected);
+ assert.equal(slides(a).length,2);
+});
+
+test('navigation clears old special dimming while preserving the piece slide', t => {
+ const a=board(t,'1. e4 e5');a.state.classif[1]='great';a.call('go',1);
+ const first=slides(a)[0],dimming=a.animations.filter(animation=>animation.node===first.node&&animation.frames[1].opacity===.2);
+ assert.ok(dimming.length);a.call('go',2);
+ assert.equal(first.cancelled,false);assert.ok(dimming.every(animation=>animation.cancelled));
+});
+
+test('reversing an unfinished slide starts at its visible position', t => {
+ const a=board(t,'1. e4');a.call('go',1);
+ const first=slides(a)[0];
+ first.node.getBoundingClientRect=()=>({left:400,top:500,width:100,height:100});
+ a.call('go',0);
+ assert.equal(first.cancelled,true);
+ assert.equal(slides(a).at(-1).frames[0].transform,'translate(0px, -100px)');
+});
+
+test('navigation duration follows repeat intervals and respects configured speed', t => {
+ const a=app(t);let now=1000;a.context.performance={now:()=>now};
+ assert.equal(a.call('navAnimationDuration'),180);
+ now+=35;assert.equal(a.call('navAnimationDuration'),35);
+ now+=5;assert.equal(a.call('navAnimationDuration'),30);
+ now+=1000;assert.equal(a.call('navAnimationDuration'),180);
+ a.state.settings.animSpeed=10;now+=1000;assert.equal(a.call('navAnimationDuration'),60);
 });
 
 for(const [name,pgn,before,after,capture]of [
