@@ -15,6 +15,11 @@ for (const build of ['sf19', 'sf19lite']) for (const previous of [{mate: 20}, {c
       {multipv: 1, depth: 16, bound: 'exact', pv: 'd4c5', score: {mate: -7}},
     ]};
     S.evals[i] = {mate: 7};
+    S.bests[i - 1].playedScore = previous;
+    const stored = JSON.stringify(S.bests[i - 1]);
+    a.call('computeDerived'); assert.equal(S.classif[i], 'best');
+    assert.equal(JSON.stringify(S.bests[i - 1]), stored);
+    delete S.bests[i - 1].playedScore;
     const v = branch(a), state = a.call('classifyVariationMoves');
     assert.equal(state.annotationEvidence[i].played.mate, 8);
     assert.equal(v.positions[i].classif, 'best');
@@ -23,5 +28,21 @@ for (const build of ['sf19', 'sf19lite']) for (const previous of [{mate: 20}, {c
       Object.assign(v.positions[i].best.lines[0], {depth, bound});
       a.call('classifyVariationMoves'); assert.notEqual(v.positions[i].classif, 'best');
     }
+  });
+}
+
+for (const build of ['sf19', 'sf19lite']) for (const alternative of [{cp: 912}, {mate: 13}]) {
+  test(`${build}: Ne2+ stays Best against Qb3 ${JSON.stringify(alternative)} in reviews and live analysis`, t => {
+    const a = app(t), S = loadGame(a, pgn); S.settings.enginePath = build;
+    const i = S.total;
+    S.bests[i - 1] = {bestmove: 'c3e2', score: {mate: 8}, playedScore: {mate: 8}, lines: [
+      {multipv: 1, depth: 16, bound: 'exact', pv: 'c3e2', score: {mate: 8}},
+      {multipv: 2, depth: 16, bound: 'exact', pv: 'f7b3', score: alternative},
+    ]};
+    a.call('computeDerived'); assert.equal(S.classif[i], 'best');
+    const v = branch(a);
+    a.call('classifyVariationMoves'); assert.equal(v.positions[i].classif, 'best');
+    delete v.positions[i - 1].best.playedScore;
+    a.call('classifyVariationMoves'); assert.equal(v.positions[i].classif, 'best');
   });
 }

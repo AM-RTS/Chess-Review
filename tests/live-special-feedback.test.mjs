@@ -15,7 +15,7 @@ for (const build of ['sf19', 'sf19lite']) for (const category of ['great', 'bril
     const other = sacrifice ? 'd1e1' : 'g1h3';
     const line = (pv, score, multipv, depth = 4) => ({pv, score, multipv, depth, bound: 'exact'});
     const score = sacrifice ? {cp: 0} : {mate: 6};
-    const early = {bestmove: moves[0], score, lines: [line(moves[0], score, 1), line(other, sacrifice ? {cp: -1} : {cp: 900}, 2)]};
+    const early = {bestmove: moves[0], score, lines: [line(moves[0], score, 1), line(other, sacrifice ? {cp: -1} : {cp: 0}, 2)]};
     const refined = {bestmove: other, score: {cp: 0}, lines: [line(other, {cp: 0}, 1, 16), line(moves[0], {cp: -600}, 2, 16)]};
     Object.assign(v.positions[0], {best: null, eval: null, searchPreview: early});
     a.call('buildBoard');

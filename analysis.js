@@ -952,8 +952,19 @@ function annotationPair(i, state) {
   const root = state.bests[i - 1], p = state.positions[i];
   const played = p.from + p.to + (p.promotion || "");
   const valid = score => score?.mate != null ? Number.isInteger(score.mate) && score.mate !== 0 : Number.isFinite(score?.cp);
+  const child = state.bests[i], continuation = child?.lines?.find(line => line.multipv === 1);
+  const childExact = continuation?.bound === "exact" && Number.isInteger(continuation.depth)
+    && continuation.pv?.split(" ")[0] === child.bestmove && valid(continuation.score);
+  const childMate = childExact && continuation.score.mate < 0 ? 1 - continuation.score.mate : null;
   if (root && Object.hasOwn(root, "playedScore")) {
     const best = root.score, actual = root.bestmove === played ? best : root.playedScore;
+    // A verified mate can refine the badge without replacing stored scoring observations.
+    const depth = root.lines?.find(line => line.multipv === 1)?.depth;
+    if (valid(best) && valid(actual) && childMate != null && continuation.depth >= (depth ?? Infinity)
+      && (!(actual.mate > 0) || childMate < actual.mate)) {
+      const score = {mate: childMate};
+      return {best: root.bestmove === played ? score : best, played: score, paired: true, refinedMate: true};
+    }
     return valid(best) && valid(actual) ? {best, played: actual, paired: true} : null;
   }
   const sign = p.color === "w" ? 1 : -1;
@@ -975,10 +986,6 @@ function annotationPair(i, state) {
   }
   let best = top?.score || (state.evals[i - 1] && relative(state.evals[i - 1]));
   let after = actual?.score || (state.evals[i] && relative(state.evals[i]));
-  const child = state.bests[i], continuation = child?.lines?.find(line => line.multipv === 1);
-  const childExact = continuation?.bound === "exact" && Number.isInteger(continuation.depth)
-    && continuation.pv?.split(" ")[0] === child.bestmove && valid(continuation.score);
-  const childMate = childExact && continuation.score.mate < 0 ? 1 - continuation.score.mate : null;
   const refinedMate = childMate != null && continuation.depth >= (actual?.depth ?? top?.depth ?? Infinity)
     && (!actual || !(actual.score.mate > 0) || childMate < actual.score.mate);
   // Live history backfill can restart shallower than an already searched continuation.
@@ -1109,9 +1116,7 @@ function greatReplyEvidence(i,state,root) {
   if (!state.annotationEvidence[i]?.paired && state.bests[i]?.lines?.some(l => l.multipv === 1 && l.bound && l.bound !== "exact")) return null;
   const alternative=pair[1].score;
   const clearAdv=Number.isFinite(state.settings.clsClearAdv)&&state.settings.clsClearAdv>0 ? state.settings.clsClearAdv : DEFAULT_SETTINGS.clsClearAdv;
-  // Exact same-depth evidence of the only mating move takes priority over pawn advantage.
-  if (pair[0].score.mate > 0) return !(alternative.mate > 0);
-  // A smaller winning advantage is otherwise still a good alternative.
+  // A numerical winning score does not establish that the alternative has no mate.
   if(alternative.mate>0 || Number.isFinite(alternative.cp)&&alternative.cp/100>=clearAdv) return false;
   const threshold=CALIB?.clsWp?.inacc ?? 5;
   return Number.isFinite(threshold) && threshold>0
@@ -1217,7 +1222,7 @@ function classifyMove(i, mover, isTop, book, sac, std, loss, wpDrop, state = S) 
     }
   }
   if (state.annotationEvidence[i]?.refinedMate && afterMate > 0 && (!(beforeMate > 0) || afterMate < beforeMate)) return "best";
-  if (book) return "book";
+  if (book && !(afterMate > 0)) return "book";
 
   // Mate signs are relative to the mover. Reversing who wins is not delaying one's own mate;
   // already being mated supplies no expected-result reason to reward faster defeat.
