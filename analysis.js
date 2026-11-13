@@ -978,18 +978,16 @@ function annotationPair(i, state) {
   const child = state.bests[i], continuation = child?.lines?.find(line => line.multipv === 1);
   const childExact = continuation?.bound === "exact" && Number.isInteger(continuation.depth)
     && continuation.pv?.split(" ")[0] === child.bestmove && valid(continuation.score);
+  const childMate = childExact && continuation.score.mate < 0 ? 1 - continuation.score.mate : null;
+  const refinedMate = childMate != null && continuation.depth >= (actual?.depth ?? top?.depth ?? Infinity)
+    && (!actual || !(actual.score.mate > 0) || childMate < actual.score.mate);
   // Live history backfill can restart shallower than an already searched continuation.
-  if (actual && childExact && continuation.depth > actual.depth) {
+  if ((actual && childExact && continuation.depth > actual.depth) || refinedMate) {
     const score = continuation.score;
     after = score.mate != null ? {mate: score.mate < 0 ? 1 - score.mate : -score.mate} : {cp: -score.cp};
     if (root.bestmove === played) best = after;
   }
-  // A newer exact continuation can shorten a stale candidate's mate; count the move just played.
-  else if (actual?.score?.mate > 0 && childExact && continuation.depth >= actual.depth
-    && continuation.score.mate < 0) {
-    after = { mate: Math.min(after.mate, 1 - continuation.score.mate) };
-  }
-  return valid(best) && valid(after) ? {best, played: after, paired: false} : null;
+  return valid(best) && valid(after) ? {best, played: after, paired: false, ...(refinedMate ? {refinedMate: true} : {})} : null;
 }
 function decisionScore(i, which, mover, state) {
   const score = state.annotationEvidence?.[i]?.[which];
@@ -1218,6 +1216,7 @@ function classifyMove(i, mover, isTop, book, sac, std, loss, wpDrop, state = S) 
       if (onlyGood && (!routine || afterMate > 0 && matingRoot)) return "great";
     }
   }
+  if (state.annotationEvidence[i]?.refinedMate && afterMate > 0 && (!(beforeMate > 0) || afterMate < beforeMate)) return "best";
   if (book) return "book";
 
   // Mate signs are relative to the mover. Reversing who wins is not delaying one's own mate;
