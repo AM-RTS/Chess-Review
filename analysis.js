@@ -738,6 +738,24 @@ function activeEval() {
   if(S.analysisMode && S.variation){const pos=activePos();return pos.searchPreview ? whiteRel(pos.searchPreview.score,pos.fen) : pos.eval ?? null;}
   return S.evals[S.idx];
 }
+// Cache terminal checks so streamed evaluations do not repeatedly replay variation history.
+const terminalResults = new WeakMap();
+function activeResult() {
+  const position = activePos();
+  if (!position) return null;
+  if (!terminalResults.has(position)) {
+    const terminal = S.analysisMode && S.variation ? variationTerminal(S.variation, S.variation.idx)
+      : terminalScore(position.fen, S.idx);
+    terminalResults.set(position, terminal ? terminal.mate > 0 ? "1-0" : terminal.mate < 0 ? "0-1" : "Draw" : null);
+  }
+  const terminal = terminalResults.get(position);
+  if (terminal) return terminal;
+  if (!S.analysisMode && S.idx === S.total) {
+    const result = S.headers?.Result;
+    return result === "1/2-1/2" ? "Draw" : ["1-0", "0-1"].includes(result) ? result : null;
+  }
+  return null;
+}
 // Best-move data for the current view. In analysis mode: the current position's
 // live analysis. On the mainline: the position BEFORE the played move (the alternative).
 function activeBest() {
@@ -3106,7 +3124,8 @@ function renderEvalBar() {
   if (UI.canvas) UI.canvas.classList.toggle("no-evalbar", !show);   // the automatic layout drops its column
   if (!show || !UI.evalbar) return;
   let bar = UI.evalbar.querySelector(".evalbar");
-  const e = activeEval();
+  const result = activeResult();
+  const e = result ? result === "Draw" ? {cp: 0} : {mate: result === "1-0" ? 1 : -1} : activeEval();
   // Reuse the existing element, so the CSS transition on .white-fill animates
   // smoothly between moves (instead of jumping). Create it (once) at a neutral 50%.
   if (!bar) {
@@ -3119,7 +3138,7 @@ function renderEvalBar() {
   }
   // Reapply the look variant on every render (so switching it in settings updates live).
   // Swap the fill direction and score positions when viewing from Black's side.
-  bar.className = "evalbar eb-" + (S.settings.barStyle || "classic") + (S.flipped ? " flipped" : "");
+  bar.className = "evalbar eb-" + (S.settings.barStyle || "classic") + (S.flipped ? " flipped" : "") + (result ? " is-result" : "");
   // While this position's eval is still being computed (analysis mode: the live engine hasn't
   // returned yet → e is null), DON'T snap the bar to 50% and back. Keep the previous fill until
   // the real eval arrives, so making a move doesn't make the bar flicker through the middle.
@@ -3129,13 +3148,13 @@ function renderEvalBar() {
   // Otherwise the swing is limited to 4–96%, so a big advantage doesn't look like mate.
   const clamp = Math.max(-600, Math.min(600, cp));
   const whiteShare = e.mate != null ? (e.mate > 0 ? 100 : 0) : 50 + (clamp / 600) * 46;
-  bar.title = "Eval " + evalText(e);
+  bar.title = result || "Eval " + evalText(e);
   bar.style.setProperty("--white-share", whiteShare + "%");
   bar.setAttribute("aria-valuenow", String(clamp));
-  bar.setAttribute("aria-valuetext", evalText(e) + " (White perspective)");
+  bar.setAttribute("aria-valuetext", result || evalText(e) + " (White perspective)");
   bar.removeAttribute("aria-busy");
-  bar.querySelector(".score.top").textContent = cp < 0 ? evalBarText(e) : "";
-  bar.querySelector(".score.bot").textContent = cp >= 0 ? evalBarText(e) : "";
+  bar.querySelector(".score.top").textContent = cp < 0 ? result || evalBarText(e) : "";
+  bar.querySelector(".score.bot").textContent = cp >= 0 ? result || evalBarText(e) : "";
 }
 
 /* ---------------- Player strips ---------------- */
@@ -3750,10 +3769,15 @@ function renderReview() {
       if (cls) head.append(gradeBadge(cls,pos.moveGrade,"ip-badge"));
       head.append(el("span",{class:"ip-move"},pos.san || "Starting position"));
       const ev=activeEval();
-      if(ev) head.append(el("span",{class:"ip-eval"},evalText(ev)));
+      const result = activeResult();
+      if(result || ev) head.append(el("span",{class:"ip-eval"},result || evalText(ev)));
       body.append(el("div",{class:"ip-text"}, cls ? `${categoryName(cls)} move. Live feedback may change as the search deepens.`
         : pos.san ? "Analyzing move… Feedback may change as the search deepens." : "Move pieces for either side to explore. Evaluation updates live."));
-    } else body.append(el("div", { class: "ip-text" }, "Exploring a variation."));
+    } else {
+      const result = activeResult();
+      if (result) body.firstChild.append(el("span", {class: "ip-eval"}, result));
+      body.append(el("div", { class: "ip-text" }, "Exploring a variation."));
+    }
     panel.append(body);
     UI.review.replaceChildren(panel);
     return;
@@ -3768,7 +3792,8 @@ function renderMoveComment() {
   if (S.idx === 0) {
     // Mirror a move comment's layout: an empty head row keeps the panel the same height, and the
     // note uses .ip-text so it shares the move comment's font/colour/position.
-    body.append(el("div", { class: "ip-head" }));
+    const result = activeResult();
+    body.append(el("div", { class: "ip-head" }, result ? el("span", {class: "ip-eval"}, result) : null));
     const sig = "start:" + (S.settings.coach || "");
     const fresh = sig !== _ipSig;
     if (fresh) { _ipText = (S.coach && coachLine("non_move_states", "starting_position", {})) || "Use ← and → to step through the game."; _ipSig = sig; }
@@ -3784,7 +3809,7 @@ function renderMoveComment() {
   // instead of the quality label (the quality is already in the sentence below).
   const ev = S.evals[S.idx];
   const evCp = ev ? scoreToCp(ev) : null;
-  const evTxt = ev ? evalText(ev) : "";
+  const evTxt = activeResult() || (ev ? evalText(ev) : "");
 
   const head = el("div", { class: "ip-head" });
   if (cfg) head.append(gradeBadge(cls, S.moveGrades[S.idx], "ip-badge"));

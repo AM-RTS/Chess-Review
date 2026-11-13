@@ -19,7 +19,8 @@ corner as the colored circular badge appears, over a matching category-colored
 square flash. Other categories keep static badges. The solid evaluation bar uses flat white/charcoal colors and a
 one-second ease-in fill transition, following board orientation. Single-step review and variation navigation
 share the same animation path. Drag releases avoid replaying the slide; reduced
-motion and the existing animation toggle remain supported.
+motion and the existing animation toggle remain supported. Finished positions
+show 1-0, 0-1, or Draw in the evaluation labels; mate still ahead remains #N.
 
 **Analysis** in the review header or **Open analysis board** in the extension popup
 opens an independent starting board. Play either side, undo/redo or branch from an
