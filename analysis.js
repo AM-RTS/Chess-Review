@@ -2881,7 +2881,8 @@ async function requestLiveEval() {
   if(S.standalone) rememberReviewJob();
   const valid = () => token === S.liveToken && S.analysisMode && S.variation === v
     && v.idx === idx && v.positions[idx] === pos;
-  for (const node of v.positions) node.searchPreview = null;
+  // Keep usable before-position evidence when a move interrupts its search.
+  for (const node of v.positions) if (node.searchPreview) node.searchPreviewToken = token;
   S.liveError = null;
   S.liveEngine?.cancelPending();
   S.liveEngine?.stop();
@@ -2889,6 +2890,7 @@ async function requestLiveEval() {
   try {
     // Establish the selected move's pair before backfilling older context.
     const order = idx > 0 ? [idx - 1, idx] : [idx];
+    if (idx > 0 && v.positions[idx - 1].searchPreview) order.reverse();
     for (let i = idx - 2; i >= Math.max(0, idx - 4); i--) order.push(i);
     const missing = [];
     for (const i of order) {

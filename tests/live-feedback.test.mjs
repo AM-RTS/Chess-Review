@@ -62,3 +62,35 @@ for (const build of ['sf19', 'sf19lite']) test(`${build}: moves outside the pare
   assert.equal(searches, 1);
   assert.equal(a.dom.window.document.querySelector('.ip-live-status'), null);
 });
+
+for (const build of ['sf19', 'sf19lite']) test(`${build}: moving during analysis retains the before preview and searches the new board first`, async t => {
+  const a = app(t), S = loadGame(a, '1. e4');
+  S.settings.enginePath = build; S.standalone = true;
+  a.call('computeDerived'); a.call('buildUI');
+  const v = branch(a, 0, 0); v.positions[0].best = null; v.positions[0].eval = null;
+  const before = deferred(), current = deferred(), calls = [];
+  const line = (pv, cp, multipv) => ({pv, score: {cp}, multipv, depth: 4, bound: 'exact'});
+  const root = {bestmove: 'e2e4', score: {cp: 0}, lines: [line('e2e4', 0, 1), line('d2d4', -1, 2)]};
+  const child = {bestmove: 'e7e5', score: {cp: 400}, lines: [line('e7e5', 400, 1), line('d7d5', 399, 2)]};
+  const engine = fakeEngine(async (fen, depth, count, history, progress) => {
+    calls.push(fen);
+    if (calls.length === 1) { progress(root); return before.promise; }
+    if (calls.length === 2) { progress(child); return current.promise; }
+    return root;
+  });
+  engine.buildKey = build; S.liveEngine = engine;
+  const first = a.call('requestLiveEval'); await settle();
+  let second; const request = a.run('requestLiveEval');
+  a.replace('requestLiveEval', () => second = request());
+  a.call('applyUserMove', 'a2', 'a3', false); await settle();
+  assert.deepEqual(calls, [v.positions[0].fen, v.positions[1].fen]);
+  assert.equal(v.positions[1].classif, 'blunder');
+  assert.ok(v.positions[0].searchPreview);
+  assert.ok(a.dom.window.document.querySelector('.ip-live-status'));
+  before.resolve(root); await first;
+  assert.ok(v.positions[0].searchPreview, 'the canceled request must not erase reused evidence');
+  current.resolve(child); await second;
+  assert.equal(v.positions[1].classif, 'blunder');
+  assert.equal(v.positions[0].searchPreview, null);
+  assert.equal(a.dom.window.document.querySelector('.ip-live-status'), null);
+});
