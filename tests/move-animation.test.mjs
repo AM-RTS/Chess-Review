@@ -83,6 +83,29 @@ test('backing out of the first review variation animates before returning to the
  assert.equal(slides(a).at(-1).node.dataset.piece,'wP');
 });
 
+test('holding navigation at either boundary stays silent and does not restart live analysis', t => {
+ const a=board(t,'1. e4 d5 2. exd5'),sounds=[];let searches=0;
+ a.replace('playSanSound',san=>sounds.push(san));a.replace('requestLiveEval',()=>searches++);
+ a.state.standalone=true;branch(a,0,1);
+ a.call('navPrev');assert.deepEqual(sounds,['e4']);assert.equal(searches,1);
+ for(let i=0;i<20;i++)a.call('navPrev');
+ assert.deepEqual(sounds,['e4']);assert.equal(searches,1);
+ a.call('gotoVar',3);sounds.length=0;searches=0;
+ for(let i=0;i<20;i++)a.call('navNext');
+ a.call('gotoVar',3);assert.deepEqual(sounds,[]);assert.equal(searches,0);
+ a.call('navPrev');assert.deepEqual(sounds,['exd5']);
+});
+
+test('mainline navigation remains silent past the first and last positions', t => {
+ const a=board(t,'1. e4 e5'),sounds=[];
+ a.replace('playMoveSound',ply=>sounds.push(ply));a.call('go',1);
+ sounds.length=0;a.call('navPrev');
+ for(let i=0;i<20;i++)a.call('navPrev');
+ assert.deepEqual(sounds,[1]);a.call('go',2);sounds.length=0;
+ for(let i=0;i<20;i++)a.call('navNext');
+ assert.deepEqual(sounds,[]);
+});
+
 for(const pgn of ['1. f3 e5 2. g4 Qh4#','1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7#'])test('checkmate marks both kings once and clears on undo: '+pgn,t=>{
  const a=board(t,pgn);a.call('go',a.state.total);
  const doc=a.dom.window.document,markers=[...doc.querySelectorAll('.mate-marker')];assert.equal(markers.length,2);

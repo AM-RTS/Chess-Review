@@ -6489,8 +6489,9 @@ function gotoVar(idx) {
   const v = S.variation;
   if (idx < 0 || idx >= v.positions.length) return;
   const previous = v.idx;
+  if (idx === previous) return;
   v.idx = idx; S.selectedSq = null;
-  paintBoard(Math.abs(idx - previous) === 1 && (idx < previous || !navFastScrub()) ? {move: v.positions[Math.max(idx, previous)], reverse: idx < previous} : null); playSanSound(v.positions[v.idx]?.san); renderEvalBar(); renderPlayers(); renderControls();
+  paintBoard(Math.abs(idx - previous) === 1 && (idx < previous || !navFastScrub()) ? {move: v.positions[Math.max(idx, previous)], reverse: idx < previous} : null); playSanSound(v.positions[Math.max(idx, previous)]?.san); renderEvalBar(); renderPlayers(); renderControls();
   renderReview(); renderMoves(); renderEngineCurrent(); requestLiveEval();
 }
 function variationStep(delta) {
