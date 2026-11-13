@@ -330,9 +330,7 @@ const DEFAULT_SETTINGS = {
   learningTransition: "morph",
   // Loading animation while the analysis runs (selectable style).
   loaderStyle: "wave",
-  // Engine panel: how many candidate lines to show. The batch only searches the single best line
-  // (all the classification logic needs); extra lines are searched on demand for the position you're
-  // viewing, so changing this never re-analyzes — it just refreshes the panel.
+  // Engine panel: candidate lines to display; extra lines are searched on demand.
   // Full Stockfish 19 reviews use these search settings; Lite uses its fixed-node protocol.
   engineLines: 2, engineDepth: 16, enginePath: "sf19", engineHash: 16, engineSkill: 20,
   // Parallel analysis workers: independent single-threaded Stockfish instances that pull
@@ -340,10 +338,9 @@ const DEFAULT_SETTINGS = {
   // depth/lines), so results are unchanged — only the wall-clock is parallelized. Default ≈
   // (CPU cores − 1), capped at 4. Manual selections are respected.
   engineWorkers: engineWorkerCount(),
-  // Extra lines serve annotation and candidate inspection. Stockfish 19 Lite batch reviews use one line.
+  // Both builds keep at least two lines for annotations and candidate inspection.
   classifyLines: 2,
-  // Fast analysis: kept for backwards compatibility, but now a no-op for line count — the batch
-  // already searches a single line, so there are no extra lines to drop.
+  // Retained compatibility preferences; neither changes the current search budget.
   fastAnalysis: false, fastLines: 3,
   // --- Move-classification thresholds (pawns of eval lost). The category logic (classifyMove /
   // getStandardRating) reads these live, so tweaking them re-labels the game WITHOUT re-analysing. ---
@@ -743,12 +740,13 @@ const terminalResults = new WeakMap();
 function activeResult() {
   const position = activePos();
   if (!position) return null;
-  if (!terminalResults.has(position)) {
+  const length = S.analysisMode && S.variation ? S.variation.positions.length : S.positions.length;
+  if (terminalResults.get(position)?.length !== length) {
     const terminal = S.analysisMode && S.variation ? variationTerminal(S.variation, S.variation.idx)
       : terminalScore(position.fen, S.idx);
-    terminalResults.set(position, terminal ? terminal.mate > 0 ? "1-0" : terminal.mate < 0 ? "0-1" : "Draw" : null);
+    terminalResults.set(position, {length, result: terminal ? terminal.mate > 0 ? "1-0" : terminal.mate < 0 ? "0-1" : "Draw" : null});
   }
-  const terminal = terminalResults.get(position);
+  const terminal = terminalResults.get(position).result;
   if (terminal) return terminal;
   if (!S.analysisMode && S.idx === S.total) {
     const result = S.headers?.Result;
@@ -826,24 +824,25 @@ function buildPositions(pgn) {
   const pos = [];
   const replay = new Chess(startFen);
   
-  function getDrawType(chess) {
+  function getDrawType(chess, final) {
     if (chess.isCheckmate()) return "checkmate";
     if (chess.isStalemate()) return "stalemate";
-    if (chess.isDrawByFiftyMoves()) return "fifty-move";
     if (chess.isInsufficientMaterial()) return "insufficient-material";
-    if (chess.isThreefoldRepetition()) return "threefold";
+    // A recorded continuation means neither player claimed the available draw.
+    if (final && chess.isDrawByFiftyMoves()) return "fifty-move";
+    if (final && chess.isThreefoldRepetition()) return "threefold";
     return null;
   }
   
   // Initial position
-  const startDraw = getDrawType(replay);
+  const startDraw = getDrawType(replay, moves.length === 0);
   pos.push({ fen: startFen, san: null, draw: startDraw });
   
   for (const mv of moves) {
     replay.move({ from: mv.from, to: mv.to, promotion: mv.promotion });
     const fen = mv.after;
     
-    const draw = getDrawType(replay);
+    const draw = getDrawType(replay, pos.length === moves.length);
     pos.push({ fen, san: mv.san, from: mv.from, to: mv.to, color: mv.color, promotion: mv.promotion || "", captured: mv.captured || "", draw });
   }
   return pos;
@@ -933,7 +932,8 @@ function terminalScore(fen, plyIndex) {
   // Last resort: create Chess instance (won't detect threefold correctly without history)
   let c; try { c = new Chess(fen); } catch { return null; }
   if (c.isCheckmate()) return { mate: fen.split(" ")[1] === "w" ? -1 : 1 };
-  if (c.isDraw()) return { cp: 0 };
+  const continued = plyIndex != null && plyIndex < S.positions.length - 1;
+  if (c.isStalemate() || c.isInsufficientMaterial() || (!continued && c.isDraw())) return { cp: 0 };
   return null;
 }
 function winPct(cp) { return Number.isFinite(cp) && CALIB?.quality?.outcome ? 100 * expectedPoints({cp}, CALIB.quality.outcome) : NaN; }
@@ -3035,7 +3035,8 @@ function variationTerminal(v, idx) {
   const positions = [...S.positions.slice(1, v.branchIdx + 1), ...v.positions.slice(1, idx + 1)];
   for (const p of positions) chess.move({ from: p.from, to: p.to, promotion: p.promotion || undefined });
   if (chess.isCheckmate()) return { mate: chess.turn() === "w" ? -1 : 1 };
-  return chess.isDraw() ? { cp: 0 } : null;
+  const continued = idx < v.positions.length - 1;
+  return chess.isStalemate() || chess.isInsufficientMaterial() || (!continued && chess.isDraw()) ? { cp: 0 } : null;
 }
 // Exit analysis mode. With mainIdx: jump to that mainline position; otherwise stay put.
 // (Analysis mode is indicated/closed via the Exit button in the controls bar.)
@@ -4867,14 +4868,7 @@ function engineSlider(label, key, min, max, step, opts = {}) {
         const v = +e.target.value;
         out.textContent = fmt(v);
         if (key === "engineDepth") return; // preview while dragging; confirm once on release
-        S.settings[key] = v;
-        writeSettings({ [key]: v });
-        S.engineFallbackBuild = null; S.activeEngineBuild = null;
-        resetLiveEngine();
-        invalidateVariationEvals();
-        resetHelperEngine();
-        S.threatCache.clear();
-        scheduleReanalyze();
+        void setEngineSetting(key, v);
       },
       onchange: async e => {
         if (key !== "engineDepth") return;
@@ -4889,12 +4883,12 @@ async function resetEngineSettings() {
   for (const k of ENGINE_SETTING_KEYS) S.settings[k] = DEFAULT_SETTINGS[k];
   S.engineFallbackBuild = null;
   S.activeEngineBuild = null;
-  await writeSettings(Object.fromEntries(ENGINE_SETTING_KEYS.map(key => [key, S.settings[key]])), ENGINE_SETTING_KEYS);
   resetLiveEngine();
   invalidateVariationEvals();
   resetHelperEngine();
   S.threatCache.clear();
   scheduleReanalyze();
+  await writeSettings(Object.fromEntries(ENGINE_SETTING_KEYS.map(key => [key, S.settings[key]])), ENGINE_SETTING_KEYS);
   if (UI.settings && !UI.settings.hidden) renderSettings();
 }
 const ARROW_SETTING_KEYS = ["bestArrow", "showThreat", "bestArrowColor", "arrowOpacity", "arrowShaft", "arrowHead"];
@@ -5563,43 +5557,20 @@ async function setSetting(key, value) {
   if (UI.settings && !UI.settings.hidden) renderSettings();
 }
 // Engine setting: save, discard the live engine (new build/options), and re-analyze.
-let calibrationWarningPending = null;
-function calibrationWarning(title, message, remainLabel, recommended = false) {
-  if (calibrationWarningPending) return calibrationWarningPending;
-  calibrationWarningPending = new Promise(resolve => {
-    const previousFocus = document.activeElement;
-    const finish = proceed => {
-      overlay.remove(); document.removeEventListener("keydown", onKey, true);
-      calibrationWarningPending = null; previousFocus?.focus(); resolve(proceed);
-    };
-    const revert = el("button", { type: "button", class: recommended ? "recommended" : "", onclick: () => finish(false) },
-      el("span", { class: "calibration-warning-choice-label" }, remainLabel),
-      recommended ? el("small", {}, "Recommended") : null);
-    const proceed = el("button", { type: "button", onclick: () => finish(true) }, "Continue");
-    const overlay = el("div", { class: "calibration-warning-overlay" },
-      el("div", { class: "calibration-warning", role: "alertdialog", "aria-modal": "true",
-        "aria-labelledby": "calibrationWarningTitle calibrationWarningContext", "aria-describedby": "calibrationWarningBody" },
-      el("h3", { id: "calibrationWarningTitle" }, "Warning"),
-      el("h4", { id: "calibrationWarningContext" }, title),
-      el("p", { id: "calibrationWarningBody" }, message),
-      el("div", { class: "calibration-warning-actions" }, revert, proceed)));
-    const onKey = e => {
-      if (e.key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); finish(false); }
-      else if (e.key === "Tab") { e.preventDefault(); (document.activeElement === revert ? proceed : revert).focus(); }
-      else if (e.key.startsWith("Arrow") || ["Home", "End", "f"].includes(e.key)) e.stopImmediatePropagation();
-    };
-    document.body.append(overlay); document.addEventListener("keydown", onKey, true); revert.focus();
-  });
-  return calibrationWarningPending;
-}
 async function setEngineSetting(key, value) {
   if(["classifyLines","engineLines"].includes(key)) value=clampEngineLines(value);
   if (S.settings[key] === value) return;
   if (key === "enginePath" && !Object.hasOwn(ENGINE_BUILDS, value)) return;
   S.settings[key] = value;
+  if (["engineLines", "fastLines", "fastAnalysis"].includes(key)) {
+    await writeSettings({ [key]: value });
+    renderEngineCurrent();
+    if (UI.settings && !UI.settings.hidden) renderSettings();
+    return;
+  }
   S.engineFallbackBuild = null;
   S.activeEngineBuild = null;
-  await writeSettings({ [key]: value });
+  if (!S.standalone) scheduleReanalyze();
   resetLiveEngine();
   invalidateVariationEvals();
   // The helper engine (threat preview / practice judging) must also be rebuilt with the new
@@ -5610,13 +5581,7 @@ async function setEngineSetting(key, value) {
   if (S.analysisMode && S.variation) {
     requestLiveEval();
   }
-  // Base analysis keeps at least two lines; the engine panel fills extra candidate
-  // lines on demand for the position you're viewing. So the line-count settings (panel "Lines",
-  // fast-mode lines/toggle) are purely a display choice — they never require re-analysis; just
-  // refresh the panel (which kicks off an on-demand search if more lines are wanted).
-  const lineKey = key === "engineLines" || key === "fastLines" || key === "fastAnalysis";
-  const displayOnly = lineKey && !S.analyzing;
-  if (!displayOnly && !S.standalone) scheduleReanalyze();
+  await writeSettings({ [key]: value });
   renderEngineCurrent();
   if (UI.settings && !UI.settings.hidden) renderSettings();
 }
@@ -6037,13 +6002,30 @@ function gameType() {
   }
   return "";
 }
+function gameIdFor(pgn, meta = {}) {
+  if (meta?.libraryId) return meta.libraryId;
+  if (meta?.gameId) {
+    const site = /^https:\/\/(?:www\.)?(chess\.com|lichess\.org)\//i.exec(meta.url || "")?.[1]?.toLowerCase();
+    return site ? site + ":" + meta.gameId : meta.gameId;
+  }
+  return "pgn:" + simpleHash(pgn || "");
+}
 function currentGameId() {
-  return (S.meta && (S.meta.gameId || S.meta.libraryId)) || ("pgn:" + simpleHash(S.pgn || ""));
+  return gameIdFor(S.pgn, S.meta);
+}
+async function loadSavedAnalysis(payload) {
+  const id = gameIdFor(payload.pgn, payload.meta);
+  const keys = ["analysis:" + id];
+  if (payload.meta?.gameId && id !== payload.meta.gameId) keys.push("analysis:" + payload.meta.gameId);
+  try {
+    const stored = await browserAPI.storage.local.get(keys);
+    return keys.map(key => stored[key]).find(saved => saved?.pgn === payload.pgn) || null;
+  } catch { return null; }
 }
 
-function analysisSettingsKey() {
-  return JSON.stringify(["public-scoring-v7", CALIB?.version, CALIB?.context?.sf19?.candidateVersion, CALIB?.twoLineRatings?.sf19?.candidateVersion, CALIB?.twoLineRatings?.sf19lite?.candidateVersion, S.settings.enginePath, S.settings.engineDepth, S.settings.classifyLines,
-    S.settings.engineHash, S.settings.engineSkill]);
+function analysisSettingsKey(settings = S.settings) {
+  return JSON.stringify(["public-scoring-v7", CALIB?.version, settings.enginePath, settings.engineDepth, settings.classifyLines,
+    settings.engineHash, settings.engineSkill]);
 }
 
 function completeAnalysis(saved, count) {
@@ -6053,9 +6035,14 @@ function completeAnalysis(saved, count) {
 }
 
 function canRestoreAnalysis(saved) {
+  let key = saved?.settingsKey;
+  try {
+    const old = JSON.parse(key);
+    if (Array.isArray(old) && old.length === 10 && old[0] === "public-scoring-v7") {old.splice(2, 3);key = JSON.stringify(old);}
+  } catch { /* Invalid cache keys cannot match. */ }
   return completeAnalysis(saved, S.total + 1) && saved.pgn === S.pgn
     && (!saved.engineBuild || (Object.hasOwn(ENGINE_BUILDS, saved.engineBuild) && saved.engineBuild === saved.bests[0]?.calibration?.build))
-    && saved.settingsKey === analysisSettingsKey()
+    && key === analysisSettingsKey()
     && scoringEvidenceComplete(saved.bests, S.total, CALIB);
 }
 
@@ -6098,8 +6085,9 @@ function updateLibrary(update, analysisWrites = {}) {
     const change = update(current);
     const next = Array.isArray(change) ? change : change.library;
     const writes = Array.isArray(change) ? analysisWrites : change.analysisWrites;
-    const dropped = next.slice(300);
     const library = next.slice(0, 300);
+    const retainedIds = new Set(library.map(rec => rec.id));
+    const dropped = [...current, ...next.slice(300)].filter(rec => !retainedIds.has(rec.id));
     await browserAPI.storage.local.set({ ...writes, library });
     S.library = library;
     renderLibrary();
@@ -6132,9 +6120,11 @@ function persistReviewSnapshot(snapshot) {
         let suffix = 1;
         while (library.some(game => game.id === resolvedId && game.pgn !== snapshot.rec.pgn)) resolvedId = snapshot.id + ":" + suffix++;
       }
-      const prev = library.find(game => game.id === resolvedId);
+      const legacy = snapshot.rec.meta.gameId && resolvedId !== snapshot.rec.meta.gameId
+        ? library.find(game => game.id === snapshot.rec.meta.gameId && game.pgn === snapshot.rec.pgn) : null;
+      const prev = library.find(game => game.id === resolvedId) || legacy;
       const rec = {...snapshot.rec, id:resolvedId, meta:{...snapshot.rec.meta, libraryId:resolvedId}, fav:!!prev?.fav, solved:snapshot.noMistakes || !!prev?.solved};
-      return {library:[rec, ...library.filter(game => game.id !== resolvedId)], analysisWrites:{["analysis:" + resolvedId]:snapshot.analysis}};
+      return {library:[rec, ...library.filter(game => game.id !== resolvedId && game !== legacy)], analysisWrites:{["analysis:" + resolvedId]:snapshot.analysis}};
     });
     snapshot.failed = !saved;
     if (saved) {
@@ -6170,7 +6160,7 @@ function saveToLibrary() {
     // The heavy analysis (evals + engine lines) is stored under its own key so the library list
     // stays light, and so re-opening a saved game can render instantly WITHOUT re-analyzing.
     const analysis = {
-      pgn: S.pgn, settingsKey: analysisSettingsKey(), engineBuild: S.activeEngineBuild,
+      pgn: S.pgn, settingsKey: analysisSettingsKey(S.analyzedSettings || S.settings), engineBuild: S.activeEngineBuild,
       evals: S.evals, bests: S.bests, multipv: S.analyzedMultipv,
     };
     // Before library collision resolution, distinct PGNs may share the short ID.
@@ -6443,7 +6433,10 @@ document.addEventListener("keydown", (e) => {
 let _reanalyzeT = null;
 function scheduleReanalyze() {
   clearTimeout(_reanalyzeT);
+  ++S.batchGen;
+  terminateEngines();
   _reanalyzeT = setTimeout(() => {
+    _reanalyzeT = null;
     startAnalysis();
   }, 400);
 }
@@ -6469,7 +6462,8 @@ async function startAnalysis() {
   if(S.standalone){resetLiveEngine();invalidateVariationEvals();requestLiveEval();return;}
   if (S.practice) exitPractice();
   S._lastEngineLines = null;
-  S.analyzedSettings = Object.fromEntries(["enginePath","engineDepth","engineHash","engineSkill","classifyLines"].map(key => [key,S.settings[key]]));
+  const settings = {...S.settings};
+  S.analyzedSettings = settings;
   const gen = ++S.batchGen;
   S.engineFallbackBuild = null;
   S.activeEngineBuild = null;
@@ -6497,14 +6491,14 @@ async function startAnalysis() {
 
   // Batch analysis defaults to MultiPV=2. Root alternatives support
   // annotations and inspection; the engine panel fills its lines on demand.
-  const multipv = clampEngineLines(S.settings.classifyLines);
+  const multipv = clampEngineLines(settings.classifyLines);
   S.analyzedMultipv = multipv; // remember how many lines this run computed (for setEngineSetting)
-  const nWorkers = engineWorkerCount(S.settings.engineWorkers, S.total + 1);
+  const nWorkers = engineWorkerCount(settings.engineWorkers, S.total + 1);
   // createEngine() readies each worker AND falls back down the build chain if the chosen build can't
   // load — so the whole batch survives e.g. NNUE failing, and S.activeEngineBuild reflects the build
   // actually in use. If no build can start at all, surface it instead of leaving a stuck "Analyzing…".
   const starts = await Promise.allSettled(
-    Array.from({ length: nWorkers }, () => createEngine({ Hash: S.settings.engineHash, "Skill Level": S.settings.engineSkill }))
+    Array.from({ length: nWorkers }, () => createEngine({ Hash: settings.engineHash, "Skill Level": settings.engineSkill }))
   );
   let engines = starts.filter(r => r.status === "fulfilled").map(r => r.value);
   if (gen !== S.batchGen) { engines.forEach(e => e.terminate()); return; }
@@ -6545,7 +6539,7 @@ async function startAnalysis() {
       const res = terminal ? { score: terminal, bestmove: null, pv: "", lines: [] }
         : await analyseCalibratedPosition(eng, {fen: S.positions[i].fen, history: searchHistory(S.positions, i),
           played: i < S.total ? S.positions[i + 1].from + S.positions[i + 1].to + (S.positions[i + 1].promotion || "") : null,
-          settings: S.settings, calibration: CALIB,
+          settings, calibration: CALIB,
           onProgress: preview => {
           if (gen !== S.batchGen) return;
           S.searchPreviews[i] = preview;
@@ -6671,7 +6665,7 @@ async function applyGame(payload) {
   // Restore saved game analysis or start fresh
   let saved = standalone ? null : payload.analysis;
   if (!standalone && saved == null && !("analysis" in payload)) {
-    try { const k = "analysis:" + currentGameId(); const s = await browserAPI.storage.local.get(k); saved = s[k] || null; } catch {}
+    saved = await loadSavedAnalysis(payload);
   }
   const restored = canRestoreAnalysis(saved);
   if (restored) {
@@ -6863,13 +6857,7 @@ async function resetLegacyZoom() {
     // Resolve any stored analysis for this game by id (same derivation as currentGameId(), but from
     // the payload since S isn't populated yet) so applyGame() needs no lookup await of its own.
     if (!("analysis" in payload)) {
-      let saved = null;
-      try {
-        const k = "analysis:" + ((payload.meta && (payload.meta.gameId || payload.meta.libraryId)) || ("pgn:" + simpleHash(payload.pgn || "")));
-        const s = await browserAPI.storage.local.get(k);
-        saved = s[k] || null;
-      } catch {}
-      payload.analysis = saved;
+      payload.analysis = await loadSavedAnalysis(payload);
     }
     buildUI();               // built once; switching games re-uses it (no full page reload)
     await applyGame(payload);

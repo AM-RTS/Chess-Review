@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import {expectedPoints,SF19_OUTCOME,engineExpectedPoints} from '../../../../lib/public-scoring.js';
+import {expectedPoints, SF19_OUTCOME} from '../../../../lib/public-scoring.js';
+import {engineExpectedPoints} from '../../../../tools/calibration/rating-scoring.mjs';
 import {SPEC,PARENTS,validateObservation,smokeDecision} from './protocol.mjs';
 const sum=xs=>xs.reduce((a,b)=>a+b,0);
 export function distribution(values){if(!values.length)return null;const s=[...values].sort((a,b)=>a-b);return {n:s.length,mean:sum(s)/s.length,median:s[Math.floor((s.length-1)*.5)],p95:s[Math.floor((s.length-1)*.95)],min:s[0],max:s.at(-1)};}

@@ -3,7 +3,7 @@ import {gunzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {hash} from '../../../../tools/calibration/io.mjs';
-import {ratingFeatures} from '../../../../lib/public-scoring.js';
+import {ratingFeatures} from '../../../../tools/calibration/rating-scoring.mjs';
 import {Chess} from '../../../../lib/chess.js';
 import {openResearchData} from '../../../data-policy.mjs';
 

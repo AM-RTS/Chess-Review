@@ -3,7 +3,7 @@ import {gzipSync} from 'node:zlib';
 import {execFileSync} from 'node:child_process';
 import {openResearchData,sha256} from '../../../data-policy.mjs';
 import {Chess} from '../../../../lib/chess.js';
-import {adjacentRatingMove} from '../../../../lib/public-scoring.js';
+import {adjacentRatingMove} from '../../../../tools/calibration/rating-scoring.mjs';
 import {connect} from './node-engine.mjs';
 
 const build=process.argv[2];if(!['sf19','sf19lite'].includes(build))throw Error('Expected engine build');
@@ -29,7 +29,7 @@ if(build==='sf19lite'){
  const file=`${prefix}/sf19-partial/resume.json`,partial=await data.readJson(file),results=[];parents.push(file);
  for(const name of partial.files)results.push(await data.readJson(name));retain({config:partial.header.config,results});
 }
-const files=['engine/uci.js','engine/progress.js','lib/public-scoring.js','research/experiments/E281-two-line-rating/code/collect-adjacent.mjs','research/experiments/E281-two-line-rating/code/node-engine.mjs',`engine/stockfish-19-${build==='sf19'?'':'lite-'}single.js`,`engine/stockfish-19-${build==='sf19'?'':'lite-'}single.wasm`];
+const files=['engine/uci.js','engine/progress.js','lib/public-scoring.js','tools/calibration/rating-scoring.mjs','research/experiments/E281-two-line-rating/code/collect-adjacent.mjs','research/experiments/E281-two-line-rating/code/node-engine.mjs',`engine/stockfish-19-${build==='sf19'?'':'lite-'}single.js`,`engine/stockfish-19-${build==='sf19'?'':'lite-'}single.wasm`];
 const hashes=Object.fromEntries(await Promise.all(files.map(async f=>[f,sha256(await readFile(f))])));
 const started=performance.now(),engines=[],results=[],active=new Map();let cursor=0,searches=0,reused=0,completed=0,failure=null;
 const header={schema:'E281-adjacent-observations-v1',config,hashes,games:170,selectionHash:sha256(JSON.stringify(games.map(g=>g.id))),sourceRevision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),dataEligibility:data.receipt,reuseParents:parents,reusedRoots:cache.size};

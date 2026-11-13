@@ -1,7 +1,7 @@
 import {hash} from './io.mjs';
 import {fitFullgameContext} from './fullgame-context.mjs';
 import {empiricalCrps} from './peer-quality.mjs';
-import {ratingGameQuality} from '../../lib/public-scoring.js';
+import {ratingGameQuality} from './rating-scoring.mjs';
 
 export function fitSf19Context(evidence) {
   const config = evidence.engineConfig;

@@ -1,5 +1,6 @@
 import {sha256} from '../../../data-policy.mjs';
-import {sf19MoveQuality,engineExpectedPoints,expectedPoints,SF19_OUTCOME} from '../../../../lib/public-scoring.js';
+import {sf19MoveQuality, expectedPoints, SF19_OUTCOME} from '../../../../lib/public-scoring.js';
+import {engineExpectedPoints} from '../../../../tools/calibration/rating-scoring.mjs';
 export function selectGames(games){
   if(games.some(g=>!['train','validation'].includes(g.split)))throw Error('Reserved/unknown game role');
   return['train','validation'].flatMap(role=>{

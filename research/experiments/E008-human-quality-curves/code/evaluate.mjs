@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 import {performance} from 'node:perf_hooks';
 import {openResearchData,sha256} from '../../../data-policy.mjs';
 import {engineConfig} from '../../../../tools/calibration/engine.mjs';
-import {engineExpectedPoints} from '../../../../lib/public-scoring.js';
+import {engineExpectedPoints} from '../../../../tools/calibration/rating-scoring.mjs';
 import {prepare} from './prepare.mjs';
 import {fixedCurve,fitCurve,fitChoice,predictions,metrics,assess,loss,paired} from './curves.mjs';
 

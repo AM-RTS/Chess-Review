@@ -6,8 +6,6 @@ import {calibratedReview, scoringEvidenceComplete} from '../lib/calibrated-revie
 import {app, loadGame} from './helpers/app.mjs';
 
 const calibration = JSON.parse(await readFile(new URL('../data/calibration.json', import.meta.url)));
-// Archived protocol fixtures; current shared-search models have dedicated tests.
-delete calibration.twoLineRatings;
 // Authored legal opening sequence, not a sampled game or human-quality label.
 const pgn = '1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 11. c4 c6 12. Nc3';
 function fixture(build) {
@@ -18,12 +16,9 @@ function fixture(build) {
     replay.move({from: move.from, to: move.to, promotion: move.promotion});
     positions.push({...move, fen: replay.fen()});
   }
-  const engine = build === 'nnue' ? 'sf18' : 'sf19';
   const bests = moves.map(() => ({bestmove: 'different', score: {cp: 200}, playedScore: {cp: -200},
     calibration: {version: calibration.version, build, nodes: build === 'sf19lite' ? 20000 : null,
-      qualityVersion: build === 'nnue' ? calibration.quality.candidateVersion : null},
-    ratingEvidence: {candidateVersion: calibration.movesOnly[engine].candidateVersion,
-      best: {wdl: [400, 400, 200]}, played: {wdl: [200, 400, 400]}, bestmove: 'different'}}));
+      qualityVersion: build === 'nnue' ? calibration.quality.candidateVersion : null}}));
   return {positions, bests};
 }
 const review = ({positions, bests}, mode = 'moves') => calibratedReview(positions, bests, calibration, {}, mode);

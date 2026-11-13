@@ -1,7 +1,7 @@
 import {readFile,writeFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import {openResearchData,sha256} from '../../../data-policy.mjs';
-import {ratingFeatures,movesOnlyRating,ratingGameQuality} from '../../../../lib/public-scoring.js';
+import {ratingFeatures, movesOnlyRating, ratingGameQuality} from '../../../../tools/calibration/rating-scoring.mjs';
 import {fitHuber} from '../../../../tools/calibration/fit-huber.mjs';
 import {metrics} from '../../../../tools/calibration/fit-rating.mjs';
 import {fitFullgameContext,fullgameContextMetrics} from '../../../../tools/calibration/fullgame-context.mjs';
@@ -48,7 +48,7 @@ async function main(){
    if(!game||game.split!==result.split||JSON.stringify(result.moves||result.observations.map(p=>p.played))!==JSON.stringify(game.moves))throw Error('Observation history differs from admitted source');
    for(const row of result.rows)if(game.players.find(p=>p.color===row.color)?.rating!==row.ratingTarget||row.gameId!==game.id||row.split!==game.split)throw Error('Rating target origin differs');
  }
- const old=JSON.parse(await readFile('data/calibration.json','utf8')).movesOnly.sf19.model;
+ const old=JSON.parse(await readFile('tools/calibration/public/calibration.json','utf8')).movesOnly.sf19.model;
  const fitted=fitEvidence(evidence,old),out=`research/experiments/E281-two-line-rating/evidence/${build}${suffix}-model.json`;
  await writeFile(out,JSON.stringify(fitted,null,2)+'\n');console.log(JSON.stringify({build,...fitted.validation}));
 }

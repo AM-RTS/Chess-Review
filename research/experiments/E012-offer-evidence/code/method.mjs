@@ -1,4 +1,4 @@
-import {engineExpectedPoints} from '../../../../lib/public-scoring.js';
+import {engineExpectedPoints} from '../../../../tools/calibration/rating-scoring.mjs';
 import {wilson} from '../../E009-search-stability/code/method.mjs';
 export function rank(score){if(score.mate!=null)return[score.mate>0?2:0,-score.mate];return[1,score.cp];}
 const compare=(a,b)=>{const x=rank(a.score),y=rank(b.score);return y[0]-x[0]||y[1]-x[1]||a.move.localeCompare(b.move);};

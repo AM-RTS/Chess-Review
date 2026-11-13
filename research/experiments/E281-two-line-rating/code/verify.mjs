@@ -4,11 +4,11 @@ import {openResearchData,sha256} from '../../../data-policy.mjs';
 import {fitEvidence} from './fit.mjs';
 import {Chess} from '../../../../lib/chess.js';
 import {calibratedReview} from '../../../../lib/calibrated-review.js';
-import {movesOnlyRating,contextualRating,ratingGameQuality} from '../../../../lib/public-scoring.js';
+import {movesOnlyRating, contextualRating, ratingGameQuality} from '../../../../tools/calibration/rating-scoring.mjs';
 const build=process.argv[2],suffix=process.argv[3]==='adjacent'?'-adjacent':'';if(!['sf19','sf19lite'].includes(build))throw Error('Expected build');
 const data=await openResearchData(['D001','D002'],{purpose:'validate'}),base='research/experiments/E281-two-line-rating/evidence/';
 const inputs=await data.readJson(base+build+suffix+'-observations.json.gz'),model=await data.readJson(base+build+suffix+'-model.json');
-const calibration=JSON.parse(await readFile('data/calibration.json','utf8')),old=calibration.movesOnly.sf19.model;
+const calibration=JSON.parse(await readFile('tools/calibration/public/calibration.json','utf8')),old=calibration.movesOnly.sf19.model;
 const replay=fitEvidence(inputs,old);assert.deepEqual(replay,model);
 let runtimeSides=0;
 if(model.schema==='two-line-rating-v2'){

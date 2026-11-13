@@ -6,10 +6,11 @@ import {Chess} from '../lib/chess.js';
 import {hash} from '../tools/calibration/io.mjs';
 import {calibratedReview, scoringEvidenceComplete} from '../lib/calibrated-review.js';
 import {analyseCalibratedPosition} from '../lib/calibrated-search.js';
-import {publicMoveQuality, engineExpectedPoints, contextualRating, movesOnlyRating} from '../lib/public-scoring.js';
+import {publicMoveQuality} from '../lib/public-scoring.js';
+import {engineExpectedPoints, contextualRating, movesOnlyRating} from '../tools/calibration/rating-scoring.mjs';
 import {app,loadGame} from './helpers/app.mjs';
 
-const calibration = JSON.parse(await readFile(new URL('../data/calibration.json', import.meta.url)));
+const calibration = JSON.parse(await readFile(new URL('../tools/calibration/public/calibration.json', import.meta.url)));
 // Reproduce frozen public observations using their original protocol.
 delete calibration.twoLineRatings;
 const evidence = JSON.parse(gunzipSync(await readFile(new URL('../tools/calibration/public/sf18-evidence.json.gz', import.meta.url))));

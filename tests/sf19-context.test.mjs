@@ -4,11 +4,11 @@ import {readFile} from 'node:fs/promises';
 import {gunzipSync} from 'node:zlib';
 import {Chess} from '../lib/chess.js';
 import {calibratedReview} from '../lib/calibrated-review.js';
-import {contextualRating, movesOnlyRating, ratingGameQuality} from '../lib/public-scoring.js';
+import {contextualRating, movesOnlyRating, ratingGameQuality} from '../tools/calibration/rating-scoring.mjs';
 import {fitSf19Context} from '../tools/calibration/sf19-context.mjs';
 import {app, loadGame} from './helpers/app.mjs';
 
-const calibration = JSON.parse(await readFile(new URL('../data/calibration.json', import.meta.url)));
+const calibration = JSON.parse(await readFile(new URL('../tools/calibration/public/calibration.json', import.meta.url)));
 // Frozen public one-line protocol replay, separate from current two-line model tests.
 delete calibration.twoLineRatings;
 const evidence = JSON.parse(gunzipSync(await readFile(new URL('../tools/calibration/public/sf19-rating-evidence.json.gz', import.meta.url))));

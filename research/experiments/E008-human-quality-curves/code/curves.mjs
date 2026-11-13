@@ -1,5 +1,5 @@
 import {fitHumanOutcome,fitHumanChoice,choiceStats} from '../../../../tools/calibration/human-policy.mjs';
-import {engineExpectedPoints} from '../../../../lib/public-scoring.js';
+import {engineExpectedPoints} from '../../../../tools/calibration/rating-scoring.mjs';
 
 export const fixedCurve={schema:'E008-curve-v1',kind:'cp',coefficient:.368208,boundary:null,fixed:true};
 const sigmoid=x=>x>=0?1/(1+Math.exp(-x)):Math.exp(x)/(1+Math.exp(x));

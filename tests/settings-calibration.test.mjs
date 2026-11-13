@@ -11,9 +11,6 @@ function settings(t) {
   a.replace('scheduleReanalyze', () => { searches++; });
   return {...a, searches: () => searches};
 }
-function choice(a, text) {
-  [...a.dom.window.document.querySelectorAll('.calibration-warning button')].find(button => (button.querySelector('.calibration-warning-choice-label')?.textContent || button.textContent) === text).click();
-}
 
 test('full SF19 is the default and Lite switches without the retired SF18 warning', async t => {
   const a = settings(t);

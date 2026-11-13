@@ -7,7 +7,8 @@ export const maintainedTools = new Set([
   'BRILLIANT_MOVES.md', 'PUBLIC_METHOD.md', 'README.md',
   'category-benchmark.mjs', 'core.mjs', 'engine-host.cjs', 'engine.mjs',
   'fit-huber.mjs', 'fit-rating.mjs', 'fullgame-context.mjs', 'grouped-human-choice.mjs',
-  'human-policy.mjs', 'io.mjs', 'peer-quality.mjs', 'reproduce-public.mjs', 'sf19-context.mjs',
+  'human-policy.mjs', 'io.mjs', 'peer-quality.mjs', 'reproduce-public.mjs', 'sf19-context.mjs', 'rating-scoring.mjs',
+  'public/calibration.json',
   'public/dataset.json.gz', 'public/expected-scores.json', 'public/manifest.json',
   'public/sf18-evidence.json.gz', 'public/sf18-rating-evidence.json.gz',
   'public/sf19-rating-evidence.json.gz', 'public/sources.json', 'public/validation.json',
@@ -65,17 +66,12 @@ export async function verifySource(root) {
   }
   const model = JSON.parse(await readFile(path.join(root, 'data/calibration.json'), 'utf8'));
   if (model.schema !== 'chess-review-public-calibration-v1') throw Error('Unsupported numerical model schema');
-  const permitted = new Set(['schema', 'version', 'source', 'quality', 'context', 'movesOnly', 'classification', 'clsWp', 'twoLineRatings']);
+  const permitted = new Set(['schema', 'version', 'source', 'quality', 'classification', 'clsWp']);
   for (const key of Object.keys(model)) if (!permitted.has(key)) throw Error('Unsupported numerical model field: ' + key);
-  if(model.twoLineRatings&&!['sf19','sf19lite'].every(build=>model.twoLineRatings[build]))throw Error('Both two-line rating models are required');
-  for(const [build,rating] of Object.entries(model.twoLineRatings||{})) {
-    if(!['sf19','sf19lite'].includes(build)||rating.schema!=='two-line-rating-v2'||!/^[a-f0-9]{64}$/.test(rating.candidateVersion||'')
-      ||rating.engineConfig?.build!==build||rating.engineConfig?.lines!==2||!rating.model?.coefficients?.every(Number.isFinite)
-      ||rating.context?.schema!=='fullgame-equivalent-context-v1'||rating.validation?.passed!==true)throw Error('Unsupported two-line rating model: '+build);
-  }
-  if (!model.quality?.candidateVersion || !model.context?.model || !model.context?.sf19?.model
-      || !model.context.sf19.candidateVersion || !model.movesOnly?.sf18?.model || !model.movesOnly?.sf19?.model) {
-    throw Error('Maintained public numerical models are required');
+  if (!model.quality?.candidateVersion || !(model.quality?.outcome?.slopePerPawn > 0)
+      || !(model.quality?.choice?.temperature > 0)
+      || !['good','inacc','mistake','blunder'].every(key => Number.isFinite(model.clsWp?.[key]))) {
+    throw Error('Maintained runtime numerical model is required');
   }
   const source = await readFile(path.join(root, 'analysis.js'), 'utf8');
   if (/\b(?:calWinK|calMoveAcc|calAccBias|calAccMult|ELO_ANCHORS|AGG_FEATURES|learnedAccuracy|estimateEloFromAcc)\b/.test(source)) {

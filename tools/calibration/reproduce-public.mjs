@@ -10,7 +10,8 @@ import {fitGroupedHumanChoice} from './grouped-human-choice.mjs';
 import {fitFullgameContext} from './fullgame-context.mjs';
 import {fitHuber} from './fit-huber.mjs';
 import {fitSf19Context} from './sf19-context.mjs';
-import {ratingFeatures,publicMoveQuality,publicGameAccuracy,contextualRating,movesOnlyRating} from '../../lib/public-scoring.js';
+import {publicMoveQuality, publicGameAccuracy} from '../../lib/public-scoring.js';
+import {ratingFeatures, contextualRating, movesOnlyRating} from './rating-scoring.mjs';
 
 const root = new URL('./public/', import.meta.url);
 export async function publicInput(name, manifest) {
@@ -107,7 +108,7 @@ async function main() {
   }
   const sf19Context = fitSf19Context(reconstructedRatings.sf19.inputs);
   // Expected outputs are opened only after all training coefficients are reconstructed.
-  const expected = JSON.parse(await readFile(new URL('../../data/calibration.json', import.meta.url)));
+  const expected = JSON.parse(await readFile(new URL('./public/calibration.json', import.meta.url)));
   const scores = await publicInput('expected-scores.json', manifest);
   const exact = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const checks = {

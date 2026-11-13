@@ -88,7 +88,7 @@ excluded; opening moves remain in the numerical aggregation.
 The bundled SF18 Lite NNUE network is `nn-9067e33176e8.nnue`. Searches use depth16,
 Hash16, MultiPV1, maximum skill, one thread, full initial-position history, and
 `ucinewgame + Clear Hash + isready` before every search. Non-top played moves are
-searched with `searchmoves` at the same root. `data/calibration.json` records loader
+searched with `searchmoves` at the same root. `public/calibration.json` records loader
 and WASM hashes. Custom SF18 search settings do not produce calibrated numerical
 scores. Setup-FEN positions remain available for annotation, outside the fitted
 standard-start accuracy domain.

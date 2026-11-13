@@ -3,6 +3,9 @@
 This directory contains the current public calibration, its supporting math,
 and offline reproduction. It is included in source packages; the
 extension loads only `data/calibration.json` and the runtime scorers in `lib/`.
+The runtime file contains accuracy parameters and category thresholds only.
+Historical rating models remain in `public/calibration.json`, with their unchanged
+calculations in `rating-scoring.mjs`; neither is shipped in the browser extension.
 
 With **Node.js 24 or later**, run from the repository root:
 

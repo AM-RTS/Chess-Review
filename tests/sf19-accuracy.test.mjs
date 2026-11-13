@@ -39,8 +39,7 @@ test('SF19 production review penalizes both colors', t => {
   const a = app(t), S = loadGame(a, '1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 11. c4 c6 12. Nc3');
   const wdl = [300, 400, 300];
   S.bests = S.positions.slice(1).map(() => ({bestmove: 'different', score: {cp: 800, wdl}, playedScore: {cp: 500, wdl},
-    calibration: {version: calibration.version, build: 'sf19lite', nodes: 20000,
-      ratingVersion:calibration.twoLineRatings.sf19lite.candidateVersion,ratingSettingsMatch:true}}));
+    calibration: {version: calibration.version, build: 'sf19lite', nodes: 20000}}));
   S.bests.push(structuredClone(S.bests[0]));
   const first = calibratedReview(S.positions, S.bests, calibration);
   for (const color of ['w', 'b']) {

@@ -8,7 +8,7 @@ import {hash} from '../../../../tools/calibration/io.mjs';
 import {openResearchData} from '../../../data-policy.mjs';
 import {fitHuber} from '../../../../tools/calibration/fit-huber.mjs';
 import {predict} from '../../../../tools/calibration/fit-rating.mjs';
-import {ratingFeatures} from '../../../../lib/public-scoring.js';
+import {ratingFeatures} from '../../../../tools/calibration/rating-scoring.mjs';
 import {playerComponents, playerRoleOverlap} from '../../E001-evidence-audit/code/audit.mjs';
 
 const root = fileURLToPath(new URL('../../../../', import.meta.url));

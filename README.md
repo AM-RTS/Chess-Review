@@ -133,6 +133,9 @@ category-badge appearance. Badge numbers describe move categories; they are
 separate from position evaluation and game accuracy.
 
 Estimated performance ratings have been removed. Recorded player ratings from game headers remain visible.
+Their historical models and reproduction helpers remain with the offline tools,
+outside the extension package. Saved games use platform-qualified IDs to keep
+Chess.com and Lichess records separate; older library entries remain readable.
 
 If a difficult played-move search exceeds the silence limit, review can continue
 using its last valid completed-depth score. A visible time-limited analysis note

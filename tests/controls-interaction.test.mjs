@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {app, loadGame, branch} from './helpers/app.mjs';
+import {Chess} from '../lib/chess.js';
 
 function board(t) {
   const a = app(t);
@@ -63,7 +64,8 @@ test('variation and practice controls retain their nodes and refresh their curre
   const a = board(t), S = a.state, controls = a.dom.window.document.getElementById('controls');
   const v = branch(a, 0, 1); a.call('renderControls');
   const end = controls.querySelector('[aria-label="Variation end"]');
-  const extra = {...v.positions.at(-1)}; v.positions.push(extra);
+  const chess = new Chess(v.positions.at(-1).fen), extra = chess.move('Bb5');
+  v.positions.push({...extra, fen:chess.fen()});
   a.call('renderControls');
   assert.equal(controls.querySelector('[aria-label="Variation end"]'), end);
   a.replace('requestLiveEval', () => {});
