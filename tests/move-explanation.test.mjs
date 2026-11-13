@@ -14,9 +14,9 @@ test('move card reuses selected findings and drops stale explanations', t => {
   const key = conceptKey(a.call('selectedConceptInput'));
   entries.set(key, {findings: [{event: 'forced-mate', text: 'Forced mate.', scopes: [],
     context: {evidence: {mateIn: 3}}}], status: 'complete'});
-  assert.equal(a.call('selectedMoveExplanation'), 'Your move forces mate in 3.');
+  assert.equal(a.call('selectedMoveExplanation'), 'White can now force mate in 3.');
   a.call('renderReview');
-  assert.equal(a.dom.window.document.querySelector('.ip-text').textContent, 'Your move forces mate in 3.');
+  assert.equal(a.dom.window.document.querySelector('.ip-text').textContent, 'White can now force mate in 3.');
   S.idx = 2;
   assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
   S.idx = 1; S.settings.conceptsEnabled = false;
@@ -32,7 +32,7 @@ test('quiet lines abstain, and mate evidence works in reviews and variations', t
   branch(a, 0, 1);
   assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
   S.variation.positions[1].eval = {mate: -4};
-  assert.equal(a.call('selectedMoveExplanation'), 'Black forces mate in 4.');
+  assert.equal(a.call('selectedMoveExplanation'), 'Black can now force mate in 4.');
   S.variation.idx = 2;
   assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
 });
@@ -118,4 +118,28 @@ test('top-line repetition and perpetual check lead to a draw in both views', t =
   assert.equal(a.call('selectedMoveExplanation'), 'Leads to a draw.');
   S.variation.positions[1].best.lines = [{multipv: 1, pv: 'f7f8'}, {multipv: 2, pv: `${checks} ${checks}`}];
   assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
+});
+
+test('mate takes priority over unrelated Concepts text in both views', t => {
+  const a = app(t), S = loadGame(a, '1. e4 e5 2. Nf3 h6 3. Nxe5 f6');
+  S.idx = 6; S.evals[6] = {mate: 6}; S.settings.conceptsEnabled = true;
+  assert.equal(a.call('selectedMoveExplanation'), 'White can now force mate in 6.');
+  branch(a, 0, 6);
+  assert.equal(a.call('selectedMoveExplanation'), 'White can now force mate in 6.');
+});
+
+test('certified capture and recapture comments stay short', t => {
+  const a = app(t), S = loadGame(a, '1. e4 d5 2. exd5 Qxd5');
+  S.idx = 3; S.settings.conceptsEnabled = true;
+  S.settings.conceptGroups = ['features', 'pawns', 'history', 'immediate'];
+  const input = a.call('selectedConceptInput'), entries = new Map();
+  a.context.__session = {entries}; a.run('_conceptSession = __session');
+  entries.set(conceptKey(input), {findings: [{event: 'immediate-capture-gain', study: 'P006', text: 'Certified capture.', scopes: [],
+    context: {evidence: {consequence: {inputFen: input.fen, playedMove: input.move, afterFen: S.positions[3].fen,
+      captured: 'p', minimumGain: 1}}}}]});
+  assert.equal(a.call('selectedMoveExplanation'), 'Free pawn.');
+  S.idx = 4;
+  assert.equal(a.call('selectedMoveExplanation'), 'Recaptures.');
+  branch(a, 0, 4);
+  assert.equal(a.call('selectedMoveExplanation'), 'Recaptures.');
 });

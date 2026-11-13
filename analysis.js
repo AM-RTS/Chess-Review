@@ -3786,16 +3786,22 @@ function analysisProgressText() {
 function selectedMoveExplanation() {
   const pos = activePos();
   if (!pos?.from || !pos.to) return "";
+  const ev = activeEval();
+  if (Number.isInteger(ev?.mate) && ev.mate !== 0)
+    return `${ev.mate > 0 ? "White" : "Black"} can now force mate in ${Math.abs(ev.mate)}.`;
+  const previous = S.analysisMode && S.variation ? S.variation.positions[S.variation.idx - 1] : S.positions[S.idx - 1];
+  if (pos.captured && previous?.captured && previous.color !== pos.color && previous.to === pos.to) return "Recaptures.";
   const input = S.settings.conceptsEnabled === true ? selectedConceptInput() : null;
   const entry = input && _conceptSession?.entries.get(conceptKey(input));
   const reply = entry && coachReply(entry.findings || [], {mover: pos.color, player: pos.color, change: entry.change, input});
-  const text = reply?.items[0]?.text;
+  const item = reply?.items[0], consequence = item?.context?.evidence?.consequence;
+  if (item?.event === "forced-mate" && Number.isInteger(item.context?.evidence?.mateIn))
+    return `${pos.color === "w" ? "White" : "Black"} can now force mate in ${item.context.evidence.mateIn}.`;
+  if (item?.theme === "capture-gain" && pos.captured && consequence?.minimumGain >= SAC_VAL[pos.captured])
+    return `Free ${{p:"pawn",n:"knight",b:"bishop",r:"rook",q:"queen"}[pos.captured]}.`;
+  const text = item?.text;
   // Keep conditions intact rather than trimming an explanation mid-proof.
-  if (text && text.length <= 220) return text;
-  const ev = activeEval();
-  if (Number.isInteger(ev?.mate) && ev.mate !== 0) {
-    return `${ev.mate > 0 ? "White" : "Black"} forces mate in ${Math.abs(ev.mate)}.`;
-  }
+  if (text && text.length <= 120) return text;
   const result = S.analysisMode && S.variation ? pos.searchPreview || pos.best : S.searchPreviews[S.idx] || S.bests[S.idx];
   const top = result?.lines?.find(line => line.multipv === 1) || (result?.lines?.[0]?.multipv == null ? result?.lines?.[0] : null);
   if (top?.pv && (!top.bound || top.bound === "exact")) {
