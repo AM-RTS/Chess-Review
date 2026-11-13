@@ -86,8 +86,8 @@ test('navigation cancels a pending live Great check without accepting its late r
 });
 
 test('a sacrifice that remains losing cannot become Great or launch verification',async t=>{
-  const a=app(t),S=loadGame(a,'[SetUp "1"]\n[FEN "7k/8/4p3/8/8/8/8/K2Q4 w - - 0 1"]\n\n1. Ka2 Kh7 2. Qd5',[-900,-900,-100,-100].map(cp=>({cp})));
-  S.bests[2]={score:{cp:-100},bestmove:'d1d5',lines:[]};a.call('computeDerived');
+  const a=app(t),S=loadGame(a,'[SetUp "1"]\n[FEN "7k/8/4p3/8/8/8/8/K2Q4 w - - 0 1"]\n\n1. Ka2 Kh7 2. Qd5',[-900,-900,-300,-300].map(cp=>({cp})));
+  S.bests[2]={score:{cp:-300},bestmove:'d1d5',lines:[]};a.call('computeDerived');
   assert.equal(a.call('_sacAt',3),true);assert.equal(S.classif[3],'best');
   await a.call('verifyGreatCandidates',S,async()=>assert.fail('Still-losing moves need no Great verification'),()=>true);
   a.call('computeDerived');assert.equal(S.classif[3],'best');
@@ -143,9 +143,9 @@ test('only top Excellent replies qualify, and a contextual opponent Mistake also
 
 
 // Synthetic score/sacrifice inputs exercise the shared policy, not game-specific exceptions.
-for(const engine of ['sf19','sf19lite'])for(const color of ['w','b'])test(engine+' '+color+': losing moves require a drawing or winning result for special grades',t=>{
+for(const engine of ['sf19','sf19lite'])for(const color of ['w','b'])test(engine+' '+color+': clear losses are excluded while minor disadvantages remain eligible',t=>{
  const a=app(t),ply=color==='w'?3:4,sign=color==='w'?1:-1;
- for(const after of [{cp:-500},{cp:-51},{cp:-50},{cp:0},{cp:300},{mate:-3},{mate:3}])for(const sacrifice of [false,true]){
+ for(const after of [{cp:-500},{cp:-200},{cp:-199},{cp:-100},{cp:0},{cp:300},{mate:-3},{mate:3}])for(const sacrifice of [false,true]){
   const S=loadGame(a,'1. e4 e5 2. Nf3 Nc6');S.settings.enginePath=engine;
   S.evals=S.positions.map(()=>({cp:-500*sign}));S.evals[ply]=after.mate?{mate:after.mate*sign}:{cp:after.cp*sign};
   const played=S.positions[ply].from+S.positions[ply].to,alternative=color==='w'?'d2d4':'d7d5';
@@ -153,10 +153,20 @@ for(const engine of ['sf19','sf19lite'])for(const color of ['w','b'])test(engine
     {score:after,pv:played,depth:4,bound:'exact',multipv:1},
     {score:{cp:-1500},pv:alternative,depth:4,bound:'exact',multipv:2},
   ]};S._sacCache=new Array(S.total+1).fill(false);S._sacCache[ply]=sacrifice;a.call('computeDerived');
-  const eligible=after.mate!=null?after.mate>0:after.cp>=-50;
+  const eligible=after.mate!=null?after.mate>0:after.cp>-200;
   assert.equal(S.classif[ply],eligible?(sacrifice?'brilliant':'great'):'best',JSON.stringify({after,sacrifice}));
   if(!eligible)assert.equal(S.greatCandidates.includes(ply),false);
   const v=branch(a,0,ply);v.positions[ply]._sac=sacrifice;a.call('classifyVariationMoves');
   assert.equal(v.positions[ply].classif,S.classif[ply]);S.analysisMode=false;S.variation=null;
  }
+});
+
+
+test('special move result gate follows the existing clear-advantage setting',t=>{
+ const a=candidate(t),S=a.state;S.evals[2]={cp:-250};S.evals[3]={cp:-250};
+ S.bests[2]={bestmove:'g1f3',score:{cp:-250},lines:[
+  {score:{cp:-250},pv:'g1f3',depth:4,bound:'exact',multipv:1},
+  {score:{cp:-1500},pv:'d2d4',depth:4,bound:'exact',multipv:2},
+ ]};S.settings.clsClearAdv=2;a.call('computeDerived');assert.equal(S.classif[3],'best');
+ S.settings.clsClearAdv=3;a.call('computeDerived');assert.equal(S.classif[3],'great');
 });
