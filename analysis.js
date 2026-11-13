@@ -3790,18 +3790,17 @@ function selectedMoveExplanation() {
   if (Number.isInteger(ev?.mate) && ev.mate !== 0)
     return `${ev.mate > 0 ? "White" : "Black"} can now force mate in ${Math.abs(ev.mate)}.`;
   const previous = S.analysisMode && S.variation ? S.variation.positions[S.variation.idx - 1] : S.positions[S.idx - 1];
-  if (pos.captured && previous?.captured && previous.color !== pos.color && previous.to === pos.to) return "Recaptures.";
+  const recapture = pos.captured && previous?.captured && previous.color !== pos.color && previous.to === pos.to;
   const input = S.settings.conceptsEnabled === true ? selectedConceptInput() : null;
   const entry = input && _conceptSession?.entries.get(conceptKey(input));
   const reply = entry && coachReply(entry.findings || [], {mover: pos.color, player: pos.color, change: entry.change, input});
   const item = reply?.items[0], consequence = item?.context?.evidence?.consequence;
   if (item?.event === "forced-mate" && Number.isInteger(item.context?.evidence?.mateIn))
     return `${pos.color === "w" ? "White" : "Black"} can now force mate in ${item.context.evidence.mateIn}.`;
-  if (item?.theme === "capture-gain" && pos.captured && consequence?.minimumGain >= SAC_VAL[pos.captured])
-    return `Free ${{p:"pawn",n:"knight",b:"bishop",r:"rook",q:"queen"}[pos.captured]}.`;
+  const names = {p:"pawn",n:"knight",b:"bishop",r:"rook",q:"queen"};
+  const freeCapture = item?.theme === "capture-gain" && pos.captured && consequence?.minimumGain >= SAC_VAL[pos.captured]
+    ? `Free ${names[pos.captured]}.` : "";
   const text = item?.text;
-  // Keep conditions intact rather than trimming an explanation mid-proof.
-  if (text && text.length <= 120) return text;
   const result = S.analysisMode && S.variation ? pos.searchPreview || pos.best : S.searchPreviews[S.idx] || S.bests[S.idx];
   const top = result?.lines?.find(line => line.multipv === 1) || (result?.lines?.[0]?.multipv == null ? result?.lines?.[0] : null);
   if (top?.pv && (!top.bound || top.bound === "exact")) {
@@ -3809,10 +3808,12 @@ function selectedMoveExplanation() {
       const board = new Chess(pos.fen);
       const gain = move => (move.color === "w" ? 1 : -1) * ((SAC_VAL[move.captured] || 0) + (move.promotion ? SAC_VAL[move.promotion] - 1 : 0));
       let material = gain(pos);
+      const losses = [], returns = [];
       for (const uci of top.pv.trim().split(/\s+/)) {
         const move = board.move({from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci.slice(4) || undefined});
         if (!move) return "I have no idea why.";
         material += gain(move);
+        if (move.captured) (move.color === pos.color ? returns : losses).push(move.captured);
         if (board.isThreefoldRepetition()) return "Leads to a draw.";
       }
       if (board.isCheckmate()) return `${board.turn() === "w" ? "Black" : "White"} checkmates.`;
@@ -3821,11 +3822,21 @@ function selectedMoveExplanation() {
       if (board.isDraw()) return "Reaches the fifty-move rule; a draw can be claimed.";
       const balance = board.board().flat().reduce((sum, piece) => sum + (piece ? (piece.color === "w" ? 1 : -1) * SAC_VAL[piece.type] : 0), 0);
       // A truncated capture sequence is not evidence of a lasting material gain.
-      if (material && Number.isFinite(ev?.cp) && Math.sign(material) * (ev.cp - balance * 100) >= 0)
-        return `${material > 0 ? "White" : "Black"} gains ${Math.abs(material)} ${Math.abs(material) === 1 ? "point" : "points"} of material.`;
+      if (material && Number.isFinite(ev?.cp) && Math.sign(material) * (Math.round(ev.cp / 100) - balance) >= 0) {
+        const losing = material * (pos.color === "w" ? 1 : -1) < 0;
+        if (losing && losses.length && !returns.length) {
+          const pieces = [...new Set(losses)].map(piece => {
+            const count = losses.filter(p => p === piece).length;
+            return count === 1 ? `a ${names[piece]}` : `${count} ${names[piece]}s`;
+          });
+          return `Loses ${pieces.length < 2 ? pieces[0] : pieces.slice(0,-1).join(", ") + " and " + pieces.at(-1)}.`;
+        }
+        return (!losing && freeCapture) || `${material > 0 ? "White" : "Black"} gains ${Math.abs(material)} ${Math.abs(material) === 1 ? "point" : "points"} of material.`;
+      }
     } catch {}
   }
-  return "I have no idea why.";
+  // Keep conditions intact rather than trimming an explanation mid-proof.
+  return recapture ? "Recaptures." : freeCapture || (text && text.length <= 120 ? text : "I have no idea why.");
 }
 function renderReview() {
   refreshConcepts();

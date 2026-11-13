@@ -143,3 +143,12 @@ test('certified capture and recapture comments stay short', t => {
   branch(a, 0, 4);
   assert.equal(a.call('selectedMoveExplanation'), 'Recaptures.');
 });
+
+test('a tactical pawn and rook loss takes priority over recapture in both views', t => {
+  const a = app(t), S = loadGame(a, '1. e4 e5 2. Nf3 f6 3. Nxe5 fxe5');
+  S.idx = 6; S.evals[6] = {cp: 398};
+  S.bests[6].lines = [{multipv: 1, bound: 'exact', pv: 'd1h5 g7g6 h5e5 d8e7 e5h8 g8f6'}];
+  assert.equal(a.call('selectedMoveExplanation'), 'Loses a pawn and a rook.');
+  branch(a, 0, 6);
+  assert.equal(a.call('selectedMoveExplanation'), 'Loses a pawn and a rook.');
+});
