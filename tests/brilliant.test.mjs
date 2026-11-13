@@ -1,3 +1,4 @@
+import {isSacrifice,exchangeGain} from '../lib/sacrifice.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -106,26 +107,24 @@ test('black root alternatives use mover-relative rather than white-relative scor
   a.call('computeDerived'); assert.equal(S.classif[1], 'brilliant');
 });
 
-test('sacrifice evidence credits captures and follows legal recapture chains', t => {
-  const a = app(t);
+test('sacrifice evidence credits captures and follows legal recapture chains', () => {
   const exchange = moveAt('7k/8/4p3/3n4/2B5/8/8/K2R4 w - - 0 1', 'd1d5');
-  assert.equal(a.call('isSacrifice', exchange), true); // rook for minor and pawn: one pawn net
+  assert.equal(isSacrifice(exchange), true); // rook for minor and pawn: one pawn net
   const trade = moveAt('7k/8/4p3/3r4/2B5/8/8/K2R4 w - - 0 1', 'd1d5');
-  assert.equal(a.call('isSacrifice', trade), false);
+  assert.equal(isSacrifice(trade), false);
   const xray = moveAt('3r3k/8/4p3/3n4/2B5/8/8/K2R4 w - - 0 1', 'd1d5');
-  assert.equal(a.call('isSacrifice', xray), true);
+  assert.equal(isSacrifice(xray), true);
   // The bishop can decline a losing recapture, so the opponent's gain is 5, not 7.
-  assert.equal(a.call('exchangeGain', new Chess(xray.after), 'd5', { nodes: 0, maxNodes: 1200 }), 5);
+  assert.equal(exchangeGain(new Chess(xray.after), 'd5', { nodes: 0, maxNodes: 1200 }), 5);
 });
 
-test('pinned attackers, pawn offers and unavoidable piece losses do not count', t => {
-  const a = app(t);
-  assert.equal(a.call('isSacrifice', moveAt('4k3/8/4p3/8/8/8/8/K2QR3 w - - 0 1', 'd1d5')), false);
-  assert.equal(a.call('isSacrifice', moveAt('7k/8/4p3/8/8/3P4/8/K7 w - - 0 1', 'd3d4')), false);
-  assert.equal(a.call('isSacrifice', moveAt('7k/8/8/8/3q4/8/8/3N3K w - - 0 1', 'h1h2')), false);
+test('pinned attackers, pawn offers and unavoidable piece losses do not count', () => {
+  assert.equal(isSacrifice(moveAt('4k3/8/4p3/8/8/8/8/K2QR3 w - - 0 1', 'd1d5')), false);
+  assert.equal(isSacrifice(moveAt('7k/8/4p3/8/8/3P4/8/K7 w - - 0 1', 'd3d4')), false);
+  assert.equal(isSacrifice(moveAt('7k/8/8/8/3q4/8/8/3N3K w - - 0 1', 'h1h2')), false);
   const trapped = 'k7/8/8/8/2b5/8/5q2/N6K w - - 0 1';
   assert.equal(new Chess(trapped).moves().length, 2);
-  assert.equal(a.call('isSacrifice', moveAt(trapped, 'a1b3')), false);
+  assert.equal(isSacrifice(moveAt(trapped, 'a1b3')), false);
 });
 
 test('offered material does not depend on the opponent accepting it', t => {
@@ -137,7 +136,7 @@ test('offered material does not depend on the opponent accepting it', t => {
 
 test('quiet moves do not inherit Brilliant from an unrelated hanging piece', t => {
   const a = app(t), fen = '1k5r/8/8/8/8/8/P7/K6Q w - - 0 1';
-  assert.equal(a.call('isSacrifice', moveAt(fen, 'a2a3')), false);
+  assert.equal(isSacrifice(moveAt(fen, 'a2a3')), false);
   const S = loadGame(a, pgn(fen, '1. a3'), [{ cp: 0 }, { cp: 0 }]);
   a.call('computeDerived'); assert.notEqual(S.classif[1], 'brilliant');
 });
@@ -153,12 +152,11 @@ test('history distinguishes ignoring a new opponent threat from a persistent dec
   a.call('computeDerived'); assert.notEqual(S.classif[3], 'brilliant');
 });
 
-test('removing a pin or defender creates an offer of an unmoved piece', t => {
-  const a = app(t);
+test('removing a pin or defender creates an offer of an unmoved piece', () => {
   const releasePin = moveAt('k7/8/b7/1Q6/8/8/8/R6K w - - 0 1', 'a1b1');
-  assert.equal(a.call('isSacrifice', releasePin), true);
+  assert.equal(isSacrifice(releasePin), true);
   const releaseDefender = moveAt('3r3k/8/8/3Q4/8/8/8/K2R4 w - - 0 1', 'd1e1');
-  assert.equal(a.call('isSacrifice', releaseDefender), true);
+  assert.equal(isSacrifice(releaseDefender), true);
 });
 
 test('defensive checking rook offers draw by stalemate when accepted and can be repeated', t => {
@@ -174,44 +172,43 @@ test('defensive checking rook offers draw by stalemate when accepted and can be 
   for (const ply of [1, 3, 5, 7]) assert.equal(v.positions[ply].classif, 'brilliant');
 });
 
-test('promotion gains are credited, and promoted pieces are not automatically sacrifices', t => {
-  const a = app(t);
-  assert.equal(a.call('isSacrifice', moveAt('8/P6k/8/8/8/4p3/3R4/K7 w - - 0 1', 'a7a8q')), false);
+test('promotion gains are credited, and promoted pieces are not automatically sacrifices', () => {
+  assert.equal(isSacrifice(moveAt('8/P6k/8/8/8/4p3/3R4/K7 w - - 0 1', 'a7a8q')), false);
   // An unrelated promotion does not newly offer an already hanging rook.
-  assert.equal(a.call('isSacrifice', moveAt('8/P6k/8/8/8/4p3/3R4/K7 w - - 0 1', 'a7a8n')), false);
+  assert.equal(isSacrifice(moveAt('8/P6k/8/8/8/4p3/3R4/K7 w - - 0 1', 'a7a8n')), false);
   // Moving a defending pawn can offer an existing queen; credit the promotion first.
-  assert.equal(a.call('isSacrifice', moveAt('1Q5r/P7/6k1/8/8/8/8/K7 w - - 0 1', 'a7a8n')), true);
-  assert.equal(a.call('isSacrifice', moveAt('1Q5r/P7/6k1/8/8/8/8/K7 w - - 0 1', 'a7a8q')), false);
-  assert.equal(a.call('isSacrifice', moveAt('1r5k/P7/8/8/8/8/8/7K w - - 0 1', 'a7a8q')), false);
+  assert.equal(isSacrifice(moveAt('1Q5r/P7/6k1/8/8/8/8/K7 w - - 0 1', 'a7a8n')), true);
+  assert.equal(isSacrifice(moveAt('1Q5r/P7/6k1/8/8/8/8/K7 w - - 0 1', 'a7a8q')), false);
+  assert.equal(isSacrifice(moveAt('1r5k/P7/8/8/8/8/8/7K w - - 0 1', 'a7a8q')), false);
 });
 
-test('exchange budgets conservatively return unknown and do not mutate the board', t => {
-  const a = app(t), move = moveAt(offerFen, 'd1d5'), chess = new Chess(move.after), original = chess.fen();
-  assert.equal(a.call('exchangeGain', chess, 'd5', { nodes: 0, maxNodes: 0 }), null);
-  assert.equal(a.call('exchangeGain', chess, 'd5', { nodes: 0, maxNodes: 100 }), 9);
+test('exchange budgets conservatively return unknown and do not mutate the board', () => {
+  const move = moveAt(offerFen, 'd1d5'), chess = new Chess(move.after), original = chess.fen();
+  assert.equal(exchangeGain(chess, 'd5', { nodes: 0, maxNodes: 0 }), null);
+  assert.equal(exchangeGain(chess, 'd5', { nodes: 0, maxNodes: 100 }), 9);
   assert.equal(chess.fen(), original);
 });
 
-test('completed exchange evidence can be reused but unknown branches are not cached', t => {
-  const a = app(t), move = moveAt(offerFen, 'd1d5'), chess = new Chess(move.after);
+test('completed exchange evidence can be reused but unknown branches are not cached', () => {
+  const move = moveAt(offerFen, 'd1d5'), chess = new Chess(move.after);
   const budget = { nodes: 0, maxNodes: 128 };
-  assert.equal(a.call('exchangeGain', chess, 'd5', budget), 9);
+  assert.equal(exchangeGain(chess, 'd5', budget), 9);
   const count = budget.nodes;
-  assert.equal(a.call('exchangeGain', chess, 'd5', budget), 9);
+  assert.equal(exchangeGain(chess, 'd5', budget), 9);
   assert.equal(budget.nodes, count);
   const unknown = { nodes: 0, maxNodes: 0 };
-  assert.equal(a.call('exchangeGain', chess, 'd5', unknown), null);
+  assert.equal(exchangeGain(chess, 'd5', unknown), null);
   unknown.nodes = 0; unknown.maxNodes = 128;
-  assert.equal(a.call('exchangeGain', chess, 'd5', unknown), 9);
+  assert.equal(exchangeGain(chess, 'd5', unknown), 9);
 });
 
 test('exchange trees require forced recaptures and count pawn-promotion material', t => {
   const a = app(t), forced = new Chess('kq6/R7/8/2B5/8/8/8/7K b - - 0 1');
   assert.deepEqual(forced.moves(), ['Qxa7']);
   // Qxa7 Bxa7 Kxa7: the checked side must accept a net loss of one pawn.
-  assert.equal(a.call('exchangeGain', forced, 'a7', { nodes: 0, maxNodes: 128 }), -1);
+  assert.equal(exchangeGain(forced, 'a7', { nodes: 0, maxNodes: 128 }), -1);
   const promotion = new Chess('7K/8/7k/8/8/8/1p6/R7 b - - 0 1');
-  assert.equal(a.call('exchangeGain', promotion, 'a1', { nodes: 0, maxNodes: 128 }), 13);
+  assert.equal(exchangeGain(promotion, 'a1', { nodes: 0, maxNodes: 128 }), 13);
 });
 
 test('evaluation-dependent eligibility is refreshed without invalidating material evidence', t => {

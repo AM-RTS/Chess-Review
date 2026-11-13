@@ -3,20 +3,24 @@ import path from 'node:path';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { cmd } from 'web-ext';
+import {files,directories} from './package-inputs.mjs';
 
 // Uses fresh test-only copies of the packaged extensions and isolated headless profiles.
 // The loopback reporting permission and smoke files are never added to store ZIPs.
 const root=process.cwd(), artifacts=path.join(root,'web-ext-artifacts');
+const workingTree=process.argv.includes("--working-tree");
 let recordPath;
-try { ({recordPath}=JSON.parse(await fs.readFile(path.join(artifacts,'latest-release.json')))); }
+try { if(!workingTree)({recordPath}=JSON.parse(await fs.readFile(path.join(artifacts,'latest-release.json')))); }
 catch(error) { if(error.code!=='ENOENT')throw error; }
-const releases=JSON.parse(await fs.readFile(recordPath || path.join(artifacts,'release-sizes.json')));
+const releases=workingTree ? [{browser:'chrome',sourceDir:path.join(artifacts,'chrome-unpacked')}] : JSON.parse(await fs.readFile(recordPath || path.join(artifacts,'release-sizes.json')));
 const packages=recordPath ? releases.packages : releases;
-const requested=process.argv.slice(2);
+const requested=process.argv.slice(2).filter(arg=>arg!=="--working-tree");
 if(requested.some(browser=>!['chrome','firefox'].includes(browser)))throw Error('Optional arguments: chrome firefox');
+if(workingTree && requested.includes('firefox'))throw Error('Working-tree smoke currently supports Chrome only');
 const reportDir=recordPath ? path.dirname(recordPath) : artifacts;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const reports=new Map();
+const temporaryPaths=[];
 const server=http.createServer(async(req,res)=>{
   let body='';for await(const chunk of req)body+=chunk;
   res.setHeader('Access-Control-Allow-Origin','*');res.end('ok');
@@ -28,7 +32,9 @@ let chromeProcess, ws, firefoxRunner;
 try {
   for(const release of packages.filter(p=>!requested.length||requested.includes(p.browser))){
     const sourceDir=await fs.mkdtemp(path.join(artifacts,`smoke-${release.browser}-`));
+    temporaryPaths.push(sourceDir);
     await fs.cp(release.sourceDir,sourceDir,{recursive:true});
+    if(workingTree)for(const entry of [...files,...directories])await fs.cp(path.join(root,entry),path.join(sourceDir,entry),{recursive:true});
     const manifest=JSON.parse(await fs.readFile(path.join(sourceDir,'manifest.json')));
     manifest.host_permissions.push('http://127.0.0.1/*');
     await fs.writeFile(path.join(sourceDir,'manifest.json'),JSON.stringify(manifest));
@@ -62,7 +68,7 @@ try {
     } finally {engine.terminate();}
     const id='smoke-'+key;
     const pgn='[WhiteElo "1500"]\\n[BlackElo "1800"]\\n\\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 11. c4 c6 *';
-    await browserAPI.storage.local.set({settings:{enginePath:key,ratingMode:'context',engineDepth:8,engineWorkers:1,depthBumped:true,sound:false,coachPlain:true},['job:'+id]:{pgn,meta:{gameId:id},source:'pgn'}});
+    await browserAPI.storage.local.set({settings:{enginePath:key,engineDepth:8,engineWorkers:1,depthBumped:true,sound:false,coachPlain:true},['job:'+id]:{pgn,meta:{gameId:id},source:'pgn'}});
     const frame=document.createElement('iframe');frame.style='width:1680px;height:1000px';frame.src='analysis.html#'+id;document.body.append(frame);
     let saved;
     for(let i=0;i<250;i++){await wait(100);saved=(await browserAPI.storage.local.get('analysis:'+id))['analysis:'+id];if(saved)break;}
@@ -81,13 +87,12 @@ try {
     await report({step:'completed-review',key,positions:saved.evals.length,engineBuild:saved.engineBuild});
     doc.querySelector('[aria-label="Settings"]').click();
     [...doc.querySelectorAll('.set-tab')].find(button=>button.textContent==='Engine').click();
-    const ratingSection=()=>[...doc.querySelectorAll('.set-section')].find(section=>section.textContent.includes('Estimated rating'));
-    const labels=[...ratingSection().querySelectorAll('.lib-dd-opt')].map(button=>button.textContent);
-    if(JSON.stringify(labels)!==JSON.stringify(['Use recorded rating','Moves only']))throw Error('Rating options missing for '+key);
+    if(doc.querySelector('.est-rating'))throw Error('Retired rating estimate returned');
     if(key==='sf19') {
       const tabs=[...doc.querySelectorAll('.set-tab')];
       if(JSON.stringify(tabs.map(tab=>tab.textContent))!==JSON.stringify(['Visual','Engine','Concepts']))throw Error('Concept tab order changed');
       tabs[2].click();
+      doc.querySelector('[data-sidebar-view="insights"]').click();
       if(doc.querySelector('#conceptsEnabled').checked||frame.contentWindow.__smokeConcepts().worker)throw Error('Disabled concepts started work');
       doc.querySelector('#conceptsEnabled').click();
       if(!frame.contentWindow.__smokeConcepts().enabled)throw Error('Native concept toggle reverted');
@@ -124,6 +129,7 @@ try {
       await report({step:'concepts',key,conceptWallMs,metrics:concepts.metrics});
       // The panel rebuilds; reacquire its current buttons.
       [...doc.querySelectorAll('.set-tab')].find(tab=>tab.textContent==='Engine').click();
+      doc.querySelector('[data-sidebar-view="review"]').click();
     }
     const calibration=await (await fetch('./data/calibration.json')).json();
     const chess=new Chess(),game=new Chess(),positions=[{fen:chess.fen()}];
@@ -132,25 +138,9 @@ try {
       const played=chess.move({from:move.from,to:move.to,promotion:move.promotion});
       positions.push({...played,fen:chess.fen()});
     }
-    for(const [mode,label] of [['moves','Moves only'],['context','Use recorded rating']]) {
-      const previousKey=saved.settingsKey;
-      ratingSection().querySelector('.lib-dd-btn').click();
-      [...ratingSection().querySelectorAll('.lib-dd-opt')].find(button=>button.textContent===label).click();
-      for(let i=0;i<250;i++) {
-        await wait(100);
-        const next=(await browserAPI.storage.local.get('analysis:'+id))['analysis:'+id];
-        if(next?.settingsKey!==previousKey){saved=next;break;}
-      }
-      const stored=(await browserAPI.storage.local.get('settings')).settings;
-      if(stored.ratingMode!==mode||saved.settingsKey===previousKey)throw Error('Rating mode did not persist/reanalyze for '+key);
-      if(ratingSection().querySelector('.lib-dd-cur').textContent!==label)throw Error('Rating mode display stale for '+key);
-      if(key==='sf19lite') {
-        const scores=calibratedReview(positions,saved.bests,calibration,{w:{rating:1500},b:{rating:1800}},mode);
-        if(['w','b'].some(color=>scores[color].ratingMethod!==mode||!Number.isFinite(scores[color].rating)))throw Error('SF19 rating mode not honored by real evidence');
-        await report({step:'real-rating-mode',key,mode,ratings:{w:scores.w.rating,b:scores.b.rating}});
-      }
-    }
-    await report({step:'rating-controls',key,labels,persistedModes:['moves','context']});
+    const scores=calibratedReview(positions,saved.bests,calibration);
+    if(['w','b'].some(color=>!Number.isFinite(scores[color].accuracy)))throw Error('Review accuracy missing');
+    await report({step:'accuracy',key,accuracy:{w:scores.w.accuracy,b:scores.b.accuracy}});
     if(key==='sf19') {
       frame.contentWindow.__smokeResponsive();
       const sizes=[[1920,920],[1366,648],[1280,600],[1470,836],[1024,648],[820,648],[768,900],[390,844],[320,640]];
@@ -240,7 +230,7 @@ try {
     throw Error('Reset review did not render');
   };
   const defaults=await preferences();
-  for(const [key,value] of Object.entries({boardTheme:'maple',pieceStyle:'image',coach:'old_soviet',soundVolume:50,enginePath:'sf19'})) {
+  for(const [key,value] of Object.entries({boardTheme:'green',pieceStyle:'image',coach:'old_soviet',soundVolume:50,enginePath:'sf19'})) {
     if(defaults.settings[key]!==value)throw Error('Reset default incorrect: '+key);
   }
   if(defaults.layoutMode!=='auto')throw Error('Reset review retained custom layout');
@@ -260,7 +250,7 @@ try {
   await browserAPI.storage.local.set({'job:reset-smoke':resetJob});
   resetFrame.src='analysis.html#reset-smoke';
   const retried=await preferences();
-  if(retried.settings.boardTheme!=='maple'||retried.settings.soundVolume!==50)throw Error('Review startup failed to recover the reset');
+  if(retried.settings.boardTheme!=='green'||retried.settings.soundVolume!==50)throw Error('Review startup failed to recover the reset');
   if(!(await browserAPI.storage.local.get('library')).library.find(game=>game.id===library[0].id)?.fav)throw Error('Favorite flag lost after startup recovery');
   resetFrame.remove();
   await report({step:'one-time-release-reset',preservedUsername:true,preservedGamesAndFavorites:true,preservedAnalyses:true,defaultsRendered:true,customizationsRetained:true,backgroundAndPageCoordination:true,startupRecovery:true});
@@ -269,6 +259,7 @@ try {
 `);
     if(release.browser==='chrome'){
       const profile=await fs.mkdtemp(path.join(artifacts,'smoke-chrome-profile-'));
+      temporaryPaths.push(profile);
       chromeProcess=spawn(process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',[
         '--headless=new','--no-first-run','--no-default-browser-check','--remote-debugging-port=0',
         '--enable-unsafe-extension-debugging',`--user-data-dir=${profile}`,'about:blank'],{windowsHide:true,stdio:'ignore'});
@@ -293,4 +284,9 @@ try {
   await fs.writeFile(path.join(reportDir,'browser-smoke-results.json'),JSON.stringify([...reports.values()],null,2));
 } finally {
   ws?.close();chromeProcess?.kill();if(firefoxRunner)await firefoxRunner.exit();server.close();
+  await sleep(600);
+  for(const dir of temporaryPaths) {
+    if(path.dirname(dir)!==artifacts || !path.basename(dir).startsWith('smoke-'))throw Error('Unexpected smoke cleanup path');
+    await fs.rm(dir,{recursive:true,force:true,maxRetries:6,retryDelay:200});
+  }
 }

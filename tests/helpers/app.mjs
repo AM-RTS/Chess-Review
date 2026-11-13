@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import { JSDOM } from 'jsdom';
 import { Chess } from '../../lib/chess.js';
+import {SAC_VAL,exchangeGain,isSacrifice} from '../../lib/sacrifice.js';
 import { flagCodeForCountryId, countryNameForId } from '../../flags.js';
 import { BADGE_FONTS, MOVE_GRADE_CONFIG, moveGrade, gradeText, gradeLabel, gradeSvg } from '../../move-grades.js';
 import { CATEGORY_LABEL_FONT, categoryLabelPng } from '../../lib/category-label.js';
@@ -39,7 +40,7 @@ export function app(t, {hardware} = {}) {
     window: dom.window, document: dom.window.document, navigator: dom.window.navigator, LearningWorkspace,
     location: dom.window.location, Node: dom.window.Node, HTMLElement: dom.window.HTMLElement,
     getComputedStyle: dom.window.getComputedStyle, performance, structuredClone,
-    URL, TextEncoder, btoa, console, Chess, flagCodeForCountryId, countryNameForId, browserAPI,
+    URL, TextEncoder, btoa, console, Chess, SAC_VAL, exchangeGain, isSacrifice, flagCodeForCountryId, countryNameForId, browserAPI,
     BADGE_FONTS, MOVE_GRADE_CONFIG, moveGrade, gradeText, gradeLabel, gradeSvg,
     CATEGORY_LABEL_FONT, categoryLabelPng,
     expectedPoints, SF19_OUTCOME, calibratedReview, scoringEvidenceComplete, analyseCalibratedPosition,

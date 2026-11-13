@@ -2,14 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {app,loadGame,settle} from './helpers/app.mjs';
 function review(t,pgn='1. e4 e5'){const a=app(t);loadGame(a,pgn);a.call('computeDerived');a.call('buildUI');a.call('renderAll');a.replace('requestLiveEval',()=>{});return a;}
-test('review has no typed move field and Tab does not traverse review sections',async t=>{
+test('review controls support normal Tab traversal without a typed move field',async t=>{
   const a=review(t),doc=a.dom.window.document;
   assert.equal(doc.querySelector('.review-move-entry'),null);
   a.state.practice={spots:[1],i:0,solving:true};a.call('renderEngineCurrent');assert.equal(doc.querySelector('.review-move-entry'),null);a.state.practice=null;
   const event=()=>new a.dom.window.KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true});
-  const mainTab=event();doc.body.dispatchEvent(mainTab);assert.equal(mainTab.defaultPrevented,true);
+  const mainTab=event();doc.body.dispatchEvent(mainTab);assert.equal(mainTab.defaultPrevented,false);
   await a.call('toggleSettings');const settingsTab=event();doc.querySelector('.set-tab').dispatchEvent(settingsTab);assert.equal(settingsTab.defaultPrevented,false);
-  assert.ok([...doc.querySelectorAll('.lib-tab,.lc-open,.lc-fav,.engine-line.clickable')].every(n=>n.tabIndex===-1));
+  assert.ok([...doc.querySelectorAll('.lib-tab,.lc-open,.lc-fav,.engine-line.clickable')].every(n=>n.tabIndex===0));
 });
 test('promotion picker supports cancellation and explicit rook selection',t=>{
   const a=review(t,'[SetUp "1"]\n[FEN "8/k1P5/2K5/8/8/8/8/8 w - - 0 1"]\n\n1. Kb5'),doc=a.dom.window.document;

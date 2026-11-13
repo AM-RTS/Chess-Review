@@ -37,6 +37,9 @@ live session clears this cache. Unsearched positions still receive fresh analysi
 Analysis and panel lines default to two, with two as the minimum configurable
 value. Both engines use two analysis lines by default.
 
+The [Lichess comparison and implementation tracker](docs/LICHESS_COMPARISON.md)
+records adopted improvements, verification and deliberately deferred migrations.
+
 Great candidates automatically receive a separate two-line verification when a
 best, high-quality move may be the only good option, including defensive resources
 without a preceding opponent error. A unique forced-mate move can qualify even when the runner-up is still winning.
