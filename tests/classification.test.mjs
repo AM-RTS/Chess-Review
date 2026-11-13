@@ -182,3 +182,16 @@ test('a clearly winning runner-up prevents Great for either side',t=>{
     const v=branch(a);a.call('classifyVariationMoves');assert.equal(v.positions[ply].classif,'best');
   }
 });
+
+
+for(const engine of ['sf19','sf19lite'])for(const color of ['w','b'])test(engine+' '+color+': a minor disadvantage becoming forced mate is Blunder',t=>{
+ const a=app(t),sign=color==='w'?1:-1;
+ for(const before of [-199,-100,-20,0,100]){
+  const evals=color==='w'?[{cp:before},{mate:-3}]:[{cp:before},{cp:before},{mate:-3}];
+  const S=loadGame(a,color==='w'?'1. e4':'1. e4 e5',evals.map(e=>e.mate!=null?{mate:e.mate*sign}:{cp:e.cp*sign}));
+  S.settings.enginePath=engine;a.call('computeDerived');const ply=color==='w'?1:2;
+  assert.equal(S.classif[ply],'blunder');
+  const v=branch(a);a.call('classifyVariationMoves');assert.equal(v.positions[ply].classif,'blunder');
+  S.analysisMode=false;S.variation=null;
+ }
+});

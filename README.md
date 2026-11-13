@@ -47,6 +47,7 @@ Both Great and Brilliant reject clearly losing results, using the existing clear
 advantage threshold (2 pawns by default) from the mover's perspective. A result
 at or below -2 pawns does not qualify; a minor disadvantage can still qualify
 when the other conditions hold. A losing forced-mate score never qualifies.
+Allowing a new forced mate against the mover is Blunder, including from a minor disadvantage.
 Both are available in reviews and live analysis. Brilliant
 retains priority; Great verification never replaces accuracy evidence.
 

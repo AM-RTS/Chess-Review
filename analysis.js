@@ -1294,7 +1294,6 @@ function classifyMove(i, mover, isTop, book, sac, std, loss, wpDrop, state = S) 
 
   if (notMateRel && std[i] === "inacc" && loss[i] >= ML && losingAdvAt(i)) return "mistake";                 // lost a clear advantage
   if (notMateRel && std[i] === "inacc" && loss[i] >= ML && givingAdvAt(i)) return "mistake";                 // handed over a clear advantage
-  if (!mate(i - 1) && mate(i) && !winningNow && (evalFor(i - 1) ?? 0) > -CA) return "mistake";               // walked into a mate (wasn't already lost)
   if (!mate(i - 1) && mate(i) && !winningNow) return "blunder";                                              // walked into a mate
   if (mate(i - 1) && mate(i) && !winningNow && prevWinning) return "blunder";                                // threw a win straight into a mate
 
