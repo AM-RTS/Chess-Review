@@ -973,14 +973,20 @@ function annotationPair(i, state) {
       if (!legal.includes(first) || !legal.includes(played)) return null;
     } catch { return null; }
   }
-  const best = top?.score || (state.evals[i - 1] && relative(state.evals[i - 1]));
+  let best = top?.score || (state.evals[i - 1] && relative(state.evals[i - 1]));
   let after = actual?.score || (state.evals[i] && relative(state.evals[i]));
   const child = state.bests[i], continuation = child?.lines?.find(line => line.multipv === 1);
+  const childExact = continuation?.bound === "exact" && Number.isInteger(continuation.depth)
+    && continuation.pv?.split(" ")[0] === child.bestmove && valid(continuation.score);
+  // Live history backfill can restart shallower than an already searched continuation.
+  if (actual && childExact && continuation.depth > actual.depth) {
+    const score = continuation.score;
+    after = score.mate != null ? {mate: score.mate < 0 ? 1 - score.mate : -score.mate} : {cp: -score.cp};
+    if (root.bestmove === played) best = after;
+  }
   // A newer exact continuation can shorten a stale candidate's mate; count the move just played.
-  if (actual?.score?.mate > 0 && continuation?.bound === "exact"
-    && Number.isInteger(continuation.depth) && continuation.depth >= actual.depth
-    && continuation.pv?.split(" ")[0] === child.bestmove
-    && valid(continuation.score) && continuation.score.mate < 0) {
+  else if (actual?.score?.mate > 0 && childExact && continuation.depth >= actual.depth
+    && continuation.score.mate < 0) {
     after = { mate: Math.min(after.mate, 1 - continuation.score.mate) };
   }
   return valid(best) && valid(after) ? {best, played: after, paired: false} : null;
