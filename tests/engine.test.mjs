@@ -200,6 +200,19 @@ test('setup-FEN history retains underpromotion and rejects a mismatched or malfo
   assert.throws(()=>positionCommand(chess.fen(),{initialFen,moves:['a7a8n\ngo infinite']}),/Invalid history move/);
 });
 
+test('live searches keep engine memory while cold scoring still resets it', async t => {
+  const eng=engine(t),fen=new Chess().fen();
+  const resets=()=>eng.worker.commands.filter(cmd=>cmd==='ucinewgame').length;
+  for(let i=0;i<2;i++) {
+    const pending=eng.analyse(fen,8,2);await Promise.resolve();
+    eng.worker.line('info depth 8 score cp 20 pv e2e4');eng.worker.line('bestmove e2e4');await pending;
+  }
+  assert.equal(resets(),1,'initialize once, retain memory for subsequent live searches');
+  const pending=eng.analyse(fen,8,2,null,null,{cold:true});await Promise.resolve();
+  assert.equal(resets(),2);assert.ok(eng.worker.commands.includes('setoption name Clear Hash'));
+  eng.worker.line('readyok');eng.worker.line('info depth 8 score cp 20 pv e2e4');eng.worker.line('bestmove e2e4');await pending;
+});
+
 test('cold restricted scoring waits for readyok, retains exact WDL and honors the node budget', async t => {
   const eng = engine(t), fen = new Chess().fen();
   const pending = eng.analyse(fen, 16, 1, {initialFen: fen, moves: []}, null,

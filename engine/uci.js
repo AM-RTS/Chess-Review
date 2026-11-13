@@ -167,6 +167,7 @@ export class Engine {
     if (!line || this.dead) return;
     if (line.startsWith("id name ")) this.identity = line.slice(8);
     if (line.includes("uciok")) {
+      this._send("ucinewgame");
       this._send("isready");
       return;
     }
@@ -260,8 +261,8 @@ export class Engine {
       this.multipv = this.current.multipv;
       this._send(`setoption name MultiPV value ${this.multipv}`);
     }
-    this._send("ucinewgame");
     if (job.cold) {
+      this._send("ucinewgame");
       this._send("setoption name Clear Hash");
       job.awaitingReady = true;
       this._send("isready");

@@ -2941,6 +2941,12 @@ async function playBestMoves() {
   }
   if (token === S.bestWalkToken) { S.bestWalking = false; renderControls(); renderEngineCurrent(); }
 }
+const liveEvalCache = new Map();
+function liveEvalKey(v, idx) {
+  return JSON.stringify([S.liveEngine?.buildKey || S.engineFallbackBuild || S.settings.enginePath,
+    S.settings.engineDepth, S.settings.engineHash, S.settings.engineSkill, S.settings.engineLines,
+    variationSearchHistory(v, idx)]);
+}
 // Live analysis of the current variation position (its own engine instance, so the batch isn't disturbed).
 async function requestLiveEval() {
   const token = ++S.liveToken; // navigation always invalidates pending work, even on cache hits
@@ -2958,13 +2964,20 @@ async function requestLiveEval() {
     // The classifier looks back up to three moves, requiring four prior positions.
     const missing = [];
     for (let i = idx; i >= Math.max(0, idx - 4); i--) {
-      if (!v.positions[i].best || !v.positions[i].eval) missing.push(i);
+      const node = v.positions[i], key = liveEvalKey(v, i), terminal = variationTerminal(v, i);
+      if (!node.best || !node.eval || (node._liveEvalKey && node._liveEvalKey !== key)
+        || (!!terminal !== (node.best.bestmove === null))) {
+        const saved = !terminal && liveEvalCache.get(key);
+        if (saved) Object.assign(node, structuredClone(saved));
+        else missing.push(i);
+      }
     }
     let eng;
     if(missing.length) eng=await ensureLiveEngine();
     if (!valid()) return;
     for (const i of missing) {
       const node = v.positions[i];
+      const key = liveEvalKey(v, i);
       const terminal = variationTerminal(v, i);
       const res = terminal ? { score: terminal, bestmove: null, pv: "", lines: [] }
         : await eng.analyse(node.fen, S.settings.engineDepth, S.settings.engineLines, variationSearchHistory(v, i), preview => {
@@ -2972,10 +2985,15 @@ async function requestLiveEval() {
           node.searchPreview = preview; node.searchPreviewToken = token;
           refreshVariation();
         });
-      if (!valid()) return;
+      if (!valid() || key !== liveEvalKey(v, i)) return;
       node.eval = terminal || whiteRel(res.score, node.fen);
       node.best = res;
+      node._liveEvalKey = key;
       node.searchPreview = null;
+      if (!terminal) {
+        if (liveEvalCache.size >= 128) liveEvalCache.delete(liveEvalCache.keys().next().value);
+        liveEvalCache.set(key, structuredClone({eval:node.eval, best:res, _liveEvalKey:key}));
+      }
       refreshVariation();
     }
     const state=classifyVariationMoves();
@@ -3006,6 +3024,7 @@ function invalidateVariationEvals() {
 }
 
 function resetLiveEngine() {
+  liveEvalCache.clear();
   S._lastEngineLines = null;
   S._panelCache = null;
   S.liveToken++; S.panelToken++; S.liveEngineGeneration++;

@@ -29,6 +29,10 @@ Use **Load position or game** for FEN/PGN input, **Reset board** for a fresh boa
 and **Copy FEN / Copy PGN** to export. Reload restores that tab's explored line and
 selected move. Live feedback can change while Stockfish searches; this mode does
 not generate game accuracy or save experiments to the library.
+The live engine keeps its search memory across related moves. Up to 128 completed
+position results are reused within the tab, including replayed engine lines;
+reuse requires matching move history, engine and search settings. Resetting the
+live session clears this cache. Unsearched positions still receive fresh analysis.
 
 Analysis and panel lines default to two, with two as the minimum configurable
 value. Both engines use two analysis lines by default.
