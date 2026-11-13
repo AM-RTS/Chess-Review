@@ -202,6 +202,9 @@ try {
     }
     if(frame.contentDocument===previousDocument||!frame.contentDocument?.querySelector('.board')
       ||!frame.contentDocument.querySelector('#error').hidden)throw Error('Review reload lost its game for '+key);
+    const restoredLines=frame.contentDocument.querySelector('[aria-label="Explored lines"]');
+    if(!restoredLines || ![...restoredLines.options].some(option=>option.textContent.includes('d4 d5')))
+      throw Error('Review reload lost explored lines for '+key);
     await report({step:'review-reload',key});
     frame.remove();
   }

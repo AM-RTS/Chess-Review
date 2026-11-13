@@ -17,6 +17,9 @@ storage, scoring, practice, accessibility and tests. This was not a backend audi
   Manual moves, engine-line playback and best-move playback preserve replaced
   continuations. Switching restores evaluations and the previous selected move;
   settings changes invalidate saved evaluations. Loading another game clears lines.
+- [x] Persist explored lines and completed evaluations with library reviews. Reopen
+  or reload restores them; changed settings retain moves but clear incompatible
+  evidence. Malformed lines are ignored without blocking the recorded game.
 
 ## Comparison and decisions
 
@@ -28,8 +31,9 @@ storage, scoring, practice, accessibility and tests. This was not a backend audi
 2. **Variations.** Lichess keeps children on move-tree nodes; ours truncates a
    continuation when branching. The implemented first version keeps line snapshots
    and offers a selector, reusing existing navigation and grading. A full tree UI,
-   multi-variation PGN import/export and reload persistence remain deferred.
-   Copy PGN exports the selected standalone line; retained alternatives are tab-local.
+   multi-variation PGN import/export remain deferred. Library alternatives now
+   persist locally; standalone-board alternatives remain tab-local.
+   Copy PGN exports the selected standalone line.
 3. **Board.** Chessground is a standalone reusable board with dragging, arrows,
    resizing and movement/fading animations. Evaluate it before adding substantial
    custom board machinery. Adoption is deferred until our badge overlays and
@@ -40,8 +44,8 @@ storage, scoring, practice, accessibility and tests. This was not a backend audi
    keyboard traversal now; a full nonvisual board is a separate feature.
 6. **Persistence.** Lichess stores eligible local evaluations in IndexedDB by
    analysis identity and path (synthetic imports are excluded). Our live cache is
-   intentionally tab-local. Persistent explored analysis is deferred with the tree
-   model; no second storage architecture is needed merely to keep a cache.
+   tab-local for standalone boards. Library reviews now persist explored lines in
+   their existing analysis record; no second storage architecture was introduced.
 7. **Scoring.** SF19 move accuracy already uses the Lichess-style curve. Lichess
    combines volatility-weighted and harmonic means; we use ordinary and harmonic
    means. Keep this documented difference. Lichess live annotation labels errors;
@@ -58,6 +62,10 @@ storage, scoring, practice, accessibility and tests. This was not a backend audi
 - [Chessground](https://github.com/lichess-org/chessground/tree/b4f605018e1043640c917e82a74b214cb58e4a05)
 
 ## Verification
+
+- Persistence follow-up: all 638 app tests passed. Added library-reopen/no-search,
+  incompatible-settings and damaged-line tests. Chrome smoke passed explored-line
+  restoration on reload with both SF19 and Lite.
 
 - All 632 app tests passed, including classification, cache, keyboard and modal tests.
 - `node scripts/browser-smoke.mjs --working-tree chrome` passed with real SF19 and

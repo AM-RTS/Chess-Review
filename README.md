@@ -35,7 +35,9 @@ reuse requires matching move history, engine and search settings. Resetting the
 live session clears this cache. Unsearched positions still receive fresh analysis.
 Exploring another move retains the previous continuation. Use **Explored lines**
 beside navigation to switch back, including after returning to the recorded game.
-These lines stay in memory until a new game/board is loaded or the tab reloads.
+Completed library reviews save these lines and their completed analysis locally;
+reopening the game restores the selector. Changed search settings retain the moves
+and invalidate incompatible evaluations. Standalone-board alternatives remain in memory.
 Copy PGN exports the selected standalone line, including its continuation.
 
 Analysis and panel lines default to two, with two as the minimum configurable

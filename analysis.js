@@ -2861,6 +2861,7 @@ async function requestLiveEval() {
   const token = ++S.liveToken; // navigation always invalidates pending work, even on cache hits
   if (!S.analysisMode || !S.variation) return;
   const v = S.variation, idx = v.idx, pos = v.positions[idx];
+  if (!S.standalone) saveToLibrary();
   if(S.standalone) rememberReviewJob();
   const valid = () => token === S.liveToken && S.analysisMode && S.variation === v
     && v.idx === idx && v.positions[idx] === pos;
@@ -2917,6 +2918,7 @@ async function requestLiveEval() {
       if (node.searchPreviewToken === token) node.searchPreview = null;
     }
     if (valid()) refreshVariation();
+    if (valid() && !S.standalone) saveToLibrary();
   }
 }
 
@@ -3202,6 +3204,40 @@ function rememberVariation() {
   saved.idx = Math.max(1, saved.idx);
   for (const node of saved.positions) node.searchPreview = null;
   exploredVariations.set(variationKey(v), saved);
+  if (!S.standalone) saveToLibrary();
+}
+function savedVariations() {
+  const lines = new Map(exploredVariations);
+  if (S.variation?.positions.length > 1) lines.set(variationKey(S.variation), S.variation);
+  return {settingsKey:analysisSettingsKey(), lines:[...lines.values()].map(v=>({
+    branchIdx:v.branchIdx, idx:v.idx, positions:v.positions.map(p=>({...p,searchPreview:null}))
+  }))};
+}
+function restoreVariations(saved) {
+  if (!Array.isArray(saved?.lines)) return;
+  const validScore = score => score?.mate != null ? Number.isInteger(score.mate) && score.mate !== 0 : Number.isFinite(score?.cp);
+  for (const line of saved.lines) {
+    try {
+      if (!Number.isInteger(line.branchIdx) || line.branchIdx < 0 || line.branchIdx > S.total
+        || !Array.isArray(line.positions) || line.positions.length < 2
+        || line.positions[0].fen !== S.positions[line.branchIdx].fen) continue;
+      const v = structuredClone(line), chess = new Chess(v.positions[0].fen);
+      for (const node of v.positions.slice(1)) {
+        const move = chess.move({from:node.from,to:node.to,promotion:node.promotion || undefined});
+        if (chess.fen() !== node.fen) throw Error('Invalid saved line');
+        node.san = move.san; node.color = move.color;
+        node.captured = move.captured || ""; node.promotion = move.promotion || "";
+      }
+      v.idx = Number.isInteger(v.idx) ? Math.max(1,Math.min(v.idx,v.positions.length-1)) : 1;
+      for (const node of v.positions) {
+        node.searchPreview = null;
+        if (saved.settingsKey !== analysisSettingsKey() || !validScore(node.eval) || !validScore(node.best?.score)) {
+          node.eval = null; node.best = null; node.classif = null; node.moveGrade = null;
+        }
+      }
+      exploredVariations.set(variationKey(v),v);
+    } catch { /* A damaged alternative must not prevent opening the recorded game. */ }
+  }
 }
 function truncateVariation() {
   const v = S.variation;
@@ -6135,6 +6171,7 @@ function saveToLibrary() {
     const analysis = {
       pgn: S.pgn, settingsKey: analysisSettingsKey(S.analyzedSettings || S.settings), engineBuild: S.activeEngineBuild,
       evals: S.evals, bests: S.bests, multipv: S.analyzedMultipv,
+      variations: savedVariations(),
     };
     // Before library collision resolution, distinct PGNs may share the short ID.
     const pendingKey = S.meta.gameId ? "game:" + id : "pgn:" + S.pgn;
@@ -6649,6 +6686,7 @@ async function applyGame(payload) {
     S.progress = S.total;
     S.completed = S.total;
   }
+  if (!standalone && saved?.pgn === S.pgn) restoreVariations(saved.variations);
 
   if(standalone){
     S.analyzing=false;S.analysisMode=true;
