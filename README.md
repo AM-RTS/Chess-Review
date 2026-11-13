@@ -21,6 +21,11 @@ one-second ease-in fill transition, following board orientation. Single-step rev
 share the same animation path. Drag releases avoid replaying the slide; reduced
 motion and the existing animation toggle remain supported. Finished positions
 show 1-0, 0-1, or Draw in the evaluation labels; mate still ahead remains #N.
+Settings → Visual → Move animation includes an enabled-by-default Great / Brilliant
+effects toggle and a 0.5×–2× speed control. Badges and classifications remain visible
+when these effects are disabled. Backward steps animate pieces and special feedback.
+Checkmate shows red losing-king and green winner/crown feedback that settles into
+corner symbols; reduced motion keeps the static symbols.
 
 **Analysis** in the review header or **Open analysis board** in the extension popup
 opens an independent starting board. Play either side, undo/redo or branch from an

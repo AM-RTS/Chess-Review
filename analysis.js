@@ -327,7 +327,7 @@ const DEFAULT_SETTINGS = {
   // "Show the threat": a yellow arrow with the opponent's best move as if it were their turn.
   showThreat: false,
   // Move animation: 1 = slow, 10 = fast; default 7 matches the 180ms reference slide.
-  moveAnim: true, animSpeed: 7,
+  moveAnim: true, animSpeed: 7, specialMoveAnim: true, specialMoveSpeed: 1,
   learningTransition: "morph",
   // Loading animation while the analysis runs (selectable style).
   loaderStyle: "wave",
@@ -2076,10 +2076,10 @@ function paintBoard(transition = null) {
   const boardEl = UI.boardWrap.querySelector(".board");
   const samePosition = boardEl?.dataset.fen === pos.fen;
   if (!samePosition) {
-    for (const node of UI.boardWrap.querySelectorAll(".piece, .piece-svg, .piece-img, .sq-badge, .capture-ghost, .move-feedback-square")) {
+    for (const node of UI.boardWrap.querySelectorAll(".piece, .piece-svg, .piece-img, .sq-badge, .capture-ghost, .move-feedback-square, .mate-marker, .mate-highlight")) {
       pieceAnimations.delete(node);
       node.getAnimations?.().forEach(animation => animation.cancel());
-      if (node.matches(".capture-ghost, .move-feedback-square")) node.remove();
+      if (node.matches(".capture-ghost, .move-feedback-square, .mate-marker, .mate-highlight")) node.remove();
     }
     UI.boardWrap.querySelectorAll(".anim-top").forEach(square => square.classList.remove("anim-top"));
     if (boardEl) boardEl.dataset.fen = pos.fen;
@@ -2179,9 +2179,10 @@ function paintBoard(transition = null) {
       const square = occ[move.to] ? move.to : move.to[0] + move.from[1];
       sqByName[square]?.querySelector(".piece, .piece-svg, .piece-img")?.animate?.([{opacity: 0}, {opacity: 1}], {duration, easing: "ease-in-out"});
     }
-    if (!reverse) animateBoardFeedback(sqByName[move.to]?.querySelector(".sq-badge"));
+    animateBoardFeedback(sqByName[reverse ? pos.to : move.to]?.querySelector(".sq-badge"));
   } else if (newFeedback) animateBoardFeedback(newFeedback);
 
+  paintCheckmate(pos, motion && !samePosition);
   syncBoardBadgeLabel();
   renderBestArrow();
   renderUserArrows();
@@ -2984,7 +2985,8 @@ function exitAnalysis(mainIdx) {
 /* ---------------- Move animation ----------------
    Native board slides use the reference's 180ms default and ease-in-out curve. */
 function animateBoardFeedback(badge) {
-  if (!badge?.animate) return;
+  if (!badge?.animate || !S.settings.specialMoveAnim || reducedBoardMotion()) return;
+  const duration = 1300 / Math.max(.5, Math.min(2, Number(S.settings.specialMoveSpeed) || 1));
   for (const old of badge.parentElement.querySelectorAll(".move-feedback-square")) {
     old.getAnimations?.().forEach(animation => animation.cancel());
     old.remove();
@@ -3005,18 +3007,18 @@ function animateBoardFeedback(badge) {
     {opacity: 1, transform: `${origin} scale(${scale})`, offset: 3 / 13},
     {opacity: 1, transform: `${origin} scale(${scale})`, offset: 10 / 13, easing: "ease-in-out"},
     {opacity: 1, transform: "none", offset: 1},
-  ], {duration: 1300, easing: "linear"});
+  ], {duration, easing: "linear"});
   const artwork = badge.querySelector("svg image");
   if (S.settings.badgeDesign === "chesseditpack" && artwork?.animate) {
     const glyph = artwork.cloneNode(false);
     glyph.classList.add("move-feedback-glyph");
     glyph.setAttribute("href", _url(`icons/chesseditpack/${badge.dataset.category === "great" ? "great_find" : "brilliant"}-glyph.svg`));
     artwork.parentElement.append(glyph);
-    artwork.animate([{opacity: 0, offset: 0}, {opacity: 0, offset: 10 / 13}, {opacity: 1, offset: 1}], {duration: 1300});
-    const fade = glyph.animate([{opacity: 1, offset: 0}, {opacity: 1, offset: 10 / 13}, {opacity: 0, offset: 1}], {duration: 1300});
+    artwork.animate([{opacity: 0, offset: 0}, {opacity: 0, offset: 10 / 13}, {opacity: 1, offset: 1}], {duration});
+    const fade = glyph.animate([{opacity: 1, offset: 0}, {opacity: 1, offset: 10 / 13}, {opacity: 0, offset: 1}], {duration});
     fade.finished.catch(() => {}).then(() => glyph.remove());
     piece?.animate?.([{opacity: 1, offset: 0}, {opacity: .2, offset: 3 / 13},
-      {opacity: .2, offset: 10 / 13}, {opacity: 1, offset: 1}], {duration: 1300});
+      {opacity: .2, offset: 10 / 13}, {opacity: 1, offset: 1}], {duration});
   }
   const flash = el("span", {class: "move-feedback-square", "aria-hidden": "true",
     style: {background: `var(--q-${badge.dataset.category})`}});
@@ -3024,8 +3026,36 @@ function animateBoardFeedback(badge) {
   const animation = flash.animate([
     {opacity: 0, offset: 0}, {opacity: .8, offset: 3 / 13},
     {opacity: .8, offset: 10 / 13}, {opacity: 0, offset: 1},
-  ], {duration: 1300, easing: "linear"});
+  ], {duration, easing: "linear"});
   animation.finished.catch(() => {}).then(() => flash.remove());
+}
+function paintCheckmate(pos, animate) {
+  const chess = new Chess(pos.fen);
+  if (!chess.isCheckmate()) return;
+  for (const king of chess.board().flat().filter(p=>p?.type==="k")) {
+    const square = sqByName[king.square];
+    if (!square || square.querySelector(".mate-marker")) continue;
+    const lost = king.color === chess.turn(), title = lost ? "Checkmate" : "Winner";
+    const symbol = el("span", {class:"mate-symbol", "aria-hidden":"true"});
+    if (lost) {
+      const piece = square.querySelector(".piece, .piece-svg, .piece-img")?.cloneNode(true);
+      if (piece) {piece.removeAttribute("style");piece.setAttribute("class","mate-king");symbol.append(piece);}
+    } else symbol.innerHTML = '<svg viewBox="0 0 32 32"><path fill="white" d="M4 9l7 6 5-10 5 10 7-6-3 17H7z"/></svg>';
+    const label = el("span", {class:"mate-label"}, title);
+    const highlight = el("span", {class:"mate-highlight "+(lost?"mate-loser":"mate-winner"), "aria-hidden":"true"});
+    const marker = el("span", {class:"mate-marker "+(lost?"mate-loser":"mate-winner"), "aria-label":title}, label, symbol);
+    square.append(highlight,marker);
+    if (animate && marker.animate) {
+      marker.animate([{transform:"translate(-75%, 100%) scale(1.7)",opacity:0,offset:0},
+        {transform:"translate(-75%, 100%) scale(1.7)",opacity:1,offset:3/13},
+        {transform:"translate(-75%, 100%) scale(1.7)",opacity:1,offset:10/13},
+        {transform:"none",opacity:1,offset:1}],{duration:1300,easing:"ease-in-out"});
+      label.animate?.([{opacity:0},{opacity:1,offset:3/13},{opacity:1,offset:10/13},{opacity:0}],{duration:1300});
+      highlight.animate?.([{opacity:0},{opacity:.85,offset:3/13},{opacity:.85,offset:10/13},{opacity:.18}],{duration:1300});
+      const piece = square.querySelector(":scope > .piece, :scope > .piece-svg, :scope > .piece-img");
+      piece?.animate?.([{opacity:1},{opacity:.2,offset:3/13},{opacity:.2,offset:10/13},{opacity:1}],{duration:1300});
+    }
+  }
 }
 function reducedBoardMotion() { return !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches; }
 function animDuration() { return 460 - S.settings.animSpeed * 40; }
@@ -4909,7 +4939,7 @@ const VISUAL_SETTING_KEYS = [
   "graphStyle", "barStyle", "insightFont", "showCoords", "coordSize", ...BACKGROUND_SETTING_KEYS,
   "coach", "coachPlain", "boardTheme", "pieceStyle", "boardCustomLight", "boardCustomDark",
   "sound", "soundVolume", "soundFx", ...ARROW_SETTING_KEYS,
-  "moveAnim", "animSpeed", "loaderStyle", "learningTransition",
+  "moveAnim", "animSpeed", "specialMoveAnim", "specialMoveSpeed", "loaderStyle", "learningTransition",
 ];
 function resetSettingKeys(keys) {
   for (const key of keys) S.settings[key] = structuredClone(DEFAULT_SETTINGS[key]);
@@ -5023,6 +5053,8 @@ function visualSettings() {
     ),
     section("Move animation",
       toggleRow("Animation", "moveAnim"),
+      toggleRow("Great / Brilliant effects", "specialMoveAnim"),
+      slider("Special effect speed", "specialMoveSpeed", 0.5, 2, 0.25, {fmt:v=>v+"×"}),
       slider("Speed", "animSpeed", 1, 10, 1, { fmt: (v) => (460 - v * 40) + " ms" }),
     ),
     section("Learning experience",
@@ -6357,7 +6389,7 @@ function go(to) {
   // stepping back onto a quiet move play the capture sound of whatever move had created that
   // position (e.g. back off g5 onto fxe5 buzzed a capture though only a pawn slid back).
   if (S.idx !== prev) { S.userArrows = []; S.userMarks = []; S.selectedSq = null; playMoveSound(S.idx > prev ? S.idx : prev); }
-  const transition = Math.abs(S.idx - prev) === 1 && !navFastScrub()
+  const transition = Math.abs(S.idx - prev) === 1 && (S.idx < prev || !navFastScrub())
     ? {move: S.positions[Math.max(S.idx, prev)], reverse: S.idx < prev} : null;
   paintBoard(transition);
   renderEvalBar();
@@ -6383,18 +6415,18 @@ function gotoVar(idx) {
   if (idx < 0 || idx >= v.positions.length) return;
   const previous = v.idx;
   v.idx = idx; S.selectedSq = null;
-  paintBoard(Math.abs(idx - previous) === 1 && !navFastScrub() ? {move: v.positions[Math.max(idx, previous)], reverse: idx < previous} : null); playSanSound(v.positions[v.idx]?.san); renderEvalBar(); renderPlayers(); renderControls();
+  paintBoard(Math.abs(idx - previous) === 1 && (idx < previous || !navFastScrub()) ? {move: v.positions[Math.max(idx, previous)], reverse: idx < previous} : null); playSanSound(v.positions[v.idx]?.san); renderEvalBar(); renderPlayers(); renderControls();
   renderReview(); renderMoves(); renderEngineCurrent(); requestLiveEval();
 }
 function variationStep(delta) {
   const v = S.variation; if (!v) return;
   const ni = v.idx + delta;
   if (ni <= 0 && S.standalone) { gotoVar(0); return; }
-  if (ni <= 0) { exitAnalysis(v.branchIdx); return; }   // back before the branch → exit mode
+  if (ni <= 0) { gotoVar(0); exitAnalysis(v.branchIdx); return; }
   if (ni >= v.positions.length) return;                  // no more variation moves
   v.idx = ni;
   S.selectedSq = null;
-  paintBoard(!navFastScrub() ? {move: v.positions[Math.max(ni, ni - delta)], reverse: delta < 0} : null);
+  paintBoard(delta < 0 || !navFastScrub() ? {move: v.positions[Math.max(ni, ni - delta)], reverse: delta < 0} : null);
   playSanSound((delta > 0 ? v.positions[v.idx] : v.positions[v.idx + 1])?.san);
   renderEvalBar(); renderPlayers(); renderControls(); renderReview(); renderEngineCurrent();
   requestLiveEval();

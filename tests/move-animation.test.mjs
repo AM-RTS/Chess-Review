@@ -24,6 +24,49 @@ function board(t,pgn) {
 }
 const slides=a=>a.animations.filter(n=>n.frames[0].transform?.startsWith('translate(')&&n.frames.at(-1).transform==='translate(0, 0)');
 
+test('special effects can be disabled and their speed scales every layer',t=>{
+ const a=board(t,'1. e4 e5');a.state.classif[1]='great';
+ assert.equal(a.state.settings.specialMoveAnim,true);
+ a.state.settings.specialMoveAnim=false;a.call('go',1);
+ assert.ok(a.dom.window.document.querySelector('.sq-badge'));assert.equal(a.dom.window.document.querySelector('.move-feedback-square'),null);
+ a.call('go',0);a.state.settings.specialMoveAnim=true;a.state.settings.specialMoveSpeed=2;a.call('go',1);
+ assert.ok(a.animations.some(n=>n.node.classList.contains('sq-badge')&&n.options.duration===650));
+ assert.equal(a.animations.find(n=>n.node.classList.contains('move-feedback-square')).options.duration,650);
+});
+test('special effect preferences persist through the normal settings path',async t=>{
+ const a=board(t,'1. e4');
+ await a.call('setSetting','specialMoveAnim',false);await a.call('setSetting','specialMoveSpeed',1.5);
+ assert.equal(a.store.settings.specialMoveAnim,false);assert.equal(a.store.settings.specialMoveSpeed,1.5);
+});
+test('checkmate retains static symbols with motion disabled',t=>{
+ const a=board(t,'1. f3 e5 2. g4 Qh4#');a.state.settings.moveAnim=false;a.call('go',4);
+ assert.equal(a.dom.window.document.querySelectorAll('.mate-marker').length,2);
+ assert.equal(a.animations.length,0);
+});
+
+test('backward navigation replays special feedback and is not suppressed by fast scrubbing',t=>{
+ const a=board(t,'1. e4 e5');a.state.classif[1]='brilliant';a.call('go',2);
+ a.replace('navFastScrub',()=>true);a.call('go',1);
+ assert.equal(slides(a).at(-1).node.dataset.piece,'bP');
+ assert.ok(a.animations.some(n=>n.node.classList.contains('sq-badge')));
+});
+
+test('backing out of the first review variation animates before returning to the game',t=>{
+ const a=board(t,'1. e4 e5');branch(a,0,1);a.call('paintBoard');a.replace('navFastScrub',()=>true);
+ a.call('navPrev');assert.equal(a.state.analysisMode,false);
+ assert.equal(slides(a).at(-1).node.dataset.piece,'wP');
+});
+
+for(const pgn of ['1. f3 e5 2. g4 Qh4#','1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7#'])test('checkmate marks both kings once and clears on undo: '+pgn,t=>{
+ const a=board(t,pgn);a.call('go',a.state.total);
+ const doc=a.dom.window.document,markers=[...doc.querySelectorAll('.mate-marker')];assert.equal(markers.length,2);
+ assert.ok(doc.querySelector('.mate-loser .mate-king'));assert.ok(doc.querySelector('.mate-winner svg'));
+ const count=a.animations.filter(n=>n.node.classList.contains('mate-marker')).length;
+ a.call('paintBoard');assert.ok(doc.querySelector('.mate-loser .mate-king'));
+ assert.equal(a.animations.filter(n=>n.node.classList.contains('mate-marker')).length,count);
+ a.call('go',a.state.total-1);assert.equal(doc.querySelectorAll('.mate-marker').length,0);
+});
+
 test('forward and reverse navigation use reference timing and easing',t=>{
  const a=board(t,'1. e4 e5');a.call('go',1);
  assert.equal(slides(a).length,1);assert.equal(slides(a)[0].options.duration,180);assert.equal(slides(a)[0].options.easing,'ease-in-out');
