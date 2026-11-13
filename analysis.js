@@ -4057,7 +4057,7 @@ function categoryLabel(cls) {
 }
 function renderStats() {
   if (S.standalone) {renderAnalysisTools(); return;}
-  const breakdownOpen = UI.stats.querySelector(".accuracy-breakdown")?.open || false;
+  const breakdownOpen = UI.stats.querySelector(".accuracy-breakdown")?.open ?? true;
   const opSide = S.meSide === "w" ? "b" : "w";
   const meAcc = S.acc[S.meSide], opAcc = S.acc[opSide];
   // Compact list by default; the expander arrow unfolds the whole list (incl. book moves).

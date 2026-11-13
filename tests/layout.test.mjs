@@ -55,7 +55,7 @@ for (const [width,height] of [[1920,1080],[1366,768],[1536,864],[1280,720],[2560
 test('graph and breakdown use native disclosures and retain their open state during refresh',t=>{
   const a=layout(t),doc=a.dom.window.document;
   const graph=doc.querySelector('.graph-disclosure'),breakdown=doc.querySelector('.accuracy-breakdown');
-  assert.equal(graph.open,false);assert.equal(breakdown.open,false);
+  assert.equal(graph.open,false);assert.equal(breakdown.open,true);
   graph.open=true;breakdown.open=true;
   a.call('renderGraph');a.call('renderStats');
   assert.equal(doc.querySelector('.graph-disclosure'),graph);
@@ -65,6 +65,8 @@ test('graph and breakdown use native disclosures and retain their open state dur
   assert.equal(doc.querySelectorAll('.qbreak-row').length,10);
   assert.equal(doc.querySelector('.accuracy-breakdown').open,true);
   assert.ok(doc.querySelector('.practice-btn'));assert.ok(doc.querySelector('.learn-entry-button'));
+  doc.querySelector('.accuracy-breakdown').open=false;a.call('renderStats');
+  assert.equal(doc.querySelector('.accuracy-breakdown').open,false);
 });
 
 test('hiding Concepts preserves commentary and learning in the insights group',t=>{
