@@ -2212,3 +2212,6 @@ button { font-family: inherit; cursor: pointer; }
 .standalone-analysis .mod[data-mod="coach"] { display: none; }
 .stage.auto.workspace-layout.standalone-analysis .insight-panel .ip-head,
 .stage.auto.workspace-layout.standalone-analysis .insight-panel .ip-opening { padding-right: 0; }
+.variation-picker { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; min-width: 0; font-size: 12px; }
+.variation-picker[hidden] { display: none; }
+.variation-picker select { width: 100%; min-width: 0; max-width: 100%; padding: 6px; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; }

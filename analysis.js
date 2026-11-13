@@ -2710,7 +2710,7 @@ function applyUserMove(from, to, animate = true, promotion = null) {
     S.analysisMode = true;
   } else {
     const v = S.variation;
-    v.positions = v.positions.slice(0, v.idx + 1);   // truncate on a new branch
+    truncateVariation();
     v.positions.push(node);
     v.idx = v.positions.length - 1;
   }
@@ -2741,7 +2741,7 @@ function playLine(pv) {
     S.analysisMode = true;
   } else {
     const v = S.variation;
-    v.positions = v.positions.slice(0, v.idx + 1);
+    truncateVariation();
   }
   const v = S.variation;
   const startIdx = v.idx; // the position the user was on when the line was clicked
@@ -2819,7 +2819,7 @@ async function playBestMoves() {
     };
     S.analysisMode = true;
   } else {
-    S.variation.positions = S.variation.positions.slice(0, S.variation.idx + 1); // play out from here
+    truncateVariation();
   }
   S.selectedSq = null;
   const token = ++S.bestWalkToken;
@@ -2928,8 +2928,8 @@ function refreshVariation() {
 }
 
 function invalidateVariationEvals() {
-  if (!S.variation) return;
-  for (const p of S.variation.positions) { p.eval = null; p.best = null; p.classif = null; p.moveGrade = null; p.searchPreview = null; }
+  for (const v of [S.variation, ...exploredVariations.values()].filter(Boolean))
+    for (const p of v.positions) { p.eval = null; p.best = null; p.classif = null; p.moveGrade = null; p.searchPreview = null; }
 }
 
 function resetLiveEngine() {
@@ -2972,6 +2972,7 @@ function exitAnalysis(mainIdx) {
   stopLineWalk();
   if (S.standalone) return;
   if (!S.analysisMode) { if (mainIdx != null) go(mainIdx); return; }
+  rememberVariation();
   S.analysisMode = false; S.variation = null; S.selectedSq = null; S.liveToken++;
   S.liveEngine?.cancelPending(); S.liveEngine?.stop();
   if (mainIdx != null) { go(mainIdx); return; }
@@ -3190,7 +3191,51 @@ function alignPlayers() {
 }
 
 /* ---------------- Controls ---------------- */
+const exploredVariations = new Map();
+function variationKey(v) {
+  return JSON.stringify([v.branchIdx, variationSearchHistory(v, v.positions.length - 1)]);
+}
+function rememberVariation() {
+  const v = S.variation;
+  if (!v || v.positions.length < 2) return;
+  const saved = structuredClone(v);
+  saved.idx = Math.max(1, saved.idx);
+  for (const node of saved.positions) node.searchPreview = null;
+  exploredVariations.set(variationKey(v), saved);
+}
+function truncateVariation() {
+  const v = S.variation;
+  if (v.idx < v.positions.length - 1) rememberVariation();
+  v.positions = v.positions.slice(0, v.idx + 1);
+}
+function selectVariation(key) {
+  const saved = exploredVariations.get(key);
+  if (!saved || S.practice) return;
+  const next = structuredClone(saved);
+  rememberVariation();
+  stopLineWalk();
+  if (S.autoTimer) {clearInterval(S.autoTimer); S.autoTimer = null;}
+  S.analysisMode = true; S.variation = next; S.selectedSq = null;
+  requestLiveEval();
+}
+function renderVariationPicker() {
+  if (!UI.variationPicker) {
+    UI.variationPicker = el("label", {class:"variation-picker"}, "Explored lines ");
+    UI.controls.before(UI.variationPicker);
+  }
+  const current = S.variation && variationKey(S.variation);
+  const choices = [...exploredVariations].filter(([key]) => key !== current);
+  UI.variationPicker.hidden = !!S.practice || choices.length === 0;
+  const signature = JSON.stringify([current, choices.map(([key]) => key)]);
+  if (UI.variationPicker.dataset.signature === signature) return;
+  UI.variationPicker.dataset.signature = signature;
+  const select = el("select", {"aria-label":"Explored lines", onchange:e=>selectVariation(e.target.value)},
+    el("option", {value:""}, S.analysisMode ? "Current line" : "Recorded game"),
+    ...choices.map(([key,v],i)=>el("option", {value:key}, `${i+1}: ${v.positions.slice(1).map(p=>p.san).join(" ")}`)));
+  UI.variationPicker.replaceChildren("Explored lines ", select);
+}
 function renderControls() {
+  renderVariationPicker();
   const mode = S.practice ? "practice" : S.standalone ? "standalone" : S.analysisMode && S.variation ? "variation" : "mainline";
   let refs = UI.controlRefs;
   // Progress updates can arrive between mouse-down and mouse-up. Keep the buttons
@@ -6555,6 +6600,7 @@ async function applyGame(payload) {
   clearDemoTimers(); removeMoveCallout();
   S.practice = null; S.practiceHint = null;
   S.analysisMode = false; S.variation = null; S.liveToken++;
+  exploredVariations.clear();
   S.selectedSq = null; S.userArrows = []; S.userMarks = []; S.lineWalking = false;
   revRefs = null; statsRefs = null; _lastCommentKey = -1; _ipSig = null; S._turnPly = null;
   S._lastEngineLines = null;

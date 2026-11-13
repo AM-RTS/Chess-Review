@@ -44,6 +44,7 @@ try {
     await fs.appendFile(path.join(sourceDir,'analysis.js'), '\nglobalThis.__smokeResponsive=()=>{_zoomTabId=null;UI.canvas.classList.remove("desktop-layout");applyLayout();};\nglobalThis.__smokePreferences=()=>({settings:structuredClone(S.settings),layoutMode:S.layoutMode});\n');
     await fs.appendFile(path.join(sourceDir,'analysis.js'), '\nglobalThis.__smokeConcepts=()=>({enabled:S.settings.conceptsEnabled,worker:!!_conceptSession?.worker,metrics:_conceptSession?.metrics(),selectedStatus:_conceptSession?.entries.get(conceptKey(selectedConceptInput()))?.status,selectedFindings:_conceptSession?.entries.get(conceptKey(selectedConceptInput()))?.findings.length});\nglobalThis.__smokeCoachGo=idx=>go(idx);\n');
     await fs.appendFile(path.join(sourceDir,'analysis.js'), '\nglobalThis.__smokeLearningReview=()=>({idx:S.idx,flipped:S.flipped,fen:activePos().fen,classif:[...S.classif]});\n');
+    await fs.appendFile(path.join(sourceDir,'analysis.js'), '\nglobalThis.__smokeBranchStart=()=>{go(0);playLine("d2d4 d7d5");stopLineWalk();gotoVar(0);playLine("c2c4 e7e5");stopLineWalk();};globalThis.__smokeBranchPosition=()=>activePos().san;globalThis.__smokeBranchExit=()=>exitAnalysis(0);\n');
     await fs.appendFile(path.join(sourceDir,'background.js'), '\nbrowserAPI.runtime.onInstalled.addListener(() => browserAPI.tabs.create({url:browserAPI.runtime.getURL("smoke.html")}));\n');
     await fs.appendFile(path.join(sourceDir,'background.js'), '\nbrowserAPI.runtime.onMessage.addListener((message,sender,reply)=>{if(message.type!=="smokeReleaseReset")return;resetSettingsForRelease({reason:"update",previousVersion:"0.2.0"}).then(()=>reply({ok:true}),error=>reply({error:error.message}));return true;});\n');
     await fs.writeFile(path.join(sourceDir,'smoke.html'),'<!doctype html><script type="module" src="smoke-client.js"></script>');
@@ -85,6 +86,14 @@ try {
     await new Promise((resolve,reject)=>{const image=new Image();image.onload=resolve;image.onerror=()=>reject(Error('Move icon failed to load'));image.src=iconPath;});
     await report({step:'move-glyph',key,label:glyph.getAttribute('aria-label'),reference:iconPath});
     await report({step:'completed-review',key,positions:saved.evals.length,engineBuild:saved.engineBuild});
+    frame.contentWindow.__smokeBranchStart();
+    const branches=doc.querySelector('[aria-label="Explored lines"]');
+    const prior=[...branches.options].find(option=>option.textContent.includes('d4 d5'));
+    if(!prior || branches.closest('label').hidden)throw Error('Retained line selector missing');
+    branches.value=prior.value;branches.dispatchEvent(new frame.contentWindow.Event('change'));
+    if(frame.contentWindow.__smokeBranchPosition()!=='d4')throw Error('Selected line did not restore its position');
+    frame.contentWindow.__smokeBranchExit();
+    await report({step:'retained-branches',key,restored:true});
     doc.querySelector('[aria-label="Settings"]').click();
     [...doc.querySelectorAll('.set-tab')].find(button=>button.textContent==='Engine').click();
     if(doc.querySelector('.est-rating'))throw Error('Retired rating estimate returned');

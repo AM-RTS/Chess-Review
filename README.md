@@ -33,6 +33,10 @@ The live engine keeps its search memory across related moves. Up to 128 complete
 position results are reused within the tab, including replayed engine lines;
 reuse requires matching move history, engine and search settings. Resetting the
 live session clears this cache. Unsearched positions still receive fresh analysis.
+Exploring another move retains the previous continuation. Use **Explored lines**
+beside navigation to switch back, including after returning to the recorded game.
+These lines stay in memory until a new game/board is loaded or the tab reloads.
+Copy PGN exports the selected standalone line, including its continuation.
 
 Analysis and panel lines default to two, with two as the minimum configurable
 value. Both engines use two analysis lines by default.

@@ -13,6 +13,10 @@ storage, scoring, practice, accessibility and tests. This was not a backend audi
 - [x] Move independent sacrifice/exchange classification into an importable module
   and test it directly. Preserve classification behavior and existing notices.
 - [x] Restore normal Tab access to review controls without disturbing modal focus.
+- [x] Retain explored continuations in memory and provide an Explored lines selector.
+  Manual moves, engine-line playback and best-move playback preserve replaced
+  continuations. Switching restores evaluations and the previous selected move;
+  settings changes invalidate saved evaluations. Loading another game clears lines.
 
 ## Comparison and decisions
 
@@ -22,9 +26,10 @@ storage, scoring, practice, accessibility and tests. This was not a backend audi
    classification code; defer the remaining storage/classifier extraction until
    its callers can move together without a broad rewrite.
 2. **Variations.** Lichess keeps children on move-tree nodes; ours truncates a
-   continuation when branching. Retaining multiple branches is valuable but
-   deferred: navigation, PGN import/export, session recovery, practice and UI must
-   agree on the new model. The current evaluation cache does not retain branches.
+   continuation when branching. The implemented first version keeps line snapshots
+   and offers a selector, reusing existing navigation and grading. A full tree UI,
+   multi-variation PGN import/export and reload persistence remain deferred.
+   Copy PGN exports the selected standalone line; retained alternatives are tab-local.
 3. **Board.** Chessground is a standalone reusable board with dragging, arrows,
    resizing and movement/fading animations. Evaluate it before adding substantial
    custom board machinery. Adoption is deferred until our badge overlays and
@@ -63,3 +68,8 @@ storage, scoring, practice, accessibility and tests. This was not a backend audi
   the current green default. Working-tree mode tests current source without a full
   release export. Temporary test copies/profiles are cleaned after the run.
 - Firefox and the full historical research suite were not run in this follow-up.
+- Retained-lines follow-up: all 636 app tests passed. Added tests for switching
+  continuations with evaluations intact, exiting/reopening a review alternative,
+  promotion identity, setting invalidation, new-game cleanup and selected-line PGN.
+  The maintained Chrome smoke passed branch restoration with both SF19 and Lite,
+  alongside its existing review, layout, learning and recovery checks.
