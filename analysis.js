@@ -140,7 +140,7 @@ const NOTEWORTHY = new Set(["brilliant","great","inacc","mistake","miss","blunde
 const QUALITY_DESC = {
   forced: "The only legal move. Included under Best in the move breakdown.",
   brilliant: "A sound voluntary piece sacrifice that keeps a satisfactory, near-best evaluation. Ordinary trades, forced moves and substantial evaluation losses do not count. Other winning alternatives do not disqualify it.",
-  great:     "A non-routine best move with a significant gap to the second-best alternative. If another move still retains a clear advantage or forces mate, it remains Best. Ordinary trades, material grabs, and immediate mate finishes also stay Best. No preceding error is required. A clear losing result does not qualify, but a minor disadvantage can.",
+  great:     "A non-routine best move with a significant gap to the second-best alternative. A unique forced-mate move qualifies even if another move remains winning. Otherwise, another clearly winning or mating move prevents Great. Ordinary trades and material grabs stay Best unless they are the unique mating continuation. No preceding error is required. A clear losing result does not qualify, but a minor disadvantage can.",
   best:      "Exactly the engine's top move — the best possible move in the position (also shown for forced, only-legal moves).",
   excellent: "An alternative nearly as strong as the engine's top move: loses less than 2 percentage points in estimated winning chances, or begins or preserves a forced mate.",
   good:      "A small loss of estimated winning chances (2–5 percentage points), or a move that takes longer to deliver a forced mate.",
@@ -1171,7 +1171,9 @@ function greatReplyEvidence(i,state,root) {
   if (!state.annotationEvidence[i]?.paired && state.bests[i]?.lines?.some(l => l.multipv === 1 && l.bound && l.bound !== "exact")) return null;
   const alternative=pair[1].score;
   const clearAdv=Number.isFinite(state.settings.clsClearAdv)&&state.settings.clsClearAdv>0 ? state.settings.clsClearAdv : DEFAULT_SETTINGS.clsClearAdv;
-  // A smaller winning advantage is still a good alternative, not a unique-resource situation.
+  // Exact same-depth evidence of the only mating move takes priority over pawn advantage.
+  if (pair[0].score.mate > 0) return !(alternative.mate > 0);
+  // A smaller winning advantage is otherwise still a good alternative.
   if(alternative.mate>0 || Number.isFinite(alternative.cp)&&alternative.cp/100>=clearAdv) return false;
   const threshold=CALIB?.clsWp?.inacc ?? 5;
   return Number.isFinite(threshold) && threshold>0
@@ -1234,7 +1236,7 @@ function classifyMove(i, mover, isTop, book, sac, std, loss, wpDrop, state = S) 
   // "Forced": only one legal move in the position before — we have no separate icon, so it reads
   // as Best (you couldn't have done better).
   if (_forcedAt(i, state)) return "best";   // only one legal move — you couldn't have done better
-  if (book) return "book";
+  if (book && !(decisionMate(i, "played", mover, state) > 0)) return "book";
 
   // Contextual thresholds in pawns of eval; retain saved values from earlier versions.
   const CA = state.settings.clsClearAdv, ML = state.settings.clsMistakeLoss, MT = state.settings.clsMissTol;
@@ -1267,10 +1269,16 @@ function classifyMove(i, mover, isTop, book, sac, std, loss, wpDrop, state = S) 
   if(satisfactoryAfter && sac[i] && soundMate && brilliantEligible(i,mover,std,wpDrop,state)) return "brilliant";
 
   // Only-good defensive resources and tactics do not depend on a preceding error.
-  if(satisfactoryAfter && std[i]==="excellent" && isTop && soundMate && !routineGreatMove(i,state,sac[i])) {
-    state.greatCandidates?.push(i);
-    if(onlyGoodReply(i,state)) return "great";
+  if(satisfactoryAfter && std[i]==="excellent" && isTop && soundMate) {
+    const routine = routineGreatMove(i,state,sac[i]);
+    if (afterMate > 0 || !routine) {
+      state.greatCandidates?.push(i);
+      const onlyGood = onlyGoodReply(i,state);
+      const matingRoot = greatComparisonRoot(state,i)?.lines?.find(line=>line.multipv===1)?.score?.mate > 0;
+      if (onlyGood && (!routine || afterMate > 0 && matingRoot)) return "great";
+    }
   }
+  if (book) return "book";
 
   // Mate signs are relative to the mover. Reversing who wins is not delaying one's own mate;
   // already being mated supplies no expected-result reason to reward faster defeat.

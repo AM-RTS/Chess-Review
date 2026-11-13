@@ -195,3 +195,39 @@ for(const engine of ['sf19','sf19lite'])for(const color of ['w','b'])test(engine
   S.analysisMode=false;S.variation=null;
  }
 });
+
+
+// Authored engine scores test the general annotation policy, not a fixed mate depth claim.
+for(const engine of ['sf19','sf19lite'])for(const color of ['w','b'])test(engine+' '+color+': unique mate outranks a winning non-mating alternative in review and live analysis',t=>{
+ const a=app(t);
+ for(const alternative of [{cp:901},{cp:2000},{mate:8},{mate:3},{mate:-3}]){
+  const {S,ply}=greatScenario(a,color);S.settings.enginePath=engine;
+  S.bests[ply-1].lines[0].score={mate:6};S.bests[ply-1].lines[1].score=alternative;
+  S.evals[ply]={mate:color==='w'?6:-6};a.call('computeDerived');
+  const expected=alternative.mate>0?'best':'great';assert.equal(S.classif[ply],expected);
+  const v=branch(a);a.call('classifyVariationMoves');assert.equal(v.positions[ply].classif,expected);
+  S.analysisMode=false;S.variation=null;
+ }
+});
+
+for(const engine of ['sf19','sf19lite'])test(engine+': Qh5+ regression uses mate evidence rather than the +9.01 runner-up',t=>{
+ const a=app(t),S=loadGame(a,'1. e4 e5 2. Nf3 f6 3. Nxe5 h6 4. Qh5+');S.settings.enginePath=engine;
+ S.evals[7]={mate:6};S.bests[6]={bestmove:'d1h5',score:{mate:6},lines:[
+  {score:{mate:6},pv:'d1h5',depth:17,bound:'exact',multipv:1},
+  {score:{cp:901},pv:'f1c4',depth:17,bound:'exact',multipv:2},
+ ]};a.call('computeDerived');assert.equal(S.classif[7],'great');
+ const v=branch(a);a.call('classifyVariationMoves');assert.equal(v.positions[7].classif,'great');
+ for(const edit of [r=>r.lines[1].depth--,r=>r.lines[0].bound='lowerbound',r=>r.lines[1].bound='upperbound']){
+  S.analysisMode=false;S.variation=null;const original=structuredClone(S.bests[6]);edit(S.bests[6]);
+  a.call('computeDerived');assert.notEqual(S.classif[7],'great');S.bests[6]=original;
+ }
+});
+
+test('a unique mating capture can qualify even when routine or book filters would otherwise suppress Great',t=>{
+ const a=app(t),S=loadGame(a,'[SetUp "1"]\n[FEN "5rk1/5ppp/8/6NQ/8/8/8/6K1 w - - 0 1"]\n\n1. Qxh7#');
+ S.evals[1]={mate:1};S.bests[0]={bestmove:'h5h7',score:{mate:1},lines:[
+  {score:{mate:1},pv:'h5h7',depth:17,bound:'exact',multipv:1},
+  {score:{cp:901},pv:'h5h4',depth:17,bound:'exact',multipv:2},
+ ]};a.context.__mateFen=S.positions[1].fen;a.run('BOOK = { [epdOf(__mateFen)]: ["Test", "Authored book fixture"] }');
+ a.call('computeDerived');assert.equal(a.call('_isCheckmate',1),true);assert.equal(S.positions[1].captured,'p');assert.equal(S.classif[1],'great');
+});

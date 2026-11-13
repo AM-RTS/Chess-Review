@@ -6,7 +6,7 @@ import {app,loadGame,fakeEngine} from './helpers/app.mjs';
 const pgn='1. Nf3 d5 2. d4 c5 3. e3 Nc6 4. Bb5 Nf6 5. dxc5 Bg4 6. Be2 e5 7. Ng5 Bxe2 8. Qxe2 Bxc5 9. O-O h6 10. Nf3 e4 11. Nfd2 Qd7 12. Nb3 Bd6 13. Nc3 O-O-O 14. Nb5 a6 15. Nxd6+ Qxd6 16. Bd2 h5 17. Ba5 Rde8 18. c3 h4 19. Bb4 Nxb4 20. cxb4 h3 21. gxh3 Re5 22. Rfc1+ Kb8 23. Nd4 Rg5+ 24. Kf1 Rxh3 25. b5 Rg1+ 26. Kxg1 Qxh2+ 27. Kf1 Qh1#';
 const line=(pv,score,multipv)=>({pv,score,multipv,depth:16,bound:'exact'});
 
-test('Kb8 and Rg1 retain exceptional annotations while the immediate mate finish stays Best',async t=>{
+test('Kb8 and Rg1 retain exceptional annotations and the unique mate finish is Great',async t=>{
   const a=app(t),S=loadGame(a,pgn);S.settings.engineDepth=16;S.bests.fill(null);S.evals.fill(null);
   const data=[
     {ply:44,best:'c8b8',score:{cp:381},comparison:[line('c8b8',{cp:349},1),line('c8d8',{cp:160},2)]},
@@ -14,15 +14,15 @@ test('Kb8 and Rg1 retain exceptional annotations while the immediate mate finish
     {ply:54,best:'h2h1',score:{mate:1},comparison:[line('h2h1',{mate:1},1),line('f6h5',{cp:-305},2)]},
   ];
   for(const d of data) S.bests[d.ply-1]={score:d.score,playedScore:d.score,bestmove:d.best,lines:[line(d.best,d.score,1)]};
-  a.call('computeDerived');assert.deepEqual(Array.from(S.greatCandidates),[44]);
+  a.call('computeDerived');assert.deepEqual(Array.from(S.greatCandidates),[44,54]);
   assert.equal(a.call('_sacAt',50),true);assert.equal(S.classif[50],'brilliant');
   const original=JSON.stringify({bests:S.bests,evals:S.evals,acc:S.acc,elo:S.accElo});let checks=0;
   await a.call('verifyGreatCandidates',S,async()=>fakeEngine(async(fen,depth,count)=>{
     checks++;assert.equal(count,2);assert.equal(depth,16);const d=data.find(d=>S.positions[d.ply-1].fen===fen);
     assert.ok(d);return {bestmove:d.best,lines:d.comparison};
   }),()=>true);
-  a.call('computeDerived');assert.equal(checks,1);
-  assert.deepEqual(data.map(d=>S.classif[d.ply]),['great','brilliant','best']);
+  a.call('computeDerived');assert.equal(checks,2);
+  assert.deepEqual(data.map(d=>S.classif[d.ply]),['great','brilliant','great']);
   assert.equal(JSON.stringify({bests:S.bests,evals:S.evals,acc:S.acc,elo:S.accElo}),original);
 });
 

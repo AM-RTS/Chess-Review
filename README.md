@@ -34,11 +34,14 @@ value. Both engines use two analysis lines by default.
 
 Great candidates automatically receive a separate two-line verification when a
 best, high-quality move may be the only good option, including defensive resources
-without a preceding opponent error. Another move that retains a clear advantage
-(the existing clear-advantage setting, default +2 pawns) or also forces mate rules
-out Great, even when the best move scores higher. Routine equal-material exchanges that preserve
+without a preceding opponent error. A unique forced-mate move can qualify even when the runner-up is still winning.
+This requires exact, same-depth two-line evidence: the played best move has a
+positive mate score and the runner-up does not. If both moves force mate, it is
+not unique. Outside this exception, another move retaining a clear advantage
+(the existing setting, default +2 pawns) rules out Great. Routine equal-material exchanges that preserve
 the evaluation, straightforward material grabs, and immediate mate finishes retain
-their ordinary grade. Exchange balance includes the whole capture/recapture sequence.
+their ordinary grade unless they are the unique mating continuation. Exchange
+balance includes the whole capture/recapture sequence.
 Brilliant independently recognizes sound voluntary piece sacrifices with near-best
 evaluation; other winning alternatives do not disqualify them. In addition to the
 expected-score quality threshold, the existing Excellent centipawn tolerance prevents

@@ -170,3 +170,14 @@ test('special move result gate follows the existing clear-advantage setting',t=>
  ]};S.settings.clsClearAdv=2;a.call('computeDerived');assert.equal(S.classif[3],'best');
  S.settings.clsClearAdv=3;a.call('computeDerived');assert.equal(S.classif[3],'great');
 });
+
+for(const engine of ['sf19','sf19lite'])test(engine+': a one-line mating candidate is verified against a still-winning alternative',async t=>{
+ const a=candidate(t),S=a.state;S.settings.enginePath=engine;S.bests[2].score={mate:6};S.bests[2].lines[0].score={mate:6};S.evals[3]={mate:6};
+ a.call('computeDerived');assert.equal(S.classif[3],'best');assert.ok(S.greatCandidates.includes(3));
+ let searches=0;await a.call('verifyGreatCandidates',S,async()=>fakeEngine(async()=>{searches++;return {bestmove:'g1f3',lines:[
+  {score:{mate:6},pv:'g1f3',depth:4,bound:'exact',multipv:1},
+  {score:{cp:901},pv:'d2d4',depth:4,bound:'exact',multipv:2},
+ ]};}),()=>true);
+ a.call('computeDerived');assert.equal(searches,1);assert.equal(S.classif[3],'great');
+ const v=branch(a);a.call('classifyVariationMoves');assert.equal(v.positions[3].classif,'great');
+});
