@@ -3783,6 +3783,32 @@ function analysisProgressText() {
   const done = Math.min(S.total, S.completed == null ? S.progress : S.completed);
   return `Analyzing … ${done}/${S.total}`;
 }
+function selectedMoveExplanation() {
+  const pos = activePos();
+  if (!pos?.from || !pos.to) return "";
+  const input = S.settings.conceptsEnabled === true ? selectedConceptInput() : null;
+  const entry = input && _conceptSession?.entries.get(conceptKey(input));
+  const reply = entry && coachReply(entry.findings || [], {mover: pos.color, player: pos.color, change: entry.change, input});
+  const text = reply?.items[0]?.text;
+  // Keep conditions intact rather than trimming an explanation mid-proof.
+  if (text && text.length <= 220) return text;
+  const ev = activeEval();
+  if (Number.isInteger(ev?.mate) && ev.mate !== 0) {
+    const wins = (ev.mate > 0) === (pos.color === "w");
+    return `The engine finds forced mate in ${Math.abs(ev.mate)} ${wins ? "for the moving side" : "against the moving side"}.`;
+  }
+  const parent = S.analysisMode && S.variation ? S.variation.positions[S.variation.idx - 1]?.best : S.bests[S.idx - 1];
+  const move = pos.from + pos.to + (pos.promotion || "");
+  if (parent?.bestmove === move) return "Matches the engine’s first choice.";
+  if (parent?.bestmove) {
+    try {
+      const board = new Chess(input?.fen || (S.analysisMode ? S.variation.positions[S.variation.idx - 1].fen : S.positions[S.idx - 1].fen));
+      const best = board.move({from: parent.bestmove.slice(0, 2), to: parent.bestmove.slice(2, 4), promotion: parent.bestmove.slice(4) || undefined});
+      if (best) return `The engine prefers ${best.san}.`;
+    } catch {}
+  }
+  return "";
+}
 function renderReview() {
   refreshConcepts();
   // Cached/completed inputs do not emit a worker update on navigation.
@@ -3837,12 +3863,12 @@ function renderReview() {
       const ev=activeEval();
       const result = activeResult();
       if(result || ev) head.append(el("span",{class:"ip-eval"},result || evalText(ev)));
-      body.append(el("div",{class:"ip-text"}, cls ? `${categoryName(cls)} move. Live feedback may change as the search deepens.`
-        : pos.san ? "Analyzing move… Feedback may change as the search deepens." : "Move pieces for either side to explore. Evaluation updates live."));
+      body.append(el("div",{class:"ip-text"}, selectedMoveExplanation() || (cls ? `${categoryName(cls)} move. Live feedback may change as the search deepens.`
+        : pos.san ? "Analyzing move… Feedback may change as the search deepens." : "Move pieces for either side to explore. Evaluation updates live.")));
     } else {
       const result = activeResult();
       if (result) body.firstChild.append(el("span", {class: "ip-eval"}, result));
-      body.append(el("div", { class: "ip-text" }, "Exploring a variation."));
+      body.append(el("div", { class: "ip-text" }, selectedMoveExplanation() || "Exploring a variation."));
     }
     panel.append(body);
     UI.review.replaceChildren(panel);
@@ -3887,10 +3913,11 @@ function renderMoveComment() {
 
   // Pick the line once per (ply + coach): a fresh signature → choose + type; otherwise reuse the
   // shown text (so unrelated re-renders don't re-pick or re-animate, and a coach switch re-types).
-  const sig = "m:" + S.idx + ":" + (S.settings.coach || "") + ":" + (cls || "");
+  const explanation = selectedMoveExplanation();
+  const sig = "m:" + S.idx + ":" + (S.settings.coach || "") + ":" + (cls || "") + ":" + explanation;
   const fresh = sig !== _ipSig;
   if (fresh) {
-    let sentence = S.coach ? coachMoveSentence(S.idx) : null;
+    let sentence = explanation || (S.coach ? coachMoveSentence(S.idx) : null);
     if (sentence == null) {   // legacy generic line
       sentence = (cfg && COMMENT_PHRASE[cls]) ? categoryText(COMMENT_PHRASE[cls](san)) : `${san}.`;
     }
@@ -5329,7 +5356,7 @@ function refreshConcepts() {
     _conceptRenderTimer = setTimeout(() => {
       _conceptRenderTimer = null;
       if (UI.settings && !UI.settings.hidden && S.settingsTab === "concepts") renderSettings();
-      renderCoachPanel();
+      renderReview();
     }, 100);
   }});
   const selection = JSON.stringify([normalizeConceptGroups(S.settings.conceptGroups), normalizeDisabledConcepts(S.settings.disabledConcepts)]);
@@ -5355,7 +5382,7 @@ function setConceptGroups(groups) {
 }
 function refreshConceptSettings() {
   refreshConcepts();
-  renderCoachPanel();
+  renderReview();
   if (!_conceptRenderTimer) _conceptRenderTimer = setTimeout(() => {
     _conceptRenderTimer = null;
     if (UI.settings && !UI.settings.hidden && S.settingsTab === 'concepts') renderSettings();
