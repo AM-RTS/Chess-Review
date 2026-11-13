@@ -3797,17 +3797,22 @@ function selectedMoveExplanation() {
     const wins = (ev.mate > 0) === (pos.color === "w");
     return `The engine finds forced mate in ${Math.abs(ev.mate)} ${wins ? "for the moving side" : "against the moving side"}.`;
   }
-  const parent = S.analysisMode && S.variation ? S.variation.positions[S.variation.idx - 1]?.best : S.bests[S.idx - 1];
-  const move = pos.from + pos.to + (pos.promotion || "");
-  if (parent?.bestmove === move) return "Matches the engine’s first choice.";
-  if (parent?.bestmove) {
+  const result = S.analysisMode && S.variation ? pos.searchPreview || pos.best : S.searchPreviews[S.idx] || S.bests[S.idx];
+  const top = result?.lines?.find(line => line.multipv === 1) || (result?.lines?.[0]?.multipv == null ? result?.lines?.[0] : null);
+  if (top?.pv && (!top.bound || top.bound === "exact")) {
     try {
-      const board = new Chess(input?.fen || (S.analysisMode ? S.variation.positions[S.variation.idx - 1].fen : S.positions[S.idx - 1].fen));
-      const best = board.move({from: parent.bestmove.slice(0, 2), to: parent.bestmove.slice(2, 4), promotion: parent.bestmove.slice(4) || undefined});
-      if (best) return `The engine prefers ${best.san}.`;
+      const board = new Chess(pos.fen);
+      const gain = move => (move.color === "w" ? 1 : -1) * ((SAC_VAL[move.captured] || 0) + (move.promotion ? SAC_VAL[move.promotion] - 1 : 0));
+      let material = gain(pos);
+      for (const uci of top.pv.trim().split(/\s+/)) {
+        const move = board.move({from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci.slice(4) || undefined});
+        if (!move) return "I have no idea why.";
+        material += gain(move);
+      }
+      if (material) return `In the engine’s top line, ${material > 0 ? "White" : "Black"} gains ${Math.abs(material)} ${Math.abs(material) === 1 ? "point" : "points"} of material.`;
     } catch {}
   }
-  return "";
+  return "I have no idea why.";
 }
 function renderReview() {
   refreshConcepts();
