@@ -63,7 +63,7 @@ test('expanded categories are editable and renaming preserves count navigation',
   assert.equal(target, 1);
 });
 
-test('renaming refreshes badge labels, tooltips, and cached move commentary', t => {
+test('renaming refreshes badge labels and tooltips without replacing factual commentary', t => {
   const a = review(t); a.state.idx = 1; a.state.classif[1] = 'brilliant';
   a.replace('categoryLabelPng', () => 'data:image/png;base64,custom');
   a.state.settings.badgeTooltip = true;
@@ -76,7 +76,7 @@ test('renaming refreshes badge labels, tooltips, and cached move commentary', t 
   assert.equal(a.call('makeBoardBadge', 'brilliant', 10).getAttribute('aria-label'), 'Inspired, score 10');
   a.call('showQTip', a.dom.window.document.querySelector('[data-category="brilliant"]'), 'brilliant');
   assert.equal(a.dom.window.document.querySelector('.q-tip-nm').textContent, 'Inspired');
-  assert.match(a.run('_ipText'), /Inspired/);
+  assert.equal(a.run('_ipText'), 'I have no idea why.');
   assert.doesNotMatch(a.run('_ipText'), /brilliant/i);
 });
 

@@ -50,6 +50,7 @@ test('long conditional findings are not cut into unsupported claims', t => {
 test('top line counts net material, including the played capture and recaptures', t => {
   const a = app(t), S = loadGame(a, '1. e4 d5 2. exd5');
   S.idx = 3;
+  S.evals[3] = {cp: 100};
   S.bests[3].lines = [{multipv: 1, pv: 'g8f6'}];
   assert.equal(a.call('selectedMoveExplanation'), 'White gains 1 point of material.');
   branch(a, 0, 3);
@@ -63,9 +64,19 @@ test('top line counts net material, including the played capture and recaptures'
 test('material losses come only from the top line, never another candidate', t => {
   const a = app(t), S = loadGame(a, '1. e4 e5 2. Qh5');
   S.idx = 3;
+  S.evals[3] = {cp: -800};
   S.bests[3].lines = [{multipv: 2, pv: 'g8f6'}, {multipv: 1, pv: 'b8c6 h5e5 c6e5'}];
   assert.equal(a.call('selectedMoveExplanation'), 'Black gains 8 points of material.');
   S.bests[3].lines[1].pv = 'b8c6';
+  assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
+});
+
+test('a balanced opening evaluation does not explain a truncated capture as a gain', t => {
+  const a = app(t), S = loadGame(a, '1. e4 e5');
+  S.idx = 2; S.evals[2] = {cp: 30};
+  S.bests[2].lines = [{multipv: 1, pv: 'f1a6 b7a6'}];
+  assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
+  branch(a, 0, 2);
   assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
 });
 

@@ -28,6 +28,24 @@ test('moves, undo, redo and replacing a branch retain the root and receive feedb
   assert.doesNotMatch(a.dom.window.document.getElementById('movesBody').textContent,/e4/);
   a.call('exitAnalysis');assert.equal(S.analysisMode,true);
 });
+
+test('standalone moves share review table styles, paired colors and navigation', async t => {
+  const a = await analysis(t, '1. e4 e5 2. Nf3'), S = a.state, doc = a.dom.window.document;
+  for (const style of ['rows', 'cards', 'compact']) {
+    S.settings.mlStyle = style; a.call('renderMoves');
+    const list = doc.querySelector('#movesBody .movelist');
+    assert.ok(list.classList.contains('ml-' + style));
+    assert.equal(list.querySelectorAll('.ml-move').length, 3);
+    assert.equal(list.querySelectorAll('.pc').length, 3);
+    if (style !== 'compact') {
+      const rows = list.querySelectorAll('.ml-pair');
+      assert.equal(rows.length, 2);
+      assert.deepEqual([...rows[0].querySelectorAll('.ml-move')].map(n => n.textContent.replace(/[^a-z0-9]/g, '')), ['e4', 'e5']);
+    }
+  }
+  doc.querySelector('[data-var="1"]').click(); await settle();
+  assert.equal(S.variation.idx, 1);
+});
 test('FEN and PGN import validate before changing the board and export a replayable line',async t=>{
   const a=await analysis(t),fen='7k/8/8/8/8/8/8/K7 b - - 0 21';
   const payload=a.call('analysisInputPayload',fen);await a.call('applyGame',payload);await settle();

@@ -3813,7 +3813,10 @@ function selectedMoveExplanation() {
       if (board.isStalemate()) return "Leads to stalemate.";
       if (board.isInsufficientMaterial()) return "Leads to a draw by insufficient material.";
       if (board.isDraw()) return "Reaches the fifty-move rule; a draw can be claimed.";
-      if (material) return `${material > 0 ? "White" : "Black"} gains ${Math.abs(material)} ${Math.abs(material) === 1 ? "point" : "points"} of material.`;
+      const balance = board.board().flat().reduce((sum, piece) => sum + (piece ? (piece.color === "w" ? 1 : -1) * SAC_VAL[piece.type] : 0), 0);
+      // A truncated capture sequence is not evidence of a lasting material gain.
+      if (material && Number.isFinite(ev?.cp) && Math.sign(material) * (ev.cp - balance * 100) >= 0)
+        return `${material > 0 ? "White" : "Black"} gains ${Math.abs(material)} ${Math.abs(material) === 1 ? "point" : "points"} of material.`;
     } catch {}
   }
   return "I have no idea why.";
@@ -4298,17 +4301,22 @@ function renderGraph() {
 }
 
 /* ---------------- Move list ---------------- */
-function moveCell(ply) {
-  if (ply > S.total || ply < 1) return el("span");
-  const pos = S.positions[ply];
-  const cls = S.classif[ply];
+function moveCell(ply, variation = null) {
+  const positions = variation?.positions || S.positions;
+  if (ply >= positions.length || ply < 1) return el("span");
+  const pos = positions[ply];
+  const cls = variation ? pos.classif : S.classif[ply];
+  const grade = variation ? pos.moveGrade : S.moveGrades[ply];
   const showBadge = cls && (NOTEWORTHY.has(cls) || S.settings.badgeStyle === "dot");
   const glyph = GLYPH[pos.san && /^[KQRBN]/.test(pos.san) ? pos.san[0] : "P"];
-  return el("span", { class: "ml-move" + (!S.analysisMode && ply === S.idx ? " current" : ""), "data-ply": ply,
-    "data-class": cls || "", onclick: () => gotoMainline(ply) },
+  return el("span", { class: "ml-move" + ((variation ? ply === variation.idx : !S.analysisMode && ply === S.idx) ? " current" : ""), [variation ? "data-var" : "data-ply"]: ply,
+    ...(variation ? {role: "button", tabindex: "0", onkeydown: e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); gotoVar(ply); }
+    }} : {}),
+    "data-class": cls || "", onclick: () => variation ? gotoVar(ply) : gotoMainline(ply) },
     el("span", { class: "pc", style: { color: pos.color === "w" ? "var(--ink)" : "var(--ink-2)" } }, glyph),
     el("span", {}, pos.san),
-    showBadge ? qBadge(cls, S.moveGrades[ply]) : null,
+    showBadge ? qBadge(cls, grade) : null,
   );
 }
 function qBadge(k, score = null) {
@@ -4337,14 +4345,24 @@ function highlightCurrentMove(forceScroll = false) {
 }
 let _movesSig = null;
 let _movesClassSig = null;
+function buildMoveList(positions, cell) {
+  const rows = [];
+  for (let ply = 1; ply < positions.length; ply++) {
+    const number = Number(positions[ply - 1].fen.split(" ")[5]);
+    if (!rows.length || rows[rows.length - 1].number !== number) rows.push({number, w:0, b:0});
+    rows[rows.length - 1][positions[ply].color] = ply;
+  }
+  const ml = S.settings.mlStyle;
+  const list = el("div", {class: "movelist " + (ml === "compact" ? "ml-compact" : ml === "cards" ? "ml-cards" : "ml-rows") + " ml-scroll"});
+  for (const row of rows) {
+    const number = el("span", {class: "ml-num"}, row.number + (ml === "compact" ? row.w ? "." : "..." : ""));
+    if (ml === "compact") list.append(number, cell(row.w), cell(row.b));
+    else list.append(el("div", {class: "ml-pair"}, number, cell(row.w), cell(row.b)));
+  }
+  return list;
+}
 function renderMoves() {
   if (S.standalone) {renderStandaloneMoves(); return;}
-  const rows = [];
-  for (let ply = 1; ply <= S.total; ply++) {
-    const number = Number(S.positions[ply - 1].fen.split(" ")[5]);
-    if (!rows.length || rows[rows.length - 1].number !== number) rows.push({number, w:0, b:0});
-    rows[rows.length - 1][S.positions[ply].color] = ply;
-  }
   const ml = S.settings.mlStyle;
   // Keep move cells mounted while classifications arrive. Replacing the list during analysis
   // drops the hovered element and makes its hover state flicker; only changed badges need updates.
@@ -4370,14 +4388,7 @@ function renderMoves() {
   }
   _movesSig = sig;
   _movesClassSig = classSig;
-  let list;
-  if (ml === "compact") {
-    list = el("div", { class: "movelist ml-compact ml-scroll" });
-    for (const row of rows) list.append(el("span", { class: "ml-num" }, row.number + (row.w ? "." : "...")), moveCell(row.w), moveCell(row.b));
-  } else {
-    list = el("div", { class: "movelist " + (ml === "cards" ? "ml-cards" : "ml-rows") + " ml-scroll" });
-    for (const row of rows) list.append(el("div", { class: "ml-pair" }, el("span", { class: "ml-num" }, row.number), moveCell(row.w), moveCell(row.b)));
-  }
+  const list = buildMoveList(S.positions, ply => moveCell(ply));
   UI.movesBody.style.padding = ml === "rows" ? "0" : "var(--pad)";
   UI.movesBody.replaceChildren(list);
   // The Moves header stays clean — no "Start" placeholder and no running current-move readout.
@@ -6414,18 +6425,14 @@ function renderAnalysisTools() {
 let _standaloneMovesSig=null;
 function renderStandaloneMoves() {
   const v=S.variation;
-  const sig=JSON.stringify([v.idx,v.positions.map(p=>[p.fen,p.classif,p.moveGrade]),S.settings.badgeStyle,S.settings.badgeDesign,S.settings.badgeFont,S.settings.categoryNames]);
+  const sig=JSON.stringify([v.idx,v.positions.map(p=>[p.fen,p.classif,p.moveGrade]),S.settings.mlStyle,S.settings.badgeStyle,S.settings.badgeDesign,S.settings.badgeFont,S.settings.categoryNames]);
   if(sig===_standaloneMovesSig && UI.movesBody.firstChild) return;
   _standaloneMovesSig=sig;
-  const list=el("div",{class:"movelist ml-compact ml-scroll"});
-  list.append(el("button",{class:"ml-move"+(v.idx===0 ? " current" : ""),onclick:()=>gotoVar(0)},"Start"));
-  v.positions.slice(1).forEach((pos,i)=>{
-    const ply=i+1, before=v.positions[i].fen.split(" ");
-    if(pos.color==="w" || i===0) list.append(el("span",{class:"ml-num"},before[5]+(pos.color==="b" ? "..." : ".")));
-    list.append(el("button",{class:"ml-move"+(ply===v.idx ? " current" : ""),"data-var":ply,onclick:()=>gotoVar(ply)},
-      pos.san,pos.classif ? qBadge(pos.classif,pos.moveGrade) : null));
-  });
-  UI.movesBody.replaceChildren(list);UI.movesCount.textContent="";UI.movesFoot.hidden=true;
+  const list=buildMoveList(v.positions, ply=>moveCell(ply,v));
+  UI.movesBody.style.padding=S.settings.mlStyle==="rows" ? "0" : "var(--pad)";
+  UI.movesBody.replaceChildren(list);
+  UI.movesCount.textContent="";UI.movesFoot.hidden=true;
+  list.querySelector('.current')?.scrollIntoView?.({block:"nearest"});
 }
 
 /* ---------------- Navigation ---------------- */

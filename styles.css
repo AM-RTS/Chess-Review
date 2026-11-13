@@ -2196,7 +2196,6 @@ button { font-family: inherit; cursor: pointer; }
 .analysis-tools textarea { width: 100%; box-sizing: border-box; resize: vertical; background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 8px; font: inherit; margin: 6px 0; }
 .analysis-input-status { font-size: 12px; margin-top: 8px; }
 .standalone-analysis .mod[data-mod="graph"] { display: none; }
-.standalone-analysis .ml-move { background: transparent; border: 0; color: var(--ink); font: inherit; cursor: pointer; }
 .analysis-nav:focus-visible,.analysis-tools button:focus-visible,.analysis-tools textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 @media(max-width:520px) {
