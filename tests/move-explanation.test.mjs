@@ -32,7 +32,7 @@ test('quiet lines abstain, and mate evidence works in reviews and variations', t
   branch(a, 0, 1);
   assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
   S.variation.positions[1].eval = {mate: -4};
-  assert.equal(a.call('selectedMoveExplanation'), 'The engine finds forced mate in 4 against the moving side.');
+  assert.equal(a.call('selectedMoveExplanation'), 'Black forces mate in 4.');
   S.variation.idx = 2;
   assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
 });
@@ -66,5 +66,27 @@ test('material losses come only from the top line, never another candidate', t =
   S.bests[3].lines = [{multipv: 2, pv: 'g8f6'}, {multipv: 1, pv: 'b8c6 h5e5 c6e5'}];
   assert.equal(a.call('selectedMoveExplanation'), 'Black gains 8 points of material.');
   S.bests[3].lines[1].pv = 'b8c6';
+  assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
+});
+
+test('top line identifies mate and concrete draws instead of material gains', t => {
+  const a = app(t), S = loadGame(a, '1. e4');
+  S.idx = 1;
+  for (const [fen, pv, text] of [
+    ['7k/5K2/8/6Q1/8/8/8/8 w - - 0 1', 'g5g6', 'Leads to stalemate.'],
+    ['7k/8/5KQ1/8/8/8/8/8 w - - 0 1', 'g6g7', 'White checkmates.'],
+    ['7k/8/8/8/8/2K5/1r6/2B5 w - - 0 1', 'c1b2', 'Leads to a draw by insufficient material.'],
+    ['7k/8/8/8/8/2K5/8/R7 w - - 99 1', 'a1a2', 'Reaches the fifty-move rule; a draw can be claimed.'],
+  ]) {
+    S.positions[1].fen = fen;
+    S.bests[1].lines = [{multipv: 1, pv}];
+    assert.equal(a.call('selectedMoveExplanation'), text);
+  }
+});
+
+test('an equal evaluation is not evidence of a draw', t => {
+  const a = app(t), S = loadGame(a, '1. e4');
+  S.idx = 1;
+  S.bests[1].lines = [{multipv: 1, pv: 'e7e5', score: {cp: 0}}];
   assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
 });

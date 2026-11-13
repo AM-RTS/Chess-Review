@@ -3794,8 +3794,7 @@ function selectedMoveExplanation() {
   if (text && text.length <= 220) return text;
   const ev = activeEval();
   if (Number.isInteger(ev?.mate) && ev.mate !== 0) {
-    const wins = (ev.mate > 0) === (pos.color === "w");
-    return `The engine finds forced mate in ${Math.abs(ev.mate)} ${wins ? "for the moving side" : "against the moving side"}.`;
+    return `${ev.mate > 0 ? "White" : "Black"} forces mate in ${Math.abs(ev.mate)}.`;
   }
   const result = S.analysisMode && S.variation ? pos.searchPreview || pos.best : S.searchPreviews[S.idx] || S.bests[S.idx];
   const top = result?.lines?.find(line => line.multipv === 1) || (result?.lines?.[0]?.multipv == null ? result?.lines?.[0] : null);
@@ -3809,6 +3808,11 @@ function selectedMoveExplanation() {
         if (!move) return "I have no idea why.";
         material += gain(move);
       }
+      if (board.isCheckmate()) return `${board.turn() === "w" ? "Black" : "White"} checkmates.`;
+      if (board.isStalemate()) return "Leads to stalemate.";
+      if (board.isInsufficientMaterial()) return "Leads to a draw by insufficient material.";
+      if (board.isThreefoldRepetition()) return "Reaches threefold repetition; a draw can be claimed.";
+      if (board.isDraw()) return "Reaches the fifty-move rule; a draw can be claimed.";
       if (material) return `${material > 0 ? "White" : "Black"} gains ${Math.abs(material)} ${Math.abs(material) === 1 ? "point" : "points"} of material.`;
     } catch {}
   }
