@@ -974,7 +974,15 @@ function annotationPair(i, state) {
     } catch { return null; }
   }
   const best = top?.score || relative(state.evals[i - 1]);
-  const after = actual?.score || relative(state.evals[i]);
+  let after = actual?.score || relative(state.evals[i]);
+  const child = state.bests[i], continuation = child?.lines?.find(line => line.multipv === 1);
+  // A newer exact continuation can shorten a stale candidate's mate; count the move just played.
+  if (actual?.score?.mate > 0 && continuation?.bound === "exact"
+    && Number.isInteger(continuation.depth) && continuation.depth >= actual.depth
+    && continuation.pv?.split(" ")[0] === child.bestmove
+    && valid(continuation.score) && continuation.score.mate < 0) {
+    after = { mate: Math.min(after.mate, 1 - continuation.score.mate) };
+  }
   return valid(best) && valid(after) ? {best, played: after, paired: false} : null;
 }
 function decisionScore(i, which, mover, state) {

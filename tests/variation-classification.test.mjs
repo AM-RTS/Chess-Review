@@ -27,7 +27,7 @@ for (const engine of ['nnue', 'sf19lite']) for (const color of ['w', 'b']) {
     const saved = JSON.stringify({ evals: S.evals, bests: S.bests, classif: S.classif, grades: S.moveGrades, acc: S.acc, rating: S.accElo });
     a.call('classifyVariationMoves');
     assert.equal(v.positions[1].classif, null, 'the original move score cannot label an unevaluated alternative');
-    for (const [score, expected] of [[{ cp: 0 }, 'excellent'], [{ cp: -600 }, 'blunder'], [{ mate: -3 }, 'mistake']]) {
+    for (const [score, expected] of [[{ cp: 0 }, 'excellent'], [{ cp: -600 }, 'blunder'], [{ mate: -3 }, 'blunder']]) {
       v.positions[1].eval = a.call('whiteRel', score, S.positions[ply - 1].fen);
       a.call('classifyVariationMoves');
       assert.equal(v.positions[1].classif, expected);
@@ -46,6 +46,40 @@ test('a branch can use a matching root candidate without inheriting the original
   a.call('classifyVariationMoves');
   assert.equal(v.positions[1].classif, 'good');
 });
+
+for (const engine of ['sf19', 'sf19lite']) for (const color of ['w', 'b']) {
+  test(`${engine} ${color}: a refined mating continuation updates the alternative's grade`, t => {
+    const a = app(t);
+    a.state.settings.enginePath = engine;
+    const { S, v, ply, move } = alternative(a, color);
+    const sign = color === 'w' ? 1 : -1;
+    S.evals[ply - 1] = { mate: 6 * sign };
+    const root = S.bests[ply - 1];
+    root.score = { mate: 6 };
+    root.lines = [
+      { multipv: 1, score: { mate: 6 }, pv: root.bestmove, depth: 16, bound: 'exact' },
+      { multipv: 2, score: { mate: 8 }, pv: move, depth: 16, bound: 'exact' },
+    ];
+    const node = v.positions[1], reply = color === 'w' ? 'g8f6' : 'g1f3';
+    node.eval = { mate: 5 * sign };
+    a.call('classifyVariationMoves');
+    assert.equal(node.classif, 'good', 'without a verified child search retain the parent candidate');
+    node.best = {
+      bestmove: reply, score: { mate: -5 },
+      lines: [{ multipv: 1, score: { mate: -5 }, pv: reply, depth: 16, bound: 'exact' }],
+    };
+    a.call('classifyVariationMoves');
+    assert.equal(node.classif, 'excellent', 'child mate-in-5 is parent mate-in-6');
+    assert.equal(root.lines[1].score.mate, 8, 'leave completed root evidence unchanged');
+    for (const [mate, depth, bound] of [[-6, 16, 'exact'], [-5, 15, 'exact'], [-5, 16, 'lowerbound']]) {
+      node.best.score = { mate };
+      Object.assign(node.best.lines[0], { score: { mate }, depth, bound });
+      node.eval = { mate: -mate * sign };
+      a.call('classifyVariationMoves');
+      assert.equal(node.classif, 'good', 'slower mate or weaker evidence must not promote the move');
+    }
+  });
+}
 
 test('later branch moves do not inherit a false Miss from the original game mistake', t => {
   const a = app(t), { v } = alternative(a, 'b');
