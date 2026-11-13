@@ -956,7 +956,6 @@ function annotationPair(i, state) {
     const best = root.score, actual = root.bestmove === played ? best : root.playedScore;
     return valid(best) && valid(actual) ? {best, played: actual, paired: true} : null;
   }
-  if (!state.evals[i - 1] || !state.evals[i]) return null;
   const sign = p.color === "w" ? 1 : -1;
   const relative = score => score.mate != null ? {mate: score.mate * sign} : {cp: score.cp * sign};
   const lines = root?.lines || [], top = lines.find(line => line.multipv === 1) || lines[0];
@@ -974,8 +973,8 @@ function annotationPair(i, state) {
       if (!legal.includes(first) || !legal.includes(played)) return null;
     } catch { return null; }
   }
-  const best = top?.score || relative(state.evals[i - 1]);
-  let after = actual?.score || relative(state.evals[i]);
+  const best = top?.score || (state.evals[i - 1] && relative(state.evals[i - 1]));
+  let after = actual?.score || (state.evals[i] && relative(state.evals[i]));
   const child = state.bests[i], continuation = child?.lines?.find(line => line.multipv === 1);
   // A newer exact continuation can shorten a stale candidate's mate; count the move just played.
   if (actual?.score?.mate > 0 && continuation?.bound === "exact"
@@ -2888,9 +2887,11 @@ async function requestLiveEval() {
   S.liveEngine?.stop();
   refreshVariation();
   try {
-    // The classifier looks back up to three moves, requiring four prior positions.
+    // Establish the selected move's pair before backfilling older context.
+    const order = idx > 0 ? [idx - 1, idx] : [idx];
+    for (let i = idx - 2; i >= Math.max(0, idx - 4); i--) order.push(i);
     const missing = [];
-    for (let i = idx; i >= Math.max(0, idx - 4); i--) {
+    for (const i of order) {
       const node = v.positions[i], key = liveEvalKey(v, i), terminal = variationTerminal(v, i);
       if (!node.best || !node.eval || (node._liveEvalKey && node._liveEvalKey !== key)
         || (!!terminal !== (node.best.bestmove === null))) {
@@ -3912,6 +3913,9 @@ function renderReview() {
       if (result) body.firstChild.append(el("span", {class: "ip-eval"}, result));
       body.append(el("div", { class: "ip-text" }, selectedMoveExplanation() || "Exploring a variation."));
     }
+    const current = activePos(), previous = S.variation.positions[S.variation.idx - 1];
+    if (current.classif && (current.searchPreview || previous?.searchPreview || !current.best || !previous?.best))
+      body.append(el("div", {class: "ip-live-status", title: "Feedback may change as the engine searches deeper."}, "Provisional"));
     panel.append(body);
     UI.review.replaceChildren(panel);
     return;

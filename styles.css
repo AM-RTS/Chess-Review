@@ -1899,6 +1899,7 @@ button { font-family: inherit; cursor: pointer; }
 .ip-badge { width: 24px; height: 24px; flex: none; }
 /* position eval shown on the right of the move (replaces the old quality-label text) */
 .ip-eval { margin-left: auto; font-family: var(--font-mono); font-weight: 800; font-size: 14px; }
+.ip-live-status { font-size: 11px; opacity: .7; margin-top: 4px; }
 .ip-eval.pos { color: var(--ink); }
 .ip-eval.neg { color: var(--q-miss); }
 /* whole insight panel uses the original mono font (matching the opening-book line) */
