@@ -3790,7 +3790,9 @@ function selectedMoveExplanation() {
   if (Number.isInteger(ev?.mate) && ev.mate !== 0)
     return `${ev.mate > 0 ? "White" : "Black"} can now force mate in ${Math.abs(ev.mate)}.`;
   const previous = S.analysisMode && S.variation ? S.variation.positions[S.variation.idx - 1] : S.positions[S.idx - 1];
-  const recapture = pos.captured && previous?.captured && previous.color !== pos.color && previous.to === pos.to;
+  const cls = S.analysisMode ? pos.classif : S.classif[S.idx];
+  const recapture = pos.captured && previous?.captured && previous.color !== pos.color && previous.to === pos.to
+    && !["inacc", "mistake", "miss", "blunder"].includes(cls);
   const input = S.settings.conceptsEnabled === true ? selectedConceptInput() : null;
   const entry = input && _conceptSession?.entries.get(conceptKey(input));
   const reply = entry && coachReply(entry.findings || [], {mover: pos.color, player: pos.color, change: entry.change, input});
@@ -3807,31 +3809,26 @@ function selectedMoveExplanation() {
     try {
       const board = new Chess(pos.fen);
       const gain = move => (move.color === "w" ? 1 : -1) * ((SAC_VAL[move.captured] || 0) + (move.promotion ? SAC_VAL[move.promotion] - 1 : 0));
-      let material = gain(pos);
-      const losses = [], returns = [];
+      const balance = board => board.board().flat().reduce((sum, piece) => sum + (piece ? (piece.color === "w" ? 1 : -1) * SAC_VAL[piece.type] : 0), 0);
+      const beforeMove = balance(board) - gain(pos);
+      let lastMove, captured = !!pos.captured;
       for (const uci of top.pv.trim().split(/\s+/)) {
         const move = board.move({from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci.slice(4) || undefined});
         if (!move) return "I have no idea why.";
-        material += gain(move);
-        if (move.captured) (move.color === pos.color ? returns : losses).push(move.captured);
+        lastMove = move;
+        captured ||= !!move.captured;
         if (board.isThreefoldRepetition()) return "Leads to a draw.";
       }
       if (board.isCheckmate()) return `${board.turn() === "w" ? "Black" : "White"} checkmates.`;
       if (board.isStalemate()) return "Leads to stalemate.";
       if (board.isInsufficientMaterial()) return "Leads to a draw by insufficient material.";
       if (board.isDraw()) return "Reaches the fifty-move rule; a draw can be claimed.";
-      const balance = board.board().flat().reduce((sum, piece) => sum + (piece ? (piece.color === "w" ? 1 : -1) * SAC_VAL[piece.type] : 0), 0);
-      // A truncated capture sequence is not evidence of a lasting material gain.
-      if (material && Number.isFinite(ev?.cp) && Math.sign(material) * (Math.round(ev.cp / 100) - balance) >= 0) {
-        const losing = material * (pos.color === "w" ? 1 : -1) < 0;
-        if (losing && losses.length && !returns.length) {
-          const pieces = [...new Set(losses)].map(piece => {
-            const count = losses.filter(p => p === piece).length;
-            return count === 1 ? `a ${names[piece]}` : `${count} ${names[piece]}s`;
-          });
-          return `Loses ${pieces.length < 2 ? pieces[0] : pieces.slice(0,-1).join(", ") + " and " + pieces.at(-1)}.`;
-        }
-        return (!losing && freeCapture) || `${material > 0 ? "White" : "Black"} gains ${Math.abs(material)} ${Math.abs(material) === 1 ? "point" : "points"} of material.`;
+      const material = balance(board) - beforeMove;
+      if (!material && captured && !lastMove?.captured && !board.isCheck()) return recapture ? "Recaptures." : "I have no idea why.";
+      // Do not count an exchange that the available line cuts off at a capture or check.
+      if (material && !lastMove?.captured && !board.isCheck()) {
+        const winning = material * (pos.color === "w" ? 1 : -1) > 0;
+        return (winning && freeCapture) || `${material > 0 ? "White" : "Black"} gains ${Math.abs(material)} ${Math.abs(material) === 1 ? "point" : "points"} of material.`;
       }
     } catch {}
   }

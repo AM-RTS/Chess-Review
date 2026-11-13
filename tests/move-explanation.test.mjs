@@ -65,7 +65,7 @@ test('material losses come only from the top line, never another candidate', t =
   const a = app(t), S = loadGame(a, '1. e4 e5 2. Qh5');
   S.idx = 3;
   S.evals[3] = {cp: -800};
-  S.bests[3].lines = [{multipv: 2, pv: 'g8f6'}, {multipv: 1, pv: 'b8c6 h5e5 c6e5'}];
+  S.bests[3].lines = [{multipv: 2, pv: 'g8f6'}, {multipv: 1, pv: 'b8c6 h5e5 c6e5 b1c3 g8f6'}];
   assert.equal(a.call('selectedMoveExplanation'), 'Black gains 8 points of material.');
   S.bests[3].lines[1].pv = 'b8c6';
   assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
@@ -138,17 +138,51 @@ test('certified capture and recapture comments stay short', t => {
     context: {evidence: {consequence: {inputFen: input.fen, playedMove: input.move, afterFen: S.positions[3].fen,
       captured: 'p', minimumGain: 1}}}}]});
   assert.equal(a.call('selectedMoveExplanation'), 'Free pawn.');
+  S.bests[3].lines = [{multipv: 1, pv: 'd8d5 b1c3 d5d8'}];
+  assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
   S.idx = 4;
   assert.equal(a.call('selectedMoveExplanation'), 'Recaptures.');
   branch(a, 0, 4);
   assert.equal(a.call('selectedMoveExplanation'), 'Recaptures.');
 });
 
-test('a tactical pawn and rook loss takes priority over recapture in both views', t => {
+test('net tactical loss includes the selected recapture in both views', t => {
   const a = app(t), S = loadGame(a, '1. e4 e5 2. Nf3 f6 3. Nxe5 fxe5');
   S.idx = 6; S.evals[6] = {cp: 398};
   S.bests[6].lines = [{multipv: 1, bound: 'exact', pv: 'd1h5 g7g6 h5e5 d8e7 e5h8 g8f6'}];
-  assert.equal(a.call('selectedMoveExplanation'), 'Loses a pawn and a rook.');
+  assert.equal(a.call('selectedMoveExplanation'), 'White gains 3 points of material.');
   branch(a, 0, 6);
-  assert.equal(a.call('selectedMoveExplanation'), 'Loses a pawn and a rook.');
+  assert.equal(a.call('selectedMoveExplanation'), 'White gains 3 points of material.');
+});
+
+test('mixed exchanges, promotion and en passant use the pre-move baseline', t => {
+  const cases = [
+    ['[SetUp "1"]\n[FEN "7k/8/4b3/3n4/4P3/8/8/K2R4 w - - 0 1"]\n\n1. Rxd5', 'e6d5 e4d5 h8g8', 'White gains 1 point of material.'],
+    ['[SetUp "1"]\n[FEN "1r5k/P7/8/8/8/8/8/6K1 w - - 0 1"]\n\n1. a8=Q', 'b8a8 g1f2 h8h7', 'Black gains 1 point of material.'],
+    ['1. e4 a6 2. e5 d5 3. exd6', 'g8f6', 'White gains 1 point of material.'],
+    ['1. e4 d5 2. exd5', 'd8d5 b1c3 d5d8', 'I have no idea why.'],
+  ];
+  for (const [pgn, pv, expected] of cases) {
+    const a = app(t), S = loadGame(a, pgn);
+    S.idx = S.total; S.bests[S.idx].lines = [{multipv: 1, bound: 'exact', pv}];
+    assert.equal(a.call('selectedMoveExplanation'), expected);
+    branch(a, 0, S.idx);
+    assert.equal(a.call('selectedMoveExplanation'), expected);
+  }
+});
+
+test('complete engine line from the reported position overrides the recapture fallback', t => {
+  const a = app(t), S = loadGame(a, '1. e4 e5 2. Nf3 f6 3. Nxe5 fxe5');
+  S.idx = 6; S.evals[6] = {cp: 371};
+  S.bests[6].lines = [{multipv: 1, bound: 'exact', pv: 'd1h5 g7g6 h5e5 d8e7 e5h8 d7d5 f1b5 c7c6 h8g8 e7e4 b5e2 e4g2 h1f1 c8h3'}];
+  assert.equal(a.call('selectedMoveExplanation'), 'White gains 4 points of material.');
+});
+
+test('a losing recapture with no net material change does not receive a reassuring fallback', t => {
+  const a = app(t), S = loadGame(a, '1. e4 e5 2. Nf3 f6 3. Nxe5 fxe5');
+  S.idx = 6; S.classif[6] = S.positions[6].classif = 'blunder';
+  S.bests[6].lines = [{multipv: 1, bound: 'exact', pv: 'd1h5 e8e7 h5e5 e7f7 f1c4 d7d5 c4d5 f7g6 e5g3 d8g5 g3c7 b8d7 h2h4 g5e5 c7e5 d7e5 h4h5 g6f6 d2d4 e5c6 c2c3 c8d7 b1d2'}];
+  assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
+  branch(a, 0, 6);
+  assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
 });
