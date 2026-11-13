@@ -626,32 +626,41 @@ function processedFx(url, pitch, speed) {
   });
 }
 // Play an event's sound now (no throttle) — used for the move board and settings previews.
-function triggerFx(ev) {
+function triggerFx(ev, navigation = null) {
   const ctx = audioCtx();
   if (!ctx) return;
   if (ctx.state === "suspended") ctx.resume().catch(() => {});
   const cfg = fxConfig(ev);
   processedFx(fxUrl(ev), cfg.pitch, cfg.speed).then((fx) => {
+    if (navigation && (navigation.token !== _navSoundToken
+      || navigation.duration && performance.now() > navigation.at + navigation.duration)) return;
     const src = ctx.createBufferSource(), gain = ctx.createGain();
-    src.buffer = fx.buffer; src.playbackRate.value = fx.rate;
+    src.buffer = fx.buffer;
+    src.playbackRate.value = navigation?.duration ? Math.max(fx.rate, fx.buffer.duration * 1000 / navigation.duration) : fx.rate;
     gain.gain.value = masterVol();
     src.connect(gain).connect(ctx.destination);
+    if (navigation) {
+      if (navigation.duration) { try { _navSoundSource?.stop(); } catch {} }
+      _navSoundSource = src;
+      src.onended = () => { if (_navSoundSource === src) _navSoundSource = null; };
+    }
     src.start();
   }).catch(() => {});
 }
-// Fast-scrub feel (holding ←/→): nav events fire quicker than a click can ring out. Throttle the cue
-// to a tidy cadence; Web Audio is naturally polyphonic so overlapping plays don't garble.
+// Drop superseded cues rather than letting decoded sounds play late.
 const NAV_SOUND_GAP = 55;   // ms — min spacing between consecutive nav click sounds
-let _lastNavSound = 0, _lastNavStep = null;
+let _lastNavSound = 0, _lastNavStep = null, _navSoundToken = 0, _navSoundSource = null;
+let heldNavigation = null;
 function playEvent(ev) {
   if (!S.settings.sound) return;
   const now = performance.now();
   if (now - _lastNavSound < NAV_SOUND_GAP) return;   // throttle machine-gun key-repeat
   _lastNavSound = now;
-  triggerFx(ev);
+  triggerFx(ev, {token: ++_navSoundToken, at: now, duration: heldNavigation?.repeating ? heldNavigation.stepMs : null});
 }
 // Fit slides to the current navigation cadence in either direction.
 function navAnimationDuration() {
+  if (heldNavigation?.repeating) return heldNavigation.stepMs;
   const now = performance.now();
   const elapsed = _lastNavStep == null ? animDuration() : now - _lastNavStep;
   _lastNavStep = now;
@@ -3015,7 +3024,8 @@ function exitAnalysis(mainIdx) {
    Native board slides use the reference's 180ms default and ease-in-out curve. */
 function animateBoardFeedback(badge) {
   if (!badge?.animate || !S.settings.specialMoveAnim || reducedBoardMotion()) return;
-  const duration = 1300 / Math.max(.5, Math.min(2, Number(S.settings.specialMoveSpeed) || 1));
+  const duration = Math.min(1300 / Math.max(.5, Math.min(2, Number(S.settings.specialMoveSpeed) || 1)),
+    heldNavigation?.repeating ? heldNavigation.stepMs : Infinity);
   for (const old of badge.parentElement.querySelectorAll(".move-feedback-square")) {
     old.getAnimations?.().forEach(animation => animation.cancel());
     old.remove();
@@ -3253,6 +3263,7 @@ function playerStrip(side) {
   );
 }
 function renderPlayers() {
+  if (heldNavigation?.repeating) return;
   UI.playerTop.replaceChildren(playerStrip(S.flipped ? "w" : "b"));
   UI.playerBot.replaceChildren(playerStrip(S.flipped ? "b" : "w"));
   alignPlayers();
@@ -3348,7 +3359,7 @@ function renderVariationPicker() {
   UI.variationPicker.replaceChildren("Explored lines ", select);
 }
 function renderControls() {
-  renderVariationPicker();
+  if (!heldNavigation?.repeating) renderVariationPicker();
   const mode = S.practice ? "practice" : S.standalone ? "standalone" : S.analysisMode && S.variation ? "variation" : "mainline";
   let refs = UI.controlRefs;
   // Progress updates can arrive between mouse-down and mouse-up. Keep the buttons
@@ -4377,13 +4388,14 @@ function qBadge(k, score = null) {
 // touching the rest of the list. Used both after a full rebuild and on a plain step.
 function highlightCurrentMove(forceScroll = false) {
   const prev = UI.movesBody.querySelector(".ml-move.current");
-  const previousPly = prev?.dataset.ply;
+  const previousPly = prev?.dataset.var ?? prev?.dataset.ply;
   if (prev) prev.classList.remove("current");
   // In analysis mode no mainline cell is "current" (the original render never marked one).
-  const cur = S.analysisMode ? null : UI.movesBody.querySelector('.ml-move[data-ply="' + S.idx + '"]');
+  const cur = S.standalone ? UI.movesBody.querySelector('.ml-move[data-var="' + S.variation.idx + '"]')
+    : S.analysisMode ? null : UI.movesBody.querySelector('.ml-move[data-ply="' + S.idx + '"]');
   if (cur) {
     cur.classList.add("current");
-    if (forceScroll || previousPly !== cur.dataset.ply) {
+    if (forceScroll || previousPly !== (cur.dataset.var ?? cur.dataset.ply)) {
       const cr = cur.getBoundingClientRect(), sr = UI.movesBody.getBoundingClientRect();
       UI.movesBody.scrollTop += (cr.top - sr.top) - (UI.movesBody.clientHeight - cr.height - 14);
     }
@@ -5421,6 +5433,7 @@ function refreshConcepts() {
     if (_conceptRenderTimer) return;
     _conceptRenderTimer = setTimeout(() => {
       _conceptRenderTimer = null;
+      if (heldNavigation?.repeating) return;
       if (UI.settings && !UI.settings.hidden && S.settingsTab === "concepts") renderSettings();
       renderReview();
     }, 100);
@@ -6471,17 +6484,54 @@ function renderAnalysisTools() {
 let _standaloneMovesSig=null;
 function renderStandaloneMoves() {
   const v=S.variation;
-  const sig=JSON.stringify([v.idx,v.positions.map(p=>[p.fen,p.classif,p.moveGrade]),S.settings.mlStyle,S.settings.badgeStyle,S.settings.badgeDesign,S.settings.badgeFont,S.settings.categoryNames]);
-  if(sig===_standaloneMovesSig && UI.movesBody.firstChild) return;
+  const sig=JSON.stringify([v.positions.map(p=>[p.fen,p.classif,p.moveGrade]),S.settings.mlStyle,S.settings.badgeStyle,S.settings.badgeDesign,S.settings.badgeFont,S.settings.categoryNames]);
+  if(sig===_standaloneMovesSig && UI.movesBody.firstChild) {highlightCurrentMove();return;}
   _standaloneMovesSig=sig;
   const list=buildMoveList(v.positions, ply=>moveCell(ply,v));
   UI.movesBody.style.padding=S.settings.mlStyle==="rows" ? "0" : "var(--pad)";
   UI.movesBody.replaceChildren(list);
   UI.movesCount.textContent="";UI.movesFoot.hidden=true;
-  list.querySelector('.current')?.scrollIntoView?.({block:"nearest"});
+  highlightCurrentMove(true);
 }
 
 /* ---------------- Navigation ---------------- */
+function stopHeldNavigation() {
+  const held = heldNavigation;
+  if (!held) return;
+  cancelAnimationFrame(held.frame);
+  heldNavigation = null; _lastNavStep = null;
+  if (!held.repeating) return;
+  ++_navSoundToken;
+  if (S.analysisMode) requestLiveEval();
+  else { renderPlayers(); renderReview(); renderGraph(); renderEngineCurrent(); }
+}
+function startHeldNavigation(key) {
+  if (heldNavigation?.key === key) return;
+  stopHeldNavigation();
+  const held = {key, repeating: false, stepMs: Math.min(100, animDuration()),
+    nextAt: performance.now() + Math.max(250, animDuration()), frame: null};
+  heldNavigation = held;
+  const step = () => key === "ArrowLeft" ? navPrev() : navNext();
+  step();
+  if (S.settings.sound) for (const event of ["move", "capture", "check", "castle"]) {
+    const cfg = fxConfig(event);
+    processedFx(fxUrl(event), cfg.pitch, cfg.speed).catch(() => {});
+  }
+  const tick = now => {
+    if (heldNavigation !== held) return;
+    if (now >= held.nextAt) {
+      if (!held.repeating) {
+        held.repeating = true;
+        ++S.liveToken; S.liveEngine?.cancelPending(); S.liveEngine?.stop();
+      }
+      const before = activePos(); step();
+      if (activePos() === before) { stopHeldNavigation(); return; }
+      held.nextAt = performance.now() + held.stepMs;
+    }
+    held.frame = requestAnimationFrame(tick);
+  };
+  held.frame = requestAnimationFrame(tick);
+}
 function go(to) {
   _cancelPromotion?.();
   _cancelBoardDrag?.();
@@ -6502,8 +6552,9 @@ function go(to) {
   renderEvalBar();
   renderPlayers();
   renderControls();
-  renderReview();
   renderMoves();
+  if (heldNavigation?.repeating) return;
+  renderReview();
   renderGraph();
   renderEngineCurrent();
 }
@@ -6524,7 +6575,9 @@ function gotoVar(idx) {
   if (idx === previous) return;
   v.idx = idx; S.selectedSq = null;
   paintBoard(Math.abs(idx - previous) === 1 ? {move: v.positions[Math.max(idx, previous)], reverse: idx < previous, duration: navAnimationDuration()} : null); playSanSound(v.positions[Math.max(idx, previous)]?.san); renderEvalBar(); renderPlayers(); renderControls();
-  renderReview(); renderMoves(); renderEngineCurrent(); requestLiveEval();
+  renderMoves();
+  if (heldNavigation?.repeating) return;
+  renderReview(); renderEngineCurrent(); requestLiveEval();
 }
 function variationStep(delta) {
   const v = S.variation; if (!v) return;
@@ -6536,7 +6589,9 @@ function variationStep(delta) {
   S.selectedSq = null;
   paintBoard({move: v.positions[Math.max(ni, ni - delta)], reverse: delta < 0, duration: navAnimationDuration()});
   playSanSound((delta > 0 ? v.positions[v.idx] : v.positions[v.idx + 1])?.san);
-  renderEvalBar(); renderPlayers(); renderControls(); renderReview(); renderEngineCurrent();
+  renderEvalBar(); renderPlayers(); renderControls(); renderMoves();
+  if (heldNavigation?.repeating) return;
+  renderReview(); renderEngineCurrent();
   requestLiveEval();
 }
 function toggleFlip() {
@@ -6558,16 +6613,24 @@ function toggleAuto() {
 document.addEventListener("keydown", (e) => {
   if (learningWorkspace) return;
   if (UI.settings?.contains(e.target) || UI.libRail?.contains(e.target)) return;
-  if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  if (e.target && (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable)) return;
   // During practice the only shortcut is Escape to exit; nav keys are disabled.
   if (S.practice) { if (e.key === "Escape") exitPractice(); return; }
-  if (e.key === "ArrowLeft") navPrev();
-  else if (e.key === "ArrowRight") navNext();
+  if (["Home", "End", "Escape"].includes(e.key)) stopHeldNavigation();
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    e.preventDefault();
+    if (!e.repeat) startHeldNavigation(e.key);
+  }
   else if (e.key === "Home") { if (S.analysisMode) gotoVar(0); else gotoMainline(0); }
   else if (e.key === "End") { if (S.analysisMode) gotoVar(S.variation.positions.length - 1); else gotoMainline(S.total); }
   else if (e.key === "Escape") { if (S.analysisMode) exitAnalysis(); }
   else if (e.key === "f" && !e.ctrlKey && !e.metaKey) toggleFlip(); // Ctrl+F must not flip the board
 });
+document.addEventListener("keyup", e => { if (e.key === heldNavigation?.key) stopHeldNavigation(); });
+window.addEventListener("blur", stopHeldNavigation);
+document.addEventListener("pointerdown", stopHeldNavigation, true);
+document.addEventListener("visibilitychange", () => { if (document.hidden) stopHeldNavigation(); });
 
 /* ---------------- Analysis batch + re-analysis ----------------
    The game is analyzed by a POOL of independent Stockfish workers pulling positions from a

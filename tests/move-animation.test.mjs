@@ -132,6 +132,15 @@ test('held navigation animates both directions at the repeat cadence', t => {
  assert.ok(slides(a).every(animation=>animation.options.duration===35));
 });
 
+test('held navigation fits the complete special badge effect into the move interval', t => {
+ const a=board(t,'1. e4');a.state.classif[1]='great';
+ a.run('heldNavigation = {repeating:true, stepMs:100}');a.replace('navAnimationDuration',()=>100);
+ a.call('go',1);
+ assert.equal(slides(a)[0].options.duration,100);
+ const feedback=a.animations.filter(animation=>animation.node.classList.contains('sq-badge')||animation.node.classList.contains('move-feedback-square'));
+ assert.ok(feedback.length);assert.ok(feedback.every(animation=>animation.options.duration===100));
+});
+
 test('another piece can move without cancelling an unfinished slide', t => {
  const a=board(t,'1. e4 e5');a.call('go',1);
  const first=slides(a)[0];a.call('go',2);
