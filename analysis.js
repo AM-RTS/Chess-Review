@@ -3809,7 +3809,7 @@ function selectedMoveExplanation() {
         if (!move) return "I have no idea why.";
         material += gain(move);
       }
-      if (material) return `In the engine’s top line, ${material > 0 ? "White" : "Black"} gains ${Math.abs(material)} ${Math.abs(material) === 1 ? "point" : "points"} of material.`;
+      if (material) return `${material > 0 ? "White" : "Black"} gains ${Math.abs(material)} ${Math.abs(material) === 1 ? "point" : "points"} of material.`;
     } catch {}
   }
   return "I have no idea why.";

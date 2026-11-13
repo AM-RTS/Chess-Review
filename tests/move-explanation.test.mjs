@@ -51,9 +51,9 @@ test('top line counts net material, including the played capture and recaptures'
   const a = app(t), S = loadGame(a, '1. e4 d5 2. exd5');
   S.idx = 3;
   S.bests[3].lines = [{multipv: 1, pv: 'g8f6'}];
-  assert.equal(a.call('selectedMoveExplanation'), 'In the engine’s top line, White gains 1 point of material.');
+  assert.equal(a.call('selectedMoveExplanation'), 'White gains 1 point of material.');
   branch(a, 0, 3);
-  assert.equal(a.call('selectedMoveExplanation'), 'In the engine’s top line, White gains 1 point of material.');
+  assert.equal(a.call('selectedMoveExplanation'), 'White gains 1 point of material.');
   S.variation.positions[3].best.lines[0].pv = 'd8d5';
   assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
   S.variation.positions[3].best.lines[0].pv = 'd8d5 a1a8';
@@ -64,7 +64,7 @@ test('material losses come only from the top line, never another candidate', t =
   const a = app(t), S = loadGame(a, '1. e4 e5 2. Qh5');
   S.idx = 3;
   S.bests[3].lines = [{multipv: 2, pv: 'g8f6'}, {multipv: 1, pv: 'b8c6 h5e5 c6e5'}];
-  assert.equal(a.call('selectedMoveExplanation'), 'In the engine’s top line, Black gains 8 points of material.');
+  assert.equal(a.call('selectedMoveExplanation'), 'Black gains 8 points of material.');
   S.bests[3].lines[1].pv = 'b8c6';
   assert.equal(a.call('selectedMoveExplanation'), 'I have no idea why.');
 });
