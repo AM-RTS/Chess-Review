@@ -140,7 +140,7 @@ const NOTEWORTHY = new Set(["brilliant","great","inacc","mistake","miss","blunde
 const QUALITY_DESC = {
   forced: "The only legal move. Included under Best in the move breakdown.",
   brilliant: "A sound voluntary piece sacrifice that keeps a satisfactory, near-best evaluation. Ordinary trades, forced moves and substantial evaluation losses do not count. Other winning alternatives do not disqualify it.",
-  great:     "A non-routine best move with a significant gap to the second-best alternative. If another move still retains a clear advantage or forces mate, it remains Best. Ordinary trades, material grabs, and immediate mate finishes also stay Best. No preceding error is required.",
+  great:     "A non-routine best move with a significant gap to the second-best alternative. If another move still retains a clear advantage or forces mate, it remains Best. Ordinary trades, material grabs, and immediate mate finishes also stay Best. No preceding error is required. The resulting position must be at least roughly equal; staying lost is not Great.",
   best:      "Exactly the engine's top move — the best possible move in the position (also shown for forced, only-legal moves).",
   excellent: "An alternative nearly as strong as the engine's top move: loses less than 2 percentage points in estimated winning chances, or begins or preserves a forced mate.",
   good:      "A small loss of estimated winning chances (2–5 percentage points), or a move that takes longer to deliver a forced mate.",
@@ -1131,7 +1131,7 @@ async function verifyRestoredGreatMoves() {
 }
 
 // Independent annotation policy, deliberately not coefficients fitted to recorded ratings.
-const BRILLIANT_POLICY = { minAfterPawns: -0.5 };
+const SPECIAL_MOVE_POLICY = { minAfterPawns: -0.5 };
 function brilliantEligible(i, mover, std, wpDrop, state) {
   if (std[i] !== "excellent" || !Number.isFinite(wpDrop?.[i])) return false;
   const root = state.bests[i - 1], topLine = root?.lines?.[0];
@@ -1140,7 +1140,7 @@ function brilliantEligible(i, mover, std, wpDrop, state) {
   const after = decisionPawns(i, "played", mover, state), before = decisionPawns(i, "best", mover, state);
   const mateAfter = decisionMate(i, "played", mover, state), mateBefore = decisionMate(i, "best", mover, state);
   if (!Number.isFinite(after) || !Number.isFinite(before)
-    || (mateAfter != null ? mateAfter <= 0 : after < BRILLIANT_POLICY.minAfterPawns)) return false;
+    || (mateAfter != null ? mateAfter <= 0 : after < SPECIAL_MOVE_POLICY.minAfterPawns)) return false;
   // Expected-score loss saturates in winning positions; also reject a substantial raw eval loss.
   const maxLoss=Number.isFinite(state.settings.clsGood)&&state.settings.clsGood>=0 ? state.settings.clsGood : DEFAULT_SETTINGS.clsGood;
   if(mateBefore==null && mateAfter==null && before-after>maxLoss) return false;
@@ -1259,10 +1259,12 @@ function classifyMove(i, mover, isTop, book, sac, std, loss, wpDrop, state = S) 
   // Do not reward delays of a known mate or moves that merely remain best in a decided position.
   const beforeMate = decisionMate(i, "best", mover, state), afterMate = decisionMate(i, "played", mover, state);
   const soundMate = !(beforeMate > 0) || (afterMate > 0 && keepMating(i));
-  if(sac[i] && soundMate && brilliantEligible(i,mover,std,wpDrop,state)) return "brilliant";
+  const satisfactoryAfter = afterMate != null ? afterMate > 0
+    : (evalFor(i) ?? -Infinity) >= SPECIAL_MOVE_POLICY.minAfterPawns;
+  if(satisfactoryAfter && sac[i] && soundMate && brilliantEligible(i,mover,std,wpDrop,state)) return "brilliant";
 
   // Only-good defensive resources and tactics do not depend on a preceding error.
-  if(std[i]==="excellent" && isTop && soundMate && !(afterMate<0) && !routineGreatMove(i,state,sac[i])) {
+  if(satisfactoryAfter && std[i]==="excellent" && isTop && soundMate && !routineGreatMove(i,state,sac[i])) {
     state.greatCandidates?.push(i);
     if(onlyGoodReply(i,state)) return "great";
   }

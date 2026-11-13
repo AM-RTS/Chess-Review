@@ -43,6 +43,10 @@ Brilliant independently recognizes sound voluntary piece sacrifices with near-be
 evaluation; other winning alternatives do not disqualify them. In addition to the
 expected-score quality threshold, the existing Excellent centipawn tolerance prevents
 throwing away material in an already winning position from receiving Brilliant.
+Both Great and Brilliant require a non-losing result, using the existing
+rough-equality allowance down to -0.5 pawns from the mover's perspective.
+Improving a lost position while remaining below that boundary does not qualify;
+a losing forced-mate score never qualifies.
 Both are available in reviews and live analysis. Brilliant
 retains priority; Great verification never replaces accuracy evidence.
 

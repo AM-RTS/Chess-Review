@@ -85,15 +85,12 @@ test('navigation cancels a pending live Great check without accepting its late r
   assert.equal(v.positions[3].classif,'great');assert.equal(checks,2);
 });
 
-test('a sacrifice that fails Brilliant can still be verified as Great',async t=>{
+test('a sacrifice that remains losing cannot become Great or launch verification',async t=>{
   const a=app(t),S=loadGame(a,'[SetUp "1"]\n[FEN "7k/8/4p3/8/8/8/8/K2Q4 w - - 0 1"]\n\n1. Ka2 Kh7 2. Qd5',[-900,-900,-100,-100].map(cp=>({cp})));
   S.bests[2]={score:{cp:-100},bestmove:'d1d5',lines:[]};a.call('computeDerived');
   assert.equal(a.call('_sacAt',3),true);assert.equal(S.classif[3],'best');
-  await a.call('verifyGreatCandidates',S,async()=>fakeEngine(async()=>({bestmove:'d1d5',lines:[
-    {score:{cp:-100},pv:'d1d5',depth:4,bound:'exact',multipv:1},
-    {score:{cp:-500},pv:'d1e1',depth:4,bound:'exact',multipv:2},
-  ]})),()=>true);
-  a.call('computeDerived');assert.equal(S.classif[3],'great');
+  await a.call('verifyGreatCandidates',S,async()=>assert.fail('Still-losing moves need no Great verification'),()=>true);
+  a.call('computeDerived');assert.equal(S.classif[3],'best');
 });
 
 test('a completed review verifies candidates before saving and a cached review verifies on restore',async t=>{
@@ -137,9 +134,29 @@ test('only top Excellent replies qualify, and a contextual opponent Mistake also
   const a=candidate(t),S=a.state;
   S.bests[2].bestmove='b1c3';S.bests[2].lines[0].pv='b1c3';a.call('computeDerived');
   assert.equal(S.classif[3],'excellent');assert.equal(S.greatCandidates.length,0);
-  S.evals=[-210,-210,-70,-70].map(cp=>({cp}));
-  S.bests[2]={score:{cp:-70},bestmove:'g1f3',lines:[{score:{cp:-70},pv:'g1f3',depth:4,bound:'exact',multipv:1}]};
+  S.evals=[-210,-210,0,0].map(cp=>({cp}));
+  S.bests[2]={score:{cp:0},bestmove:'g1f3',lines:[{score:{cp:0},pv:'g1f3',depth:4,bound:'exact',multipv:1}]};
   a.call('computeDerived');assert.equal(S.classif[2],'mistake');assert.deepEqual(Array.from(S.greatCandidates),[3]);
-  const r=result(-500);r.lines[0].score.cp=-70;
+  const r=result(-500);r.lines[0].score.cp=0;
   await a.call('verifyGreatCandidates',S,async()=>fakeEngine(async()=>r),()=>true);a.call('computeDerived');assert.equal(S.classif[3],'great');
+});
+
+
+// Synthetic score/sacrifice inputs exercise the shared policy, not game-specific exceptions.
+for(const engine of ['sf19','sf19lite'])for(const color of ['w','b'])test(engine+' '+color+': losing moves require a drawing or winning result for special grades',t=>{
+ const a=app(t),ply=color==='w'?3:4,sign=color==='w'?1:-1;
+ for(const after of [{cp:-500},{cp:-51},{cp:-50},{cp:0},{cp:300},{mate:-3},{mate:3}])for(const sacrifice of [false,true]){
+  const S=loadGame(a,'1. e4 e5 2. Nf3 Nc6');S.settings.enginePath=engine;
+  S.evals=S.positions.map(()=>({cp:-500*sign}));S.evals[ply]=after.mate?{mate:after.mate*sign}:{cp:after.cp*sign};
+  const played=S.positions[ply].from+S.positions[ply].to,alternative=color==='w'?'d2d4':'d7d5';
+  S.bests[ply-1]={score:after,playedScore:after,bestmove:played,lines:[
+    {score:after,pv:played,depth:4,bound:'exact',multipv:1},
+    {score:{cp:-1500},pv:alternative,depth:4,bound:'exact',multipv:2},
+  ]};S._sacCache=new Array(S.total+1).fill(false);S._sacCache[ply]=sacrifice;a.call('computeDerived');
+  const eligible=after.mate!=null?after.mate>0:after.cp>=-50;
+  assert.equal(S.classif[ply],eligible?(sacrifice?'brilliant':'great'):'best',JSON.stringify({after,sacrifice}));
+  if(!eligible)assert.equal(S.greatCandidates.includes(ply),false);
+  const v=branch(a,0,ply);v.positions[ply]._sac=sacrifice;a.call('classifyVariationMoves');
+  assert.equal(v.positions[ply].classif,S.classif[ply]);S.analysisMode=false;S.variation=null;
+ }
 });
