@@ -2221,7 +2221,9 @@ button { font-family: inherit; cursor: pointer; }
 .mate-highlight { position:absolute; inset:0; opacity:.18; z-index:0; pointer-events:none; }
 .mate-loser { background:#e63946; color:#a51d2d; }
 .mate-winner { background:#81b64c; color:#639b35; }
+.mate-draw { background:#8b8987; color:#62615f; }
 .mate-symbol { position:absolute; inset:12%; display:flex; align-items:center; justify-content:center; }
 .mate-symbol svg { width:100%; height:100%; }
 .mate-symbol .mate-king { width:100%; height:100%; position:static; transform:rotate(90deg); filter:brightness(0); }
 .mate-label { position:absolute; bottom:110%; left:50%; transform:translateX(-50%); border-radius:12px; padding:2px 5px; background:white; color:inherit; white-space:nowrap; font-size:12cqmin; font-weight:bold; opacity:0; }
+.sq.top-row .mate-label { bottom:auto; top:110%; }

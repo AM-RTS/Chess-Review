@@ -26,6 +26,10 @@ effects toggle and a 0.5×–2× speed control. Badges and classifications remai
 when these effects are disabled. Backward steps animate pieces and special feedback.
 Checkmate shows red losing-king and green winner/crown feedback that settles into
 corner symbols; reduced motion keeps the static symbols.
+Recorded timeouts use a red clock on the losing king and a green winner crown.
+Draws use neutral half-point markers on both kings, with the same entrance and
+corner-settling motion. Recorded timeout/agreement results apply only at the end
+of the game, not to explored variations or earlier moves.
 
 **Analysis** in the review header or **Open analysis board** in the extension popup
 opens an independent starting board. Play either side, undo/redo or branch from an

@@ -24,6 +24,32 @@ function board(t,pgn) {
 }
 const slides=a=>a.animations.filter(n=>n.frames[0].transform?.startsWith('translate(')&&n.frames.at(-1).transform==='translate(0, 0)');
 
+for(const loser of ['w','b'])test('timeout marks the recorded loser, not the side to move: '+loser,t=>{
+ const a=board(t,'1. e4 e5');a.state.headers={Result:loser==='w'?'0-1':'1-0',Termination:'won on time'};
+ a.call('go',2);const doc=a.dom.window.document;
+ assert.equal(doc.querySelector('.mate-marker.mate-loser').getAttribute('aria-label'),'Timeout');
+ assert.ok(doc.querySelector('.mate-loser .mate-symbol circle'));assert.ok(doc.querySelector('.mate-winner'));
+ assert.equal(a.run('sqByName')[loser==='w'?'e1':'e8'].querySelector('.mate-loser')!=null,true);
+ a.call('go',1);assert.equal(doc.querySelector('.mate-marker'),null);
+});
+test('API timeout metadata works without termination text; resignation is not a timeout',t=>{
+ const a=board(t,'1. e4 e5');a.state.headers={Result:'1-0'};a.state.meta={black:{result:'timeout'}};
+ a.call('go',2);assert.ok(a.dom.window.document.querySelector('[aria-label="Timeout"]'));
+ a.call('go',1);a.state.meta={};a.state.headers.Termination='White won by resignation';a.call('go',2);
+ assert.equal(a.dom.window.document.querySelector('.mate-marker'),null);
+});
+test('draw gives both kings neutral markers with no winner and does not leak into variations',t=>{
+ const a=board(t,'1. e4 e5');a.state.headers={Result:'1/2-1/2',Termination:'draw by agreement'};a.call('go',2);
+ const doc=a.dom.window.document;assert.equal(doc.querySelectorAll('.mate-draw.mate-marker').length,2);
+ assert.equal(doc.querySelector('.mate-winner'),null);
+ const count=a.animations.filter(n=>n.node.classList.contains('mate-marker')).length;a.call('paintBoard');
+ assert.equal(a.animations.filter(n=>n.node.classList.contains('mate-marker')).length,count);
+ branch(a);a.call('paintBoard');assert.equal(doc.querySelector('.mate-marker'),null);
+ a.state.analysisMode=false;a.state.variation=null;
+ a.call('go',1);assert.equal(doc.querySelector('.mate-marker'),null);
+ branch(a);a.call('paintBoard');assert.equal(doc.querySelector('.mate-marker'),null);
+});
+
 test('special effects can be disabled and their speed scales every layer',t=>{
  const a=board(t,'1. e4 e5');a.state.classif[1]='great';
  assert.equal(a.state.settings.specialMoveAnim,true);

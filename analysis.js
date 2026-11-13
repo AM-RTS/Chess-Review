@@ -2182,7 +2182,7 @@ function paintBoard(transition = null) {
     animateBoardFeedback(sqByName[reverse ? pos.to : move.to]?.querySelector(".sq-badge"));
   } else if (newFeedback) animateBoardFeedback(newFeedback);
 
-  paintCheckmate(pos, motion && !samePosition);
+  paintGameEnd(pos, motion && !samePosition);
   syncBoardBadgeLabel();
   renderBestArrow();
   renderUserArrows();
@@ -3029,21 +3029,39 @@ function animateBoardFeedback(badge) {
   ], {duration, easing: "linear"});
   animation.finished.catch(() => {}).then(() => flash.remove());
 }
-function paintCheckmate(pos, animate) {
+function paintGameEnd(pos, animate) {
   const chess = new Chess(pos.fen);
-  if (!chess.isCheckmate()) return;
+  const mate = chess.isCheckmate(), result = activeResult();
+  const recordedEnd = !S.analysisMode && S.idx === S.total;
+  const timedOut = recordedEnd && (['w','b'].some(color=>S.meta?.[color==='w'?'white':'black']?.result === 'timeout')
+    || /timeout|timed?\s*out|time\s*forfeit|on\s*time/i.test(S.headers?.Termination || ''));
+  const kind = mate ? 'mate' : result === 'Draw' ? 'draw' : timedOut && ['1-0','0-1'].includes(result) ? 'timeout' : null;
+  const loser = mate ? chess.turn() : result === '1-0' ? 'b' : 'w';
+  const signature = kind + ':' + loser;
+  const previous = UI.boardWrap.querySelector('.mate-marker');
+  if (!kind || (previous && previous.dataset.result !== signature)) {
+    for (const node of UI.boardWrap.querySelectorAll('.mate-marker, .mate-highlight')) {
+      node.getAnimations?.().forEach(animation=>animation.cancel());node.remove();
+    }
+  }
+  if (!kind) return;
   for (const king of chess.board().flat().filter(p=>p?.type==="k")) {
     const square = sqByName[king.square];
     if (!square || square.querySelector(".mate-marker")) continue;
-    const lost = king.color === chess.turn(), title = lost ? "Checkmate" : "Winner";
+    const draw = kind === 'draw', lost = !draw && king.color === loser;
+    const title = draw ? 'Draw' : lost ? kind === 'timeout' ? 'Timeout' : 'Checkmate' : 'Winner';
+    const colorClass = draw ? 'mate-draw' : lost ? 'mate-loser' : 'mate-winner';
     const symbol = el("span", {class:"mate-symbol", "aria-hidden":"true"});
-    if (lost) {
+    if (draw) symbol.innerHTML = '<svg viewBox="0 0 32 32"><text x="16" y="24" text-anchor="middle" fill="white" font-size="25" font-family="sans-serif" font-weight="bold">½</text></svg>';
+    else if (lost && kind === 'timeout') symbol.innerHTML = '<svg viewBox="0 0 32 32" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"><circle cx="16" cy="16" r="11"/><path d="M16 9v8l5 4"/></svg>';
+    else if (lost) {
       const piece = square.querySelector(".piece, .piece-svg, .piece-img")?.cloneNode(true);
       if (piece) {piece.removeAttribute("style");piece.setAttribute("class","mate-king");symbol.append(piece);}
     } else symbol.innerHTML = '<svg viewBox="0 0 32 32"><path fill="white" d="M4 9l7 6 5-10 5 10 7-6-3 17H7z"/></svg>';
     const label = el("span", {class:"mate-label"}, title);
-    const highlight = el("span", {class:"mate-highlight "+(lost?"mate-loser":"mate-winner"), "aria-hidden":"true"});
-    const marker = el("span", {class:"mate-marker "+(lost?"mate-loser":"mate-winner"), "aria-label":title}, label, symbol);
+    const highlight = el("span", {class:"mate-highlight "+colorClass, "aria-hidden":"true"});
+    const marker = el("span", {class:"mate-marker "+colorClass, "aria-label":title}, label, symbol);
+    marker.dataset.result = signature;
     square.append(highlight,marker);
     if (animate && marker.animate) {
       marker.animate([{transform:"translate(-75%, 100%) scale(1.7)",opacity:0,offset:0},
